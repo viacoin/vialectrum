@@ -9,5 +9,5 @@ index 6029abb..beec018 100755
 +    config_options['portable'] = True
 +
      if config_options.get('portable'):
-         config_options['electrum_path'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'electrum-ltc_data')
+         config_options['electrum_path'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'vialectrum_data')
  
