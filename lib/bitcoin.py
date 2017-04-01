@@ -36,18 +36,18 @@ from util import print_error, InvalidPassword
 import ecdsa
 import pyaes
 
-# Litecoin network constants
+# Viacoin network constants
 TESTNET = False
 NOLNET = False
-ADDRTYPE_P2PKH = 48
-ADDRTYPE_P2SH = 5
+ADDRTYPE_P2PKH = 71
+ADDRTYPE_P2SH = 22
 ADDRTYPE_P2WPKH = 6
 XPRV_HEADER = 0x0488ade4
 XPUB_HEADER = 0x0488b21e
-XPRV_HEADER_ALT = 0x019d9cfe
-XPUB_HEADER_ALT = 0x019da462
-HEADERS_URL = "https://electrum-ltc.org/blockchain_headers"
-GENESIS = "12a765e31ffd4059bada1e25190f6e98c99d9714d334efa41a195a7e7e04bfe2"
+XPRV_HEADER_ALT = 0x0488ade4
+XPUB_HEADER_ALT = 0x0488b21e
+HEADERS_URL = "https://headers.vialectrum.org/blockchain_headers"
+GENESIS = "4e9b54001f9976049830128ec0331515eaabe35a70970d79971da1539a400ba1"
 
 def set_testnet():
     global ADDRTYPE_P2PKH, ADDRTYPE_P2SH, ADDRTYPE_P2WPKH
@@ -60,10 +60,10 @@ def set_testnet():
     ADDRTYPE_P2WPKH = 3
     XPRV_HEADER = 0x04358394
     XPUB_HEADER = 0x043587cf
-    XPRV_HEADER_ALT = 0x0436ef7d
-    XPUB_HEADER_ALT = 0x0436f6e1
+    XPRV_HEADER_ALT = 0x04358394
+    XPUB_HEADER_ALT = 0x043587cf
     HEADERS_URL = "https://electrum-ltc.org/testnet_headers"
-    GENESIS = "4966625a4b2851d9fdee139e56211a0d88575f59ed816ff5e6a63deb4e3e29a0"
+    GENESIS = "770aa712aa08fdcbdecc1c8df1b3e2d4e17a7cf6e63a28b785b32e74c96cb27d"
 
 def set_nolnet():
     global ADDRTYPE_P2PKH, ADDRTYPE_P2SH, ADDRTYPE_P2WPKH
