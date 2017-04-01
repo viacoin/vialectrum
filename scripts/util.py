@@ -47,7 +47,7 @@ def wait_on_interfaces(interfaces, timeout=10):
 def get_peers():
     peers = []
     # 1. get connected interfaces
-    server = 'electrum-ltc.bysh.me:50002:s'
+    server = 'vialectrum.bysh.me:50002:s'
     interfaces = get_interfaces([server])
     if not interfaces:
         print "No connection to", server

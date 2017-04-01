@@ -51,22 +51,17 @@ DEFAULT_PORTS = {'t':'50001', 's':'50002'}
 #then gradually switch remaining nodes to e-x nodes
 
 DEFAULT_SERVERS = {
-    'elec.luggs.co': {'s':'444'},
-    'electrum-ltc.bysh.me': DEFAULT_PORTS,
-    'electrum-ltc.ddns.net': DEFAULT_PORTS,
-    'electrum-ltc.petrkr.net': {'t':'60001', 's':'60002'},
-    'electrum.cryptomachine.com': DEFAULT_PORTS,
-    'electrum.ltc.xurious.com': DEFAULT_PORTS,
-    'electrum.snicter.com': DEFAULT_PORTS,
-    'us11.einfachmalnettsein.de': {'t':'50007', 's':'50008'},
+    'vialectrum.bysh.me': DEFAULT_PORTS,
+    'vialectrum.viacoin.net': DEFAULT_PORTS,
+    'viax1.bitops.me': DEFAULT_PORTS,
+    'vialectrum.bitops.me': DEFAULT_PORTS,
 }
 
 def set_testnet():
     global DEFAULT_PORTS, DEFAULT_SERVERS
     DEFAULT_PORTS = {'t':'51001', 's':'51002'}
     DEFAULT_SERVERS = {
-        'electrum-ltc.bysh.me': DEFAULT_PORTS,
-        'electrum.ltc.xurious.com': DEFAULT_PORTS,
+        'vialectrum.bysh.me': DEFAULT_PORTS
     }
 
 def set_nolnet():

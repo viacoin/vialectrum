@@ -4,7 +4,7 @@
 # copy this file to /etc/electrum-ltc.conf if you want read-only settings
 
 [client]
-server = electrum-ltc.bysh.me:50001:t
+server = vialectrum.bysh.me:50001:t
 proxy = None
 gap_limit = 5
 # booleans use python syntax
