@@ -3,10 +3,10 @@
 
 [Desktop Entry]
 Comment=Lightweight Viacoin Client
-Exec=electrum-ltc %u
+Exec=vialectrum %u
 GenericName[en_US]=Viacoin Wallet
 GenericName=Viacoin Wallet
-Icon=electrum-ltc
+Icon=vialectrum
 Name[en_US]=Electrum Viacoin Wallet
 Name=Electrum Viacoin Wallet
 Categories=Finance;Network;

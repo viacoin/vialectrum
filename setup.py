@@ -28,12 +28,12 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         else:
             usr_share = os.path.expanduser('~/.local/share')
     data_files += [
-        (os.path.join(usr_share, 'applications/'), ['electrum-ltc.desktop']),
-        (os.path.join(usr_share, 'pixmaps/'), ['icons/electrum-ltc.png'])
+        (os.path.join(usr_share, 'applications/'), ['vialectrum.desktop']),
+        (os.path.join(usr_share, 'pixmaps/'), ['icons/vialectrum.png'])
     ]
 
 setup(
-    name="Electrum-LTC",
+    name="Vialectrum",
     version=version.ELECTRUM_VERSION,
     install_requires=[
         'pyaes',
@@ -48,7 +48,7 @@ setup(
         'PySocks>=1.6.6',
     ],
     packages=[
-        'electrum_ltc',
+        'vialectrum',
         'electrum_ltc_gui',
         'electrum_ltc_gui.qt',
         'electrum_ltc_plugins',
@@ -64,24 +64,24 @@ setup(
         'electrum_ltc_plugins.virtualkeyboard',
     ],
     package_dir={
-        'electrum_ltc': 'lib',
+        'vialectrum': 'lib',
         'electrum_ltc_gui': 'gui',
         'electrum_ltc_plugins': 'plugins',
     },
     package_data={
-        'electrum_ltc': [
+        'vialectrum': [
             'currencies.json',
             'www/index.html',
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
         ]
     },
-    scripts=['electrum-ltc'],
+    scripts=['vialectrum'],
     data_files=data_files,
     description="Lightweight Viacoin Wallet",
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
     license="MIT Licence",
-    url="http://electrum-ltc.org",
+    url="http://vialectrum.org",
     long_description="""Lightweight Viacoin Wallet"""
 )

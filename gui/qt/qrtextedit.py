@@ -1,5 +1,5 @@
-from electrum_ltc.i18n import _
-from electrum_ltc.plugins import run_hook
+from vialectrum.i18n import _
+from vialectrum.plugins import run_hook
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
@@ -47,7 +47,7 @@ class ScanQRTextEdit(ButtonsTextEdit, MessageBoxMixin):
         self.setText(data)
 
     def qr_input(self):
-        from electrum_ltc import qrscanner, get_config
+        from vialectrum import qrscanner, get_config
         try:
             data = qrscanner.scan_barcode(get_config().get_video_device())
         except BaseException as e:

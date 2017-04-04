@@ -5,14 +5,14 @@ import time
 import sys
 import traceback
 
-import electrum_ltc as electrum
-from electrum_ltc import bitcoin
-from electrum_ltc.bitcoin import TYPE_ADDRESS, int_to_hex, var_int, bc_address_to_hash_160, hash_160_to_bc_address 
-from electrum_ltc.i18n import _
-from electrum_ltc.plugins import BasePlugin, hook
-from electrum_ltc.keystore import Hardware_KeyStore, parse_xpubkey
+import vialectrum as electrum
+from vialectrum import bitcoin
+from vialectrum.bitcoin import TYPE_ADDRESS, int_to_hex, var_int, bc_address_to_hash_160, hash_160_to_bc_address 
+from vialectrum.i18n import _
+from vialectrum.plugins import BasePlugin, hook
+from vialectrum.keystore import Hardware_KeyStore, parse_xpubkey
 from ..hw_wallet import HW_PluginBase
-from electrum_ltc.util import format_satoshis_plain, print_error, is_verbose
+from vialectrum.util import format_satoshis_plain, print_error, is_verbose
 
 def setAlternateCoinVersions(self, regular, p2sh):
     apdu = [ self.BTCHIP_CLA, 0x14, 0x00, 0x00, 0x02, regular, p2sh ]

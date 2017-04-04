@@ -16,7 +16,7 @@ from kivy.utils import platform
 
 from electrum_ltc_gui.kivy.uix.dialogs import EventsDialog
 from electrum_ltc_gui.kivy.i18n import _
-from electrum_ltc.base_wizard import BaseWizard
+from vialectrum.base_wizard import BaseWizard
 
 from password_dialog import PasswordDialog
 
@@ -556,8 +556,8 @@ class RestoreSeedDialog(WizardDialog):
     def __init__(self, wizard, **kwargs):
         super(RestoreSeedDialog, self).__init__(wizard, **kwargs)
         self._test = kwargs['test']
-        from electrum_ltc.mnemonic import Mnemonic
-        from electrum_ltc.old_mnemonic import words as old_wordlist
+        from vialectrum.mnemonic import Mnemonic
+        from vialectrum.old_mnemonic import words as old_wordlist
         self.words = set(Mnemonic('en').wordlist).union(set(old_wordlist))
         self.ids.text_input_seed.text = test_seed if is_test else ''
         self.message = _('Please type your seed phrase using the virtual keyboard.')

@@ -3,8 +3,8 @@
 # A simple script that connects to a server and displays block headers
 
 import time
-from electrum_ltc import SimpleConfig, Network
-from electrum_ltc.util import print_msg, json_encode
+from vialectrum import SimpleConfig, Network
+from vialectrum.util import print_msg, json_encode
 
 # start network
 c = SimpleConfig()

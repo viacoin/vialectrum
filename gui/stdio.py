@@ -1,10 +1,10 @@
 from decimal import Decimal
 _ = lambda x:x
 #from i18n import _
-from electrum_ltc import WalletStorage, Wallet
-from electrum_ltc.util import format_satoshis, set_verbosity
-from electrum_ltc.bitcoin import is_valid, COIN, TYPE_ADDRESS
-from electrum_ltc.network import filter_protocol
+from vialectrum import WalletStorage, Wallet
+from vialectrum.util import format_satoshis, set_verbosity
+from vialectrum.bitcoin import is_valid, COIN, TYPE_ADDRESS
+from vialectrum.network import filter_protocol
 import sys, getpass, datetime
 
 # minimal fdisk like gui for console usage
@@ -17,7 +17,7 @@ class ElectrumGui:
         self.network = daemon.network
         storage = WalletStorage(config.get_wallet_path())
         if not storage.file_exists:
-            print "Wallet not found. try 'electrum-ltc create'"
+            print "Wallet not found. try 'vialectrum create'"
             exit()
         if storage.is_encrypted():
             password = getpass.getpass('Password:', stream=None)
@@ -209,12 +209,12 @@ class ElectrumGui:
             print(_('Error'))
 
     def network_dialog(self):
-        print("use 'electrum-ltc setconfig server/proxy' to change your network settings")
+        print("use 'vialectrum setconfig server/proxy' to change your network settings")
         return True
 
 
     def settings_dialog(self):
-        print("use 'electrum-ltc setconfig' to change your settings")
+        print("use 'vialectrum setconfig' to change your settings")
         return True
 
     def password_dialog(self):

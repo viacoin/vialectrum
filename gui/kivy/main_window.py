@@ -7,15 +7,15 @@ import traceback
 from decimal import Decimal
 import threading
 
-import electrum_ltc as electrum
-from electrum_ltc.bitcoin import TYPE_ADDRESS
-from electrum_ltc import WalletStorage, Wallet
+import vialectrum as electrum
+from vialectrum.bitcoin import TYPE_ADDRESS
+from vialectrum import WalletStorage, Wallet
 from electrum_ltc_gui.kivy.i18n import _
-from electrum_ltc.paymentrequest import InvoiceStore
-from electrum_ltc.util import profiler, InvalidPassword
-from electrum_ltc.plugins import run_hook
-from electrum_ltc.util import format_satoshis, format_satoshis_plain
-from electrum_ltc.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+from vialectrum.paymentrequest import InvoiceStore
+from vialectrum.util import profiler, InvalidPassword
+from vialectrum.plugins import run_hook
+from vialectrum.util import format_satoshis, format_satoshis_plain
+from vialectrum.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
 
 from kivy.app import App
 from kivy.core.window import Window
@@ -67,7 +67,7 @@ Label.register('Roboto',
                'gui/kivy/data/fonts/Roboto-Bold.ttf')
 
 
-from electrum_ltc.util import base_units
+from vialectrum.util import base_units
 
 
 class ElectrumWindow(App):
@@ -192,7 +192,7 @@ class ElectrumWindow(App):
 
         super(ElectrumWindow, self).__init__(**kwargs)
 
-        title = _('Electrum-LTC App')
+        title = _('Vialectrum App')
         self.electrum_config = config = kwargs.get('config', None)
         self.language = config.get('language', 'en')
         self.network = network = kwargs.get('network', None)
@@ -233,7 +233,7 @@ class ElectrumWindow(App):
             self.send_screen.do_clear()
 
     def on_qr(self, data):
-        from electrum_ltc.bitcoin import base_decode, is_address
+        from vialectrum.bitcoin import base_decode, is_address
         data = data.strip()
         if is_address(data):
             self.set_URI(data)
@@ -242,7 +242,7 @@ class ElectrumWindow(App):
             self.set_URI(data)
             return
         # try to decode transaction
-        from electrum_ltc.transaction import Transaction
+        from vialectrum.transaction import Transaction
         try:
             text = base_decode(data, None, base=43).encode('hex')
             tx = Transaction(text)
@@ -279,7 +279,7 @@ class ElectrumWindow(App):
         self.receive_screen.screen.address = addr
 
     def show_pr_details(self, req, status, is_invoice):
-        from electrum_ltc.util import format_time
+        from vialectrum.util import format_time
         requestor = req.get('requestor')
         exp = req.get('exp')
         memo = req.get('memo')
@@ -523,7 +523,7 @@ class ElectrumWindow(App):
         self.receive_screen = None
         self.requests_screen = None
 
-        self.icon = "icons/electrum-ltc.png"
+        self.icon = "icons/vialectrum.png"
 
         # connect callbacks
         if self.network:
@@ -604,8 +604,8 @@ class ElectrumWindow(App):
                 from plyer import notification
             icon = (os.path.dirname(os.path.realpath(__file__))
                     + '/../../' + self.icon)
-            notification.notify('Electrum-LTC', message,
-                            app_icon=icon, app_name='Electrum-LTC')
+            notification.notify('Vialectrum', message,
+                            app_icon=icon, app_name='Vialectrum')
         except ImportError:
             Logger.Error('Notification: needs plyer; `sudo pip install plyer`')
 

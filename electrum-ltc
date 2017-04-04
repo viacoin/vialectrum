@@ -92,19 +92,19 @@ if not is_android:
 # load local module as electrum
 if is_bundle or is_local or is_android:
     import imp
-    imp.load_module('electrum_ltc', *imp.find_module('lib'))
+    imp.load_module('vialectrum', *imp.find_module('lib'))
     imp.load_module('electrum_ltc_gui', *imp.find_module('gui'))
 
-from electrum_ltc import bitcoin, network
-from electrum_ltc import SimpleConfig, Network
-from electrum_ltc.wallet import Wallet, Imported_Wallet
-from electrum_ltc.storage import WalletStorage
-from electrum_ltc.util import print_msg, print_stderr, json_encode, json_decode
-from electrum_ltc.util import set_verbosity, InvalidPassword, check_www_dir
-from electrum_ltc.commands import get_parser, known_commands, Commands, config_variables
-from electrum_ltc import daemon
-from electrum_ltc import keystore
-from electrum_ltc.mnemonic import Mnemonic
+from vialectrum import bitcoin, network
+from vialectrum import SimpleConfig, Network
+from vialectrum.wallet import Wallet, Imported_Wallet
+from vialectrum.storage import WalletStorage
+from vialectrum.util import print_msg, print_stderr, json_encode, json_decode
+from vialectrum.util import set_verbosity, InvalidPassword, check_www_dir
+from vialectrum.commands import get_parser, known_commands, Commands, config_variables
+from vialectrum import daemon
+from vialectrum import keystore
+from vialectrum.mnemonic import Mnemonic
 
 # get password routine
 def prompt_password(prompt, confirm=True):
@@ -189,7 +189,7 @@ def init_daemon(config_options):
     storage = WalletStorage(config.get_wallet_path())
     if not storage.file_exists():
         print_msg("Error: Wallet file not found.")
-        print_msg("Type 'electrum-ltc create' to create a new wallet, or provide a path to a wallet with the -w option")
+        print_msg("Type 'vialectrum create' to create a new wallet, or provide a path to a wallet with the -w option")
         sys.exit(0)
     if storage.is_encrypted():
         if config.get('password'):
@@ -224,7 +224,7 @@ def init_cmdline(config_options, server):
 
     if cmd.requires_wallet and not storage.file_exists():
         print_msg("Error: Wallet file not found.")
-        print_msg("Type 'electrum-ltc create' to create a new wallet, or provide a path to a wallet with the -w option")
+        print_msg("Type 'vialectrum create' to create a new wallet, or provide a path to a wallet with the -w option")
         sys.exit(0)
 
     # important warning
@@ -292,7 +292,7 @@ def run_offline_command(config, config_options):
     return result
 
 def init_plugins(config, gui_name):
-    from electrum_ltc.plugins import Plugins
+    from vialectrum.plugins import Plugins
     return Plugins(config, is_bundle or is_local or is_android, gui_name)
 
 if __name__ == '__main__':
@@ -398,7 +398,7 @@ if __name__ == '__main__':
                 d = daemon.Daemon(config, fd)
                 d.start()
                 if config.get('websocket_server'):
-                    from electrum_ltc import websockets
+                    from vialectrum import websockets
                     websockets.WebSocketServer(config, d.network).start()
                 if config.get('requests_dir'):
                     check_www_dir(config.get('requests_dir'))
@@ -422,7 +422,7 @@ if __name__ == '__main__':
         else:
             cmd = known_commands[cmdname]
             if cmd.requires_network:
-                print_msg("Daemon not running; try 'electrum-ltc daemon start'")
+                print_msg("Daemon not running; try 'vialectrum daemon start'")
                 sys.exit(1)
             else:
                 init_plugins(config, 'cmdline')

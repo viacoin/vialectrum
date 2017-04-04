@@ -5,11 +5,11 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import PyQt4.QtCore as QtCore
 
-import electrum_ltc as electrum
-from electrum_ltc import Wallet, WalletStorage
-from electrum_ltc.util import UserCancelled, InvalidPassword
-from electrum_ltc.base_wizard import BaseWizard
-from electrum_ltc.i18n import _
+import vialectrum as electrum
+from vialectrum import Wallet, WalletStorage
+from vialectrum.util import UserCancelled, InvalidPassword
+from vialectrum.base_wizard import BaseWizard
+from vialectrum.i18n import _
 
 from seed_dialog import SeedLayout, KeysLayout
 from network_dialog import NetworkChoiceLayout
@@ -100,7 +100,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         BaseWizard.__init__(self, config, storage)
         QDialog.__init__(self, None)
 
-        self.setWindowTitle('Electrum-LTC  -  ' + _('Install Wizard'))
+        self.setWindowTitle('Vialectrum  -  ' + _('Install Wizard'))
         self.app = app
         self.config = config
 
@@ -140,7 +140,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         hbox.setStretchFactor(inner_vbox, 1)
         outer_vbox.addLayout(hbox)
         outer_vbox.addLayout(Buttons(self.back_button, self.next_button))
-        self.set_icon(':icons/electrum-ltc.png')
+        self.set_icon(':icons/vialectrum.png')
         self.show()
         self.raise_()
         self.refresh_gui()  # Need for QT on MacOSX.  Lame.

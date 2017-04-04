@@ -5,8 +5,8 @@ import PyQt4.QtGui as QtGui
 import os
 import qrcode
 
-import electrum_ltc
-from electrum_ltc.i18n import _
+import vialectrum
+from vialectrum.i18n import _
 from util import WindowModalDialog
 
 
@@ -98,7 +98,7 @@ class QRDialog(WindowModalDialog):
         hbox = QHBoxLayout()
         hbox.addStretch(1)
 
-        config = electrum_ltc.get_config()
+        config = vialectrum.get_config()
         if config:
             filename = os.path.join(config.path, "qrcode.png")
 

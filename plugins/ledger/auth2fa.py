@@ -3,9 +3,9 @@ import threading
 from PyQt4.Qt import (QDialog, QInputDialog, QLineEdit, QTextEdit, QVBoxLayout, QLabel, SIGNAL)
 import PyQt4.QtCore as QtCore
 
-from electrum_ltc.i18n import _
-from electrum_ltc.qt.util import *
-from electrum_ltc.util import print_msg
+from vialectrum.i18n import _
+from vialectrum.qt.util import *
+from vialectrum.util import print_msg
 
 import os, hashlib, websocket, threading, logging, json, copy
 from electrum_ltc_gui.qt.qrcodewidget import QRCodeWidget, QRDialog

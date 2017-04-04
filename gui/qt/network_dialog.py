@@ -27,9 +27,9 @@ import socket
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
-from electrum_ltc.i18n import _
-from electrum_ltc.network import DEFAULT_PORTS
-from electrum_ltc.network import serialize_server, deserialize_server
+from vialectrum.i18n import _
+from vialectrum.network import DEFAULT_PORTS
+from vialectrum.network import serialize_server, deserialize_server
 
 from util import *
 
@@ -186,7 +186,7 @@ class NetworkChoiceLayout(object):
         grid.setRowStretch(6, 1)
 
         # Blockchain Tab
-        from electrum_ltc import bitcoin
+        from vialectrum import bitcoin
         from amountedit import AmountEdit
         grid = QGridLayout(blockchain_tab)
         n = len(network.get_interfaces())

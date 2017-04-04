@@ -98,7 +98,7 @@ class Contacts(dict):
         # support email-style addresses, per the OA standard
         url = url.replace('@', '.')
         records, validated = dnssec.query(url, dns.rdatatype.TXT)
-        prefix = 'ltc'
+        prefix = 'via'
         for record in records:
             string = record.strings[0]
             if string.startswith('oa1:' + prefix):

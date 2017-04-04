@@ -1,6 +1,6 @@
 from PyQt4.QtGui import *
-from electrum_ltc.plugins import BasePlugin, hook
-from electrum_ltc.i18n import _
+from vialectrum.plugins import BasePlugin, hook
+from vialectrum.i18n import _
 import random
 
 class Plugin(BasePlugin):

@@ -4,7 +4,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 from decimal import Decimal
-from electrum_ltc.util import format_satoshis_plain
+from vialectrum.util import format_satoshis_plain
 
 class MyLineEdit(QLineEdit):
     frozen = pyqtSignal()

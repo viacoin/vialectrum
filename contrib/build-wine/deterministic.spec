@@ -9,10 +9,10 @@ else:
     raise BaseException('no name')
 
 
-home = 'C:\\electrum-ltc\\'
+home = 'C:\\vialectrum\\'
 
 # We don't put these files in to actually include them in the script but to make the Analysis method scan them for imports
-a = Analysis([home+'electrum-ltc',
+a = Analysis([home+'vialectrum',
               home+'gui/qt/main_window.py',
               home+'gui/text.py',
               home+'lib/util.py',
@@ -81,7 +81,7 @@ exe = EXE(pyz,
           a.scripts,
           a.binaries,
           a.datas,
-          name=os.path.join('build\\pyi.win32\\electrum-ltc', cmdline_name),
+          name=os.path.join('build\\pyi.win32\\vialectrum', cmdline_name),
           debug=False,
           strip=None,
           upx=False,
@@ -98,4 +98,4 @@ coll = COLLECT(exe,
                debug=False,
                icon=home+'icons/electrum.ico',
                console=False,
-               name=os.path.join('dist', 'electrum-ltc'))
+               name=os.path.join('dist', 'vialectrum'))

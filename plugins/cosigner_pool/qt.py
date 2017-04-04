@@ -31,11 +31,11 @@ import xmlrpclib
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
-from electrum_ltc import bitcoin, util
-from electrum_ltc import transaction
-from electrum_ltc.plugins import BasePlugin, hook
-from electrum_ltc.i18n import _
-from electrum_ltc.wallet import Multisig_Wallet
+from vialectrum import bitcoin, util
+from vialectrum import transaction
+from vialectrum.plugins import BasePlugin, hook
+from vialectrum.i18n import _
+from vialectrum.wallet import Multisig_Wallet
 
 from electrum_ltc_gui.qt.transaction_dialog import show_transaction
 
@@ -158,7 +158,7 @@ class Plugin(BasePlugin):
             d.cosigner_send_button.hide()
 
     def cosigner_can_sign(self, tx, cosigner_xpub):
-        from electrum_ltc.keystore import is_xpubkey, parse_xpubkey
+        from vialectrum.keystore import is_xpubkey, parse_xpubkey
         xpub_set = set([])
         for txin in tx.inputs():
             for x_pubkey in txin['x_pubkeys']:
