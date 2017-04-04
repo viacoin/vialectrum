@@ -1,4 +1,4 @@
-Electrum-LTC - Lightweight Litecoin client
+Electrum-LTC - Lightweight Viacoin client
 ==========================================
 
 ::

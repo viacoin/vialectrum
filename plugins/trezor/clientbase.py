@@ -154,7 +154,7 @@ class TrezorClientBase(GuiMixin, PrintError):
         return serialize_xpub(0, node.chain_code, node.public_key, node.depth, self.i4b(node.fingerprint), self.i4b(node.child_num))
 
     #def address_from_derivation(self, derivation):
-    #    return self.get_address('Litecoin', self.expand_path(derivation))
+    #    return self.get_address('Viacoin', self.expand_path(derivation))
 
     def toggle_passphrase(self):
         if self.features.passphrase_protection:

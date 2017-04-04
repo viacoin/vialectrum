@@ -78,10 +78,10 @@ setup(
     },
     scripts=['electrum-ltc'],
     data_files=data_files,
-    description="Lightweight Litecoin Wallet",
+    description="Lightweight Viacoin Wallet",
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
     license="MIT Licence",
     url="http://electrum-ltc.org",
-    long_description="""Lightweight Litecoin Wallet"""
+    long_description="""Lightweight Viacoin Wallet"""
 )

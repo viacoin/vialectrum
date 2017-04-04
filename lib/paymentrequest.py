@@ -49,8 +49,8 @@ import rsakey
 
 from bitcoin import TYPE_ADDRESS
 
-REQUEST_HEADERS = {'Accept': 'application/litecoin-paymentrequest', 'User-Agent': 'Electrum'}
-ACK_HEADERS = {'Content-Type':'application/litecoin-payment','Accept':'application/litecoin-paymentack','User-Agent':'Electrum'}
+REQUEST_HEADERS = {'Accept': 'application/viacoin-paymentrequest', 'User-Agent': 'Electrum'}
+ACK_HEADERS = {'Content-Type':'application/viacoin-payment','Accept':'application/viacoin-paymentack','User-Agent':'Electrum'}
 
 ca_path = requests.certs.where()
 ca_list = None
@@ -80,7 +80,7 @@ def get_payment_request(url):
             response.raise_for_status()
             # Guard against `bitcoin:`-URIs with invalid payment request URLs
             if "Content-Type" not in response.headers \
-            or response.headers["Content-Type"] != "application/litecoin-paymentrequest":
+            or response.headers["Content-Type"] != "application/viacoin-paymentrequest":
                 data = None
                 error = "payment URL not pointing to a payment request handling server"
             else:

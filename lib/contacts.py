@@ -92,7 +92,7 @@ class Contacts(dict):
                 'type': 'openalias',
                 'validated': validated
             }
-        raise Exception("Invalid Litecoin address or alias", k)
+        raise Exception("Invalid Viacoin address or alias", k)
 
     def resolve_openalias(self, url):
         # support email-style addresses, per the OA standard

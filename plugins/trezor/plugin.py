@@ -148,7 +148,7 @@ class TrezorCompatiblePlugin(HW_PluginBase):
         if TESTNET:
             return "Testnet"
         else:
-            return "Litecoin"
+            return "Viacoin"
 
     def initialize_device(self, device_id, wizard, handler):
         # Initialization method

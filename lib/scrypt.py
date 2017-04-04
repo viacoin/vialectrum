@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# scrypt.py - basic implementation of Litecoin's proof-of-work algorithm
+# scrypt.py - basic implementation of Viacoin's proof-of-work algorithm
 # Copyright (C) 2014 pooler@litecoinpool.org
 #
 # This program is free software: you can redistribute it and/or modify

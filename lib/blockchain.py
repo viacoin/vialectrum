@@ -224,7 +224,7 @@ class Blockchain(util.PrintError):
             return 0, 0
         if index == 0:
             return 0x1e0ffff0, 0x00000FFFF0000000000000000000000000000000000000000000000000000000
-        # Litecoin: go back the full period unless it's the first retarget
+        # Viacoin: go back the full period unless it's the first retarget
         first = self.read_header((index-1) * 2016 - 1 if index > 1 else 0)
         last = self.read_header(index*2016 - 1)
         if last is None:

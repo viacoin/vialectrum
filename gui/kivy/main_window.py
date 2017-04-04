@@ -83,7 +83,7 @@ class ElectrumWindow(App):
         self.send_screen.set_URI(uri)
 
     def on_new_intent(self, intent):
-        if intent.getScheme() != 'litecoin':
+        if intent.getScheme() != 'viacoin':
             return
         uri = intent.getDataString()
         self.set_URI(uri)
@@ -238,7 +238,7 @@ class ElectrumWindow(App):
         if is_address(data):
             self.set_URI(data)
             return
-        if data.startswith('litecoin:'):
+        if data.startswith('viacoin:'):
             self.set_URI(data)
             return
         # try to decode transaction
