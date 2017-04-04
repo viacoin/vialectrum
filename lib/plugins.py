@@ -47,9 +47,9 @@ class Plugins(DaemonThread):
         DaemonThread.__init__(self)
         if is_local:
             find = imp.find_module('plugins')
-            plugins = imp.load_module('electrum_ltc_plugins', *find)
+            plugins = imp.load_module('vialectrum_plugins', *find)
         else:
-            plugins = __import__('electrum_ltc_plugins')
+            plugins = __import__('vialectrum_plugins')
         self.pkgpath = os.path.dirname(plugins.__file__)
         self.config = config
         self.hw_wallets = {}
@@ -94,7 +94,7 @@ class Plugins(DaemonThread):
     def load_plugin(self, name):
         if name in self.plugins:
             return
-        full_name = 'electrum_ltc_plugins.' + name + '.' + self.gui_name
+        full_name = 'vialectrum_plugins.' + name + '.' + self.gui_name
         loader = pkgutil.find_loader(full_name)
         if not loader:
             raise RuntimeError("%s implementation for %s plugin not found"
@@ -437,9 +437,9 @@ class DeviceMgr(ThreadJob, PrintError):
         # or it is not pairable
         raise DeviceUnpairableError(
             _('Electrum cannot pair with your %s.\n\n'
-              'Before you request litecoins to be sent to addresses in this '
+              'Before you request viacoins to be sent to addresses in this '
               'wallet, ensure you can pair with your device, or that you have '
-              'its seed (and passphrase, if any).  Otherwise all litecoins you '
+              'its seed (and passphrase, if any).  Otherwise all viacoins you '
               'receive will be unspendable.') % plugin.device)
 
     def unpaired_device_infos(self, handler, plugin, devices=None):

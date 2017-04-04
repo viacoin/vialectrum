@@ -33,7 +33,7 @@ from PyQt4.QtCore import *
 import PyQt4.QtCore as QtCore
 import PyQt4.QtGui as QtGui
 
-from electrum_ltc_gui.qt.qrcodewidget import QRCodeWidget
+from vialectrum_gui.qt.qrcodewidget import QRCodeWidget
 from vialectrum.i18n import _
 
 if platform.system() == 'Windows':

@@ -80,7 +80,7 @@ class BTCAmountEdit(AmountEdit):
         if p == 8:
             return 'VIA'
         if p == 5:
-            return 'mLTC'
+            return 'mVIA'
         if p == 2:
             return 'bits'
         raise Exception('Unknown base unit')

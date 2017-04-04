@@ -35,7 +35,7 @@ import urllib
 import threading
 from i18n import _
 
-base_units = {'VIA':8, 'mLTC':5, 'uLTC':2}
+base_units = {'VIA':8, 'mVIA':5, 'uVIA':2}
 fee_levels = [_('Within 25 blocks'), _('Within 10 blocks'), _('Within 5 blocks'), _('Within 2 blocks'), _('In the next block')]
 
 def normalize_version(v):

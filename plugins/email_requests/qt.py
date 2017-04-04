@@ -45,8 +45,8 @@ import PyQt4.QtGui as QtGui
 from vialectrum.plugins import BasePlugin, hook
 from vialectrum.paymentrequest import PaymentRequest
 from vialectrum.i18n import _
-from electrum_ltc_gui.qt.util import EnterButton, Buttons, CloseButton
-from electrum_ltc_gui.qt.util import OkButton, WindowModalDialog
+from vialectrum_gui.qt.util import EnterButton, Buttons, CloseButton
+from vialectrum_gui.qt.util import OkButton, WindowModalDialog
 
 
 

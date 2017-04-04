@@ -5,9 +5,9 @@ from PyQt4.QtCore import *
 
 from vialectrum.plugins import hook
 from vialectrum.i18n import _
-from electrum_ltc_gui.qt import EnterButton
-from electrum_ltc_gui.qt.util import ThreadedButton, Buttons
-from electrum_ltc_gui.qt.util import WindowModalDialog, OkButton
+from vialectrum_gui.qt import EnterButton
+from vialectrum_gui.qt.util import ThreadedButton, Buttons
+from vialectrum_gui.qt.util import WindowModalDialog, OkButton
 
 from labels import LabelsPlugin
 

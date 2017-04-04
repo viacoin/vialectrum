@@ -10,7 +10,7 @@ import threading
 import vialectrum as electrum
 from vialectrum.bitcoin import TYPE_ADDRESS
 from vialectrum import WalletStorage, Wallet
-from electrum_ltc_gui.kivy.i18n import _
+from vialectrum_gui.kivy.i18n import _
 from vialectrum.paymentrequest import InvoiceStore
 from vialectrum.util import profiler, InvalidPassword
 from vialectrum.plugins import run_hook
@@ -31,10 +31,10 @@ from kivy.lang import Builder
 
 # lazy imports for factory so that widgets can be used in kv
 Factory.register('InstallWizard',
-                 module='electrum_ltc_gui.kivy.uix.dialogs.installwizard')
-Factory.register('InfoBubble', module='electrum_ltc_gui.kivy.uix.dialogs')
-Factory.register('OutputList', module='electrum_ltc_gui.kivy.uix.dialogs')
-Factory.register('OutputItem', module='electrum_ltc_gui.kivy.uix.dialogs')
+                 module='vialectrum_gui.kivy.uix.dialogs.installwizard')
+Factory.register('InfoBubble', module='vialectrum_gui.kivy.uix.dialogs')
+Factory.register('OutputList', module='vialectrum_gui.kivy.uix.dialogs')
+Factory.register('OutputItem', module='vialectrum_gui.kivy.uix.dialogs')
 
 
 #from kivy.core.window import Window
@@ -48,14 +48,14 @@ util = False
 
 # register widget cache for keeping memory down timeout to forever to cache
 # the data
-Cache.register('electrum_ltc_widgets', timeout=0)
+Cache.register('vialectrum_widgets', timeout=0)
 
 from kivy.uix.screenmanager import Screen
 from kivy.uix.tabbedpanel import TabbedPanel
 from kivy.uix.label import Label
 from kivy.core.clipboard import Clipboard
 
-Factory.register('TabbedCarousel', module='electrum_ltc_gui.kivy.uix.screens')
+Factory.register('TabbedCarousel', module='vialectrum_gui.kivy.uix.screens')
 
 # Register fonts without this you won't be able to use bold/italic...
 # inside markup.
@@ -505,13 +505,13 @@ class ElectrumWindow(App):
 
         #setup lazy imports for mainscreen
         Factory.register('AnimatedPopup',
-                         module='electrum_ltc_gui.kivy.uix.dialogs')
+                         module='vialectrum_gui.kivy.uix.dialogs')
         Factory.register('QRCodeWidget',
-                         module='electrum_ltc_gui.kivy.uix.qrcodewidget')
+                         module='vialectrum_gui.kivy.uix.qrcodewidget')
 
         # preload widgets. Remove this if you want to load the widgets on demand
-        #Cache.append('electrum_ltc_widgets', 'AnimatedPopup', Factory.AnimatedPopup())
-        #Cache.append('electrum_ltc_widgets', 'QRCodeWidget', Factory.QRCodeWidget())
+        #Cache.append('vialectrum_widgets', 'AnimatedPopup', Factory.AnimatedPopup())
+        #Cache.append('vialectrum_widgets', 'QRCodeWidget', Factory.QRCodeWidget())
 
         # load and focus the ui
         self.root.manager = self.root.ids['manager']

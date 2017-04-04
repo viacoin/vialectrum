@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # You probably need to update only this link
-ELECTRUM_GIT_URL=git://github.com/pooler/vialectrum.git
+ELECTRUM_GIT_URL=git://github.com/vialectrum/vialectrum.git
 BRANCH=master
 NAME_ROOT=vialectrum
 

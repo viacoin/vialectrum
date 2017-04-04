@@ -356,8 +356,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.wallet.is_watching_only():
             msg = ' '.join([
                 _("This wallet is watching-only."),
-                _("This means you will not be able to spend litecoins with it."),
-                _("Make sure you own the seed phrase or the private keys, before you request litecoins to be sent to this wallet.")
+                _("This means you will not be able to spend viacoins with it."),
+                _("Make sure you own the seed phrase or the private keys, before you request viacoins to be sent to this wallet.")
             ])
             self.show_warning(msg, title=_('Information'))
 
@@ -594,7 +594,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.decimal_point == 2:
             return 'bits'
         if self.decimal_point == 5:
-            return 'mLTC'
+            return 'mVIA'
         if self.decimal_point == 8:
             return 'VIA'
         raise Exception('Unknown base unit')
@@ -2181,7 +2181,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def do_export_labels(self):
         labels = self.wallet.labels
         try:
-            fileName = self.getSaveFileName(_("Select file to save your labels"), 'electrum-ltc_labels.json', "*.json")
+            fileName = self.getSaveFileName(_("Select file to save your labels"), 'vialectrum_labels.json', "*.json")
             if fileName:
                 with open(fileName, 'w+') as f:
                     json.dump(labels, f, indent=4, sort_keys=True)
@@ -2497,9 +2497,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         SSL_id_e.setReadOnly(True)
         id_widgets.append((SSL_id_label, SSL_id_e))
 
-        units = ['VIA', 'mLTC', 'bits']
+        units = ['VIA', 'mVIA', 'bits']
         msg = _('Base unit of your wallet.')\
-              + '\n1LTC=1000mLTC.\n' \
+              + '\n1VIA=1000mVIA.\n' \
               + _(' These settings affects the fields in the Send tab')+' '
         unit_label = HelpLabel(_('Base unit') + ':', msg)
         unit_combo = QComboBox()
@@ -2513,7 +2513,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             amounts = [edit.get_amount() for edit in edits]
             if unit_result == 'VIA':
                 self.decimal_point = 8
-            elif unit_result == 'mLTC':
+            elif unit_result == 'mVIA':
                 self.decimal_point = 5
             elif unit_result == 'bits':
                 self.decimal_point = 2

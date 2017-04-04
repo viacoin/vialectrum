@@ -7,7 +7,7 @@ import PyQt4.QtCore as QtCore
 from vialectrum.i18n import _
 from .ledger import LedgerPlugin
 from ..hw_wallet.qt import QtHandlerBase, QtPluginBase
-from electrum_ltc_gui.qt.util import *
+from vialectrum_gui.qt.util import *
 
 from btchip.btchipPersoWizard import StartBTChipPersoDialog
 

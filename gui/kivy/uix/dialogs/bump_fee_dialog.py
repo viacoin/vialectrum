@@ -4,7 +4,7 @@ from kivy.properties import ObjectProperty
 from kivy.lang import Builder
 
 from vialectrum.util import fee_levels
-from electrum_ltc_gui.kivy.i18n import _
+from vialectrum_gui.kivy.i18n import _
 
 Builder.load_string('''
 <BumpFeeDialog@Popup>

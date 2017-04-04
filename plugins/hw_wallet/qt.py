@@ -27,8 +27,8 @@
 import threading
 
 from PyQt4.Qt import QVBoxLayout, QLabel, SIGNAL
-from electrum_ltc_gui.qt.password_dialog import PasswordDialog, PW_PASSPHRASE
-from electrum_ltc_gui.qt.util import *
+from vialectrum_gui.qt.password_dialog import PasswordDialog, PW_PASSPHRASE
+from vialectrum_gui.qt.util import *
 
 from vialectrum.i18n import _
 from vialectrum.util import PrintError
@@ -173,7 +173,7 @@ class QtHandlerBase(QObject, PrintError):
 
 from vialectrum.plugins import hook
 from vialectrum.util import UserCancelled
-from electrum_ltc_gui.qt.main_window import StatusBarButton
+from vialectrum_gui.qt.main_window import StatusBarButton
 
 class QtPluginBase(object):
 

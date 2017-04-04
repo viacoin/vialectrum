@@ -5,7 +5,7 @@ from kivy.lang import Builder
 from kivy.clock import Clock
 from kivy.uix.label import Label
 
-from electrum_ltc_gui.kivy.i18n import _
+from vialectrum_gui.kivy.i18n import _
 from datetime import datetime
 from vialectrum.util import InvalidPassword
 

@@ -8,7 +8,7 @@ from vialectrum.qt.util import *
 from vialectrum.util import print_msg
 
 import os, hashlib, websocket, threading, logging, json, copy
-from electrum_ltc_gui.qt.qrcodewidget import QRCodeWidget, QRDialog
+from vialectrum_gui.qt.qrcodewidget import QRCodeWidget, QRDialog
 from btchip.btchip import *
 
 DEBUG = False

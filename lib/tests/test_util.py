@@ -63,7 +63,7 @@ class TestUtil(unittest.TestCase):
         self.assertRaises(BaseException, parse_URI, 'viacoin:invalidaddress')
 
     def test_parse_URI_invalid(self):
-        self.assertRaises(BaseException, parse_URI, 'notlitecoin:LectrumELqJWMECz7W2iarBpT4VvAPqwAv')
+        self.assertRaises(BaseException, parse_URI, 'notviacoin:LectrumELqJWMECz7W2iarBpT4VvAPqwAv')
 
     def test_parse_URI_parameter_polution(self):
         self.assertRaises(Exception, parse_URI, 'viacoin:LectrumELqJWMECz7W2iarBpT4VvAPqwAv?amount=0.0003&label=test&amount=30.0')

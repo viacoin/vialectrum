@@ -14,8 +14,8 @@ from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.utils import platform
 
-from electrum_ltc_gui.kivy.uix.dialogs import EventsDialog
-from electrum_ltc_gui.kivy.i18n import _
+from vialectrum_gui.kivy.uix.dialogs import EventsDialog
+from vialectrum_gui.kivy.i18n import _
 from vialectrum.base_wizard import BaseWizard
 
 from password_dialog import PasswordDialog
@@ -29,7 +29,7 @@ test_xpub = "xpub661MyMwAqRbcEbvVtRRSjqxVnaWVUMewVzMiURAKyYratih4TtBpMypzzefmv8z
 
 Builder.load_string('''
 #:import Window kivy.core.window.Window
-#:import _ electrum_ltc_gui.kivy.i18n._
+#:import _ vialectrum_gui.kivy.i18n._
 
 
 <WizardTextInput@TextInput>

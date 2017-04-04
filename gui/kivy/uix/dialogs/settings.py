@@ -5,7 +5,7 @@ from kivy.lang import Builder
 
 from vialectrum.util import base_units
 from vialectrum.i18n import languages
-from electrum_ltc_gui.kivy.i18n import _
+from vialectrum_gui.kivy.i18n import _
 from vialectrum.plugins import run_hook
 from vialectrum import coinchooser
 from vialectrum.util import fee_levels
@@ -14,7 +14,7 @@ from choice_dialog import ChoiceDialog
 
 Builder.load_string('''
 #:import partial functools.partial
-#:import _ electrum_ltc_gui.kivy.i18n._
+#:import _ vialectrum_gui.kivy.i18n._
 
 <SettingsItem@ButtonBehavior+BoxLayout>
     orientation: 'vertical'

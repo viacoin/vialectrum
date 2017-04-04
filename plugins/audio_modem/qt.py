@@ -6,7 +6,7 @@ import sys
 import platform
 
 from vialectrum.plugins import BasePlugin, hook
-from electrum_ltc_gui.qt.util import WaitingDialog, EnterButton, WindowModalDialog
+from vialectrum_gui.qt.util import WaitingDialog, EnterButton, WindowModalDialog
 from vialectrum.util import print_msg, print_error
 from vialectrum.i18n import _
 
