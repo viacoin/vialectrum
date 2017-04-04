@@ -596,7 +596,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.decimal_point == 5:
             return 'mLTC'
         if self.decimal_point == 8:
-            return 'LTC'
+            return 'VIA'
         raise Exception('Unknown base unit')
 
     def connect_fields(self, window, btc_e, fiat_e, fee_e):
@@ -2497,7 +2497,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         SSL_id_e.setReadOnly(True)
         id_widgets.append((SSL_id_label, SSL_id_e))
 
-        units = ['LTC', 'mLTC', 'bits']
+        units = ['VIA', 'mLTC', 'bits']
         msg = _('Base unit of your wallet.')\
               + '\n1LTC=1000mLTC.\n' \
               + _(' These settings affects the fields in the Send tab')+' '
@@ -2511,7 +2511,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 return
             edits = self.amount_e, self.fee_e, self.receive_amount_e
             amounts = [edit.get_amount() for edit in edits]
-            if unit_result == 'LTC':
+            if unit_result == 'VIA':
                 self.decimal_point = 8
             elif unit_result == 'mLTC':
                 self.decimal_point = 5

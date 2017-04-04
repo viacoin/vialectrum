@@ -94,7 +94,7 @@ class Bit2C(ExchangeBase):
 
 class BitcoinAverage(ExchangeBase):
     def get_rates(self, ccy):
-        json = self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/LTC%s' % ccy)
+        json = self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/VIA%s' % ccy)
         return {ccy: Decimal(json['last'])}
 
     def history_ccys(self):
@@ -104,7 +104,7 @@ class BitcoinAverage(ExchangeBase):
 
     def historical_rates(self, ccy):
         history = self.get_csv('apiv2.bitcoinaverage.com',
-                               "/indices/global/history/LTC%s?format=csv" % ccy)
+                               "/indices/global/history/VIA%s?format=csv" % ccy)
         return dict([(h['DateTime'][:10], h['Average'])
                      for h in history])
 
@@ -112,8 +112,8 @@ class BitcoinVenezuela(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('api.bitcoinvenezuela.com', '/')
-        rates = [(r, json['LTC'][r]) for r in json['LTC']
-                 if json['LTC'][r] is not None]  # Giving NULL sometimes
+        rates = [(r, json['VIA'][r]) for r in json['VIA']
+                 if json['VIA'][r] is not None]  # Giving NULL sometimes
         return dict(rates)
 
     def history_ccys(self):
@@ -121,7 +121,7 @@ class BitcoinVenezuela(ExchangeBase):
 
     def historical_rates(self, ccy):
         return self.get_json('api.bitcoinvenezuela.com',
-                             "/historical/index.php?coin=LTC")[ccy +'_LTC']
+                             "/historical/index.php?coin=VIA")[ccy +'_LTC']
 
 class Bitfinex(ExchangeBase):
     def get_rates(self, ccy):
@@ -156,13 +156,13 @@ class CoinSpot(ExchangeBase):
 class GoCoin(ExchangeBase):
     def get_rates(self, ccy):
         json = self.get_json('x.g0cn.com', '/prices')
-        ltc_prices = json['prices']['LTC']
+        ltc_prices = json['prices']['VIA']
         return dict([(r, Decimal(ltc_prices[r])) for r in ltc_prices])
 
 class HitBTC(ExchangeBase):
     def get_rates(self, ccy):
         ccys = ['EUR', 'USD']
-        json = self.get_json('api.hitbtc.com', '/api/1/public/LTC%s/ticker' % ccy)
+        json = self.get_json('api.hitbtc.com', '/api/1/public/VIA%s/ticker' % ccy)
         result = dict.fromkeys(ccys)
         if ccy in ccys:
             result[ccy] = Decimal(json['last'])
@@ -183,7 +183,7 @@ class Kraken(ExchangeBase):
         return ['EUR', 'USD']
 
     def historical_rates(self, ccy):
-        query = '/0/public/OHLC?pair=LTC%s&interval=1440' % ccy
+        query = '/0/public/OHLC?pair=VIA%s&interval=1440' % ccy
         json = self.get_json('api.kraken.com', query)
         history = json['result']['XLTCZ'+ccy]
         return dict([(time.strftime('%Y-%m-%d', time.localtime(t[0])), t[4])
@@ -349,7 +349,7 @@ class FxThread(ThreadJob):
 
     def get_fiat_status_text(self, btc_balance):
         rate = self.exchange_rate()
-        return _("  (No FX rate available)") if rate is None else " 1 LTC~%s %s" % (self.value_str(COIN, rate), self.ccy)
+        return _("  (No FX rate available)") if rate is None else " 1 VIA~%s %s" % (self.value_str(COIN, rate), self.ccy)
 
 
     def value_str(self, satoshis, rate):
