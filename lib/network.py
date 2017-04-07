@@ -51,10 +51,10 @@ DEFAULT_PORTS = {'t':'50001', 's':'50002'}
 #then gradually switch remaining nodes to e-x nodes
 
 DEFAULT_SERVERS = {
-    'vialectrum.bysh.me': DEFAULT_PORTS,
     'vialectrum.viacoin.net': DEFAULT_PORTS,
     'viax1.bitops.me': DEFAULT_PORTS,
     'vialectrum.bitops.me': DEFAULT_PORTS,
+    'vialectrum.bysh.me': DEFAULT_PORTS,
 }
 
 def set_testnet():

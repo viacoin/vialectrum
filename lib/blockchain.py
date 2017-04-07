@@ -36,7 +36,7 @@ except ImportError:
     util.print_msg("Warning: ltc_scrypt not available, using fallback")
     from scrypt import scrypt_1024_1_1_80 as getPoWHash
 
-MAX_TARGET = 0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+MAX_TARGET = 0x0000F8FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 
 class Blockchain(util.PrintError):
     '''Manages blockchain headers and their verification'''
@@ -223,7 +223,7 @@ class Blockchain(util.PrintError):
         if bitcoin.TESTNET:
             return 0, 0
         if index == 0:
-            return 0x1e0ffff0, 0x00000FFFF0000000000000000000000000000000000000000000000000000000
+            return 0x1e01ffff, 0x00000FFFF0000000000000000000000000000000000000000000000000000000
         # Viacoin: go back the full period unless it's the first retarget
         first = self.read_header((index-1) * 2016 - 1 if index > 1 else 0)
         last = self.read_header(index*2016 - 1)
@@ -243,7 +243,7 @@ class Blockchain(util.PrintError):
         target = bitsBase << (8 * (bitsN-3))
         # new target
         nActualTimespan = last.get('timestamp') - first.get('timestamp')
-        nTargetTimespan = 84 * 60 * 60
+        nTargetTimespan = 336 * 60 * 60
         nActualTimespan = max(nActualTimespan, nTargetTimespan / 4)
         nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
         new_target = min(MAX_TARGET, (target*nActualTimespan) / nTargetTimespan)
