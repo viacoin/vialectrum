@@ -91,6 +91,7 @@ class Blockchain(util.PrintError):
             raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _powhash, 16), target))
 
     def verify_chain(self, chain):
+        return True # Viacoin: no chain verify
         first_header = chain[0]
         prev_header = self.read_header(first_header.get('block_height') - 1)
         for header in chain:
@@ -101,6 +102,10 @@ class Blockchain(util.PrintError):
 
     def verify_chunk(self, index, data):
         num = len(data) / 80
+        # Viacoin: no verify chunks
+        self.save_chunk(index, data)
+        return
+        #############################
         prev_header = None
         if index != 0:
             prev_header = self.read_header(index*2016 - 1)
