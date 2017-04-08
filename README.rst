@@ -4,9 +4,9 @@ Vialectrum - Lightweight Viacoin client
 ::
 
   Licence: MIT Licence
-  Original Author: Thomas Voegtlin
-  Port Maintainer: Pooler
-  Language: Python
+  Original Author: Thomas Voegtlin and Pooler
+  Port Maintainer: Romano
+  Language: Python 2
   Homepage: https://vialectrum.org/
 
 
@@ -31,7 +31,7 @@ directory. To run Electrum from its root directory, just do::
 
 You can also install Electrum on your system, by running this command::
 
-    python setup.py install
+    python2 setup.py install
 
 This will download and install the Python dependencies used by
 Electrum, instead of using the 'packages' directory.
@@ -52,7 +52,7 @@ Check out the code from Github::
 
 Run install (this should install dependencies)::
 
-    python setup.py install
+    python2 setup.py install
 
 Compile the icons file for Qt::
 
@@ -63,7 +63,7 @@ Compile the protobuf description file::
 
     sudo apt-get install protobuf-compiler
     protoc --proto_path=lib/ --python_out=lib/ lib/paymentrequest.proto
-
+2
 Create translations (optional)::
 
     sudo apt-get install python-pycurl gettext
