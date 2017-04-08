@@ -348,8 +348,8 @@ def time_difference(distance_in_time, include_seconds):
         return "over %d years" % (round(distance_in_minutes / 525600))
 
 block_explorer_info = {
-    'explorer.viacoin.net': ('http://explorer.viacoin.net',
-                        {'tx': 'tx', 'addr': 'address'}),
+    'explorer.viacoin.net': ('https://chainz.cryptoid.info/via/',
+                        {'tx': 'tx.dws?', 'addr': 'address.dws?'}),
     'block-explorer.com': ('https://block-explorer.com',
                         {'tx': 'tx', 'addr': 'address'}),
     'Blockr.io': ('https://ltc.blockr.io',
@@ -374,7 +374,7 @@ def block_explorer_URL(config, kind, item):
     if not kind_str:
         return
     url_parts = [be_tuple[0], kind_str, item]
-    return "/".join(url_parts)
+    return "".join(url_parts)
 
 # URL decode
 #_ud = re.compile('%([0-9a-hA-H]{2})', re.MULTILINE)
