@@ -17,6 +17,8 @@ Vialectrum - Lightweight Viacoin client
 Getting started
 ===============
 
+Before you upgrade, always make sure you have saved your wallet seed on paper.
+
 Electrum is a pure python application. If you want to use the
 Qt interface, install the Qt dependencies::
 
