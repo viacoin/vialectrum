@@ -292,6 +292,12 @@ def safe_parse_pubkey(x):
     except:
         return x
 
+def safe_parse_pubkey(x):
+    try:
+        return xpubkey_to_pubkey(x)
+    except:
+        return x
+
 
 def parse_scriptSig(d, bytes):
     try:
