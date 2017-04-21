@@ -1065,7 +1065,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.amount_e.shortcut.connect(self.spend_max)
         self.payto_e.textChanged.connect(self.update_fee)
         self.amount_e.textEdited.connect(self.update_fee)
-        self.amount_e.textEdited.connect(self.reset_max)
+
+        def reset_max(t):
+            self.is_max = False
+            self.max_button.setEnabled(not bool(t))
+        self.amount_e.textEdited.connect(reset_max)
+        self.fiat_send_e.textEdited.connect(reset_max)
 
         def entry_changed():
             text = ""
@@ -1112,9 +1117,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def spend_max(self):
         self.is_max = True
         self.do_update_fee()
-
-    def reset_max(self):
-        self.is_max = False
 
     def update_fee(self):
         self.require_fee_update = True
@@ -1276,7 +1278,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.show_error(_('Invalid Amount'))
                 return
 
-        freeze_fee = (self.fee_e.isModified() and (self.fee_e.text() or self.fee_e.hasFocus()))
+        freeze_fee = self.fee_e.isVisible() and self.fee_e.isModified() and (self.fee_e.text() or self.fee_e.hasFocus())
         fee = self.fee_e.get_amount() if freeze_fee else None
         coins = self.get_coins()
         return outputs, fee, label, coins
