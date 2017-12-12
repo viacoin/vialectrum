@@ -30,11 +30,11 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from electrum_ltc.bitcoin import base_encode
-from electrum_ltc.i18n import _
-from electrum_ltc.plugins import run_hook
+from vialectrum.bitcoin import base_encode
+from vialectrum.i18n import _
+from vialectrum.plugins import run_hook
 
-from electrum_ltc.util import bfh
+from vialectrum.util import bfh
 from .util import *
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...

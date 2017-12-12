@@ -30,9 +30,9 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 import PyQt5.QtCore as QtCore
 
-from electrum_ltc.i18n import _
-from electrum_ltc.bitcoin import NetworkConstants
-from electrum_ltc.util import print_error
+from vialectrum.i18n import _
+from vialectrum.bitcoin import NetworkConstants
+from vialectrum.util import print_error
 
 from .util import *
 

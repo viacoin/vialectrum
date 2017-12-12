@@ -1,10 +1,10 @@
 from PyQt5.QtGui import *
-from electrum_ltc.i18n import _
+from vialectrum.i18n import _
 
 
 import datetime
 from collections import defaultdict
-from electrum_ltc.bitcoin import COIN
+from vialectrum.bitcoin import COIN
 
 import matplotlib
 matplotlib.use('Qt5Agg')

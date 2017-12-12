@@ -1,5 +1,5 @@
 
-from electrum_ltc.i18n import _
+from vialectrum.i18n import _
 
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -28,7 +28,7 @@ class FeeSlider(QSlider):
             self.callback(self.dyn, pos, fee_rate)
 
     def get_tooltip(self, pos, fee_rate):
-        from electrum_ltc.util import fee_levels
+        from vialectrum.util import fee_levels
         rate_str = self.window.format_fee_rate(fee_rate) if fee_rate else _('unknown')
         if self.dyn:
             tooltip = fee_levels[pos] + '\n' + rate_str

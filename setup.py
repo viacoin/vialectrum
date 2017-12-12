@@ -28,12 +28,12 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         else:
             usr_share = os.path.expanduser('~/.local/share')
     data_files += [
-        (os.path.join(usr_share, 'applications/'), ['electrum-ltc.desktop']),
-        (os.path.join(usr_share, 'pixmaps/'), ['icons/electrum-ltc.png'])
+        (os.path.join(usr_share, 'applications/'), ['vialectrum.desktop']),
+        (os.path.join(usr_share, 'pixmaps/'), ['icons/vialectrum.png'])
     ]
 
 setup(
-    name="Electrum-LTC",
+    name="Vialectrum",
     version=version.ELECTRUM_VERSION,
     install_requires=[
         'pyaes>=0.1a1',
@@ -48,28 +48,28 @@ setup(
         'PySocks>=1.6.6',
     ],
     packages=[
-        'electrum_ltc',
-        'electrum_ltc_gui',
-        'electrum_ltc_gui.qt',
-        'electrum_ltc_plugins',
-        'electrum_ltc_plugins.audio_modem',
-        'electrum_ltc_plugins.cosigner_pool',
-        'electrum_ltc_plugins.email_requests',
-        'electrum_ltc_plugins.hw_wallet',
-        'electrum_ltc_plugins.keepkey',
-        'electrum_ltc_plugins.labels',
-        'electrum_ltc_plugins.ledger',
-        'electrum_ltc_plugins.trezor',
-        'electrum_ltc_plugins.digitalbitbox',
-        'electrum_ltc_plugins.virtualkeyboard',
+        'vialectrum',
+        'vialectrum_gui',
+        'vialectrum_gui.qt',
+        'vialectrum_plugins',
+        'vialectrum_plugins.audio_modem',
+        'vialectrum_plugins.cosigner_pool',
+        'vialectrum_plugins.email_requests',
+        'vialectrum_plugins.hw_wallet',
+        'vialectrum_plugins.keepkey',
+        'vialectrum_plugins.labels',
+        'vialectrum_plugins.ledger',
+        'vialectrum_plugins.trezor',
+        'vialectrum_plugins.digitalbitbox',
+        'vialectrum_plugins.virtualkeyboard',
     ],
     package_dir={
-        'electrum_ltc': 'lib',
-        'electrum_ltc_gui': 'gui',
-        'electrum_ltc_plugins': 'plugins',
+        'vialectrum': 'lib',
+        'vialectrum_gui': 'gui',
+        'vialectrum_plugins': 'plugins',
     },
     package_data={
-        'electrum_ltc': [
+        'vialectrum': [
             'servers.json',
             'servers_testnet.json',
             'currencies.json',
@@ -78,12 +78,12 @@ setup(
             'locale/*/LC_MESSAGES/electrum.mo',
         ]
     },
-    scripts=['electrum-ltc'],
+    scripts=['vialectrum'],
     data_files=data_files,
-    description="Lightweight Litecoin Wallet",
+    description="Lightweight Viacoin Wallet",
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
     license="MIT Licence",
-    url="http://electrum-ltc.org",
-    long_description="""Lightweight Litecoin Wallet"""
+    url="http://vialectrum.org",
+    long_description="""Lightweight Viacoin Wallet"""
 )

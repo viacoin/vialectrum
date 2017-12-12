@@ -6,7 +6,7 @@ import traceback, platform
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
-from electrum_ltc import util
+from vialectrum import util
 
 
 if platform.system() == 'Windows':

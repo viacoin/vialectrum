@@ -26,9 +26,9 @@
 import webbrowser
 
 from .util import *
-from electrum_ltc.i18n import _
-from electrum_ltc.util import block_explorer_URL
-from electrum_ltc.util import timestamp_to_datetime, profiler
+from vialectrum.i18n import _
+from vialectrum.util import block_explorer_URL
+from vialectrum.util import timestamp_to_datetime, profiler
 
 
 TX_ICONS = [

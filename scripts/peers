@@ -2,8 +2,8 @@
 
 import util
 
-from electrum_ltc.network import filter_protocol
-from electrum_ltc.blockchain import hash_header
+from vialectrum.network import filter_protocol
+from vialectrum.blockchain import hash_header
 
 peers = util.get_peers()
 peers = filter_protocol(peers, 's')

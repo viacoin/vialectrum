@@ -40,11 +40,11 @@ from PyQt5.QtCore import *
 import PyQt5.QtGui as QtGui
 from PyQt5.QtWidgets import (QVBoxLayout, QLabel, QGridLayout, QLineEdit)
 
-from electrum_ltc.plugins import BasePlugin, hook
-from electrum_ltc.paymentrequest import PaymentRequest
-from electrum_ltc.i18n import _
-from electrum_ltc_gui.qt.util import EnterButton, Buttons, CloseButton
-from electrum_ltc_gui.qt.util import OkButton, WindowModalDialog
+from vialectrum.plugins import BasePlugin, hook
+from vialectrum.paymentrequest import PaymentRequest
+from vialectrum.i18n import _
+from vialectrum_gui.qt.util import EnterButton, Buttons, CloseButton
+from vialectrum_gui.qt.util import OkButton, WindowModalDialog
 
 
 class Processor(threading.Thread):
@@ -72,7 +72,7 @@ class Processor(threading.Thread):
                 p = [p]
                 continue
             for item in p:
-                if item.get_content_type() == "application/litecoin-paymentrequest":
+                if item.get_content_type() == "application/viacoin-paymentrequest":
                     pr_str = item.get_payload()
                     pr_str = base64.b64decode(pr_str)
                     self.on_receive(pr_str)
@@ -91,7 +91,7 @@ class Processor(threading.Thread):
         msg['Subject'] = message
         msg['To'] = recipient
         msg['From'] = self.username
-        part = MIMEBase('application', "litecoin-paymentrequest")
+        part = MIMEBase('application', "viacoin-paymentrequest")
         part.set_payload(payment_request)
         encode_base64(part)
         part.add_header('Content-Disposition', 'attachment; filename="payreq.ltc"')
@@ -143,7 +143,7 @@ class Plugin(BasePlugin):
         menu.addAction(_("Send via e-mail"), lambda: self.send(window, addr))
 
     def send(self, window, addr):
-        from electrum_ltc import paymentrequest
+        from vialectrum import paymentrequest
         r = window.wallet.receive_requests.get(addr)
         message = r.get('memo', '')
         if r.get('signature'):

@@ -2,13 +2,13 @@
 
 import sys
 import time
-from electrum_ltc import SimpleConfig, Network
-from electrum_ltc.util import print_msg, json_encode
+from vialectrum import SimpleConfig, Network
+from vialectrum.util import print_msg, json_encode
 
 try:
     addr = sys.argv[1]
 except Exception:
-    print("usage: watch_address <litecoin_address>")
+    print("usage: watch_address <viacoin_address>")
     sys.exit(1)
 
 # start network

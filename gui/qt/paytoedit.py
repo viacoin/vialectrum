@@ -30,7 +30,7 @@ from .qrtextedit import ScanQRTextEdit
 
 import re
 from decimal import Decimal
-from electrum_ltc import bitcoin
+from vialectrum import bitcoin
 
 from . import util
 
@@ -88,7 +88,7 @@ class PayToEdit(ScanQRTextEdit):
             return bitcoin.TYPE_SCRIPT, script
 
     def parse_script(self, x):
-        from electrum_ltc.transaction import opcodes, push_script
+        from vialectrum.transaction import opcodes, push_script
         script = ''
         for word in x.split():
             if word[0:3] == 'OP_':
@@ -122,7 +122,7 @@ class PayToEdit(ScanQRTextEdit):
         self.payto_address = None
         if len(lines) == 1:
             data = lines[0]
-            if data.startswith("litecoin:"):
+            if data.startswith("viacoin:"):
                 self.scan_f(data)
                 return
             try:
@@ -260,7 +260,7 @@ class PayToEdit(ScanQRTextEdit):
 
     def qr_input(self):
         data = super(PayToEdit,self).qr_input()
-        if data.startswith("litecoin:"):
+        if data.startswith("viacoin:"):
             self.scan_f(data)
             # TODO: update fee
 

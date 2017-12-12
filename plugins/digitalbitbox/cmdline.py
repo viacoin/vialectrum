@@ -1,4 +1,4 @@
-from electrum_ltc.plugins import hook
+from vialectrum.plugins import hook
 from .digitalbitbox import DigitalBitboxPlugin
 from ..hw_wallet import CmdLineHandler
 

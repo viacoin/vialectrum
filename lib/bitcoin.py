@@ -90,7 +90,7 @@ class NetworkConstants:
         cls.ADDRTYPE_P2PKH = 111
         cls.ADDRTYPE_P2SH = 58
         cls.SEGWIT_HRP = "tvia"
-        cls.HEADERS_URL = "https://electrum-ltc.org/testnet_headers"
+        cls.HEADERS_URL = "https://vialectrum.org/testnet_headers"
         cls.GENESIS = "770aa712aa08fdcbdecc1c8df1b3e2d4e17a7cf6e63a28b785b32e74c96cb27d"
         cls.DEFAULT_PORTS = {'t':'51001', 's':'51002'}
         cls.DEFAULT_SERVERS = read_json_dict('servers_testnet.json')
@@ -619,7 +619,7 @@ from ecdsa.util import string_to_number, number_to_string
 
 def msg_magic(message):
     length = bfh(var_int(len(message)))
-    return b"\x19Litecoin Signed Message:\n" + length + message
+    return b"\x19Viacoin Signed Message:\n" + length + message
 
 
 def verify_message(address, sig, message):
