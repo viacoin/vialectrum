@@ -75,11 +75,11 @@ class NetworkConstants:
     def set_mainnet(cls):
         cls.TESTNET = False
         cls.WIF_PREFIX = 0x80
-        cls.ADDRTYPE_P2PKH = 48
-        cls.ADDRTYPE_P2SH = 50
-        cls.SEGWIT_HRP = "ltc"
-        cls.HEADERS_URL = "https://electrum-ltc.org/blockchain_headers"
-        cls.GENESIS = "12a765e31ffd4059bada1e25190f6e98c99d9714d334efa41a195a7e7e04bfe2"
+        cls.ADDRTYPE_P2PKH = 71
+        cls.ADDRTYPE_P2SH = 33
+        cls.SEGWIT_HRP = "via"
+        cls.HEADERS_URL = "https://headers.vialectrum.org/blockchain_headers"
+        cls.GENESIS = "4e9b54001f9976049830128ec0331515eaabe35a70970d79971da1539a400ba1"
         cls.DEFAULT_PORTS = {'t': '50001', 's': '50002'}
         cls.DEFAULT_SERVERS = read_json_dict('servers.json')
 
@@ -89,9 +89,9 @@ class NetworkConstants:
         cls.WIF_PREFIX = 0xbf
         cls.ADDRTYPE_P2PKH = 111
         cls.ADDRTYPE_P2SH = 58
-        cls.SEGWIT_HRP = "tltc"
+        cls.SEGWIT_HRP = "tvia"
         cls.HEADERS_URL = "https://electrum-ltc.org/testnet_headers"
-        cls.GENESIS = "4966625a4b2851d9fdee139e56211a0d88575f59ed816ff5e6a63deb4e3e29a0"
+        cls.GENESIS = "770aa712aa08fdcbdecc1c8df1b3e2d4e17a7cf6e63a28b785b32e74c96cb27d"
         cls.DEFAULT_PORTS = {'t':'51001', 's':'51002'}
         cls.DEFAULT_SERVERS = read_json_dict('servers_testnet.json')
 
@@ -512,10 +512,10 @@ def DecodeBase58Check(psz):
 # extended key export format for segwit
 
 SCRIPT_TYPES = {
-    'p2pkh':48,
+    'p2pkh':71,
     'p2wpkh':1,
     'p2wpkh-p2sh':2,
-    'p2sh':50,
+    'p2sh':22,
     'p2wsh':6,
     'p2wsh-p2sh':7
 }
