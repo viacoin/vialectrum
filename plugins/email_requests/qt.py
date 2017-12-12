@@ -94,7 +94,7 @@ class Processor(threading.Thread):
         part = MIMEBase('application', "viacoin-paymentrequest")
         part.set_payload(payment_request)
         encode_base64(part)
-        part.add_header('Content-Disposition', 'attachment; filename="payreq.ltc"')
+        part.add_header('Content-Disposition', 'attachment; filename="payreq.via"')
         msg.attach(part)
         s = smtplib.SMTP_SSL(self.imap_server, timeout=2)
         s.login(self.username, self.password)

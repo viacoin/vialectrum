@@ -415,9 +415,9 @@ def time_difference(distance_in_time, include_seconds):
 mainnet_block_explorers = {
     'explorer.viacoin.net': ('http://explorer.viacoin.net',
                         {'tx': 'tx', 'addr': 'address'}),
-    'Blockr.io': ('https://ltc.blockr.io',
+    'Blockr.io': ('https://via.blockr.io',
                         {'tx': 'tx/info', 'addr': 'address/info'}),
-    'BlockCypher.com': ('https://live.blockcypher.com/ltc',
+    'BlockCypher.com': ('https://live.blockcypher.com/via',
                         {'tx': 'tx', 'addr': 'address'}),
     'SoChain': ('https://chain.so',
                         {'tx': 'tx/LTC', 'addr': 'address/LTC'}),

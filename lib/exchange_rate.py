@@ -129,21 +129,21 @@ class BitcoinVenezuela(ExchangeBase):
 
 class Bitfinex(ExchangeBase):
     def get_rates(self, ccy):
-        json = self.get_json('api.bitfinex.com', '/v1/pubticker/ltcusd')
+        json = self.get_json('api.bitfinex.com', '/v1/pubticker/viausd')
         return {'USD': Decimal(json['last_price'])}
 
 
 class BitStamp(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('www.bitstamp.net', '/api/v2/ticker/ltcusd/')
+        json = self.get_json('www.bitstamp.net', '/api/v2/ticker/viausd/')
         return {'USD': Decimal(json['last'])}
 
 
 class BTCChina(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('data.btcchina.com', '/data/ticker?market=ltccny')
+        json = self.get_json('data.btcchina.com', '/data/ticker?market=viacny')
         return {'CNY': Decimal(json['ticker']['last'])}
 
 
@@ -157,15 +157,15 @@ class CoinSpot(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('www.coinspot.com.au', '/pubapi/latest')
-        return {'AUD': Decimal(json['prices']['ltc']['last'])}
+        return {'AUD': Decimal(json['prices']['via']['last'])}
 
 
 class GoCoin(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('x.g0cn.com', '/prices')
-        ltc_prices = json['prices']['LTC']
-        return dict([(r, Decimal(ltc_prices[r])) for r in ltc_prices])
+        via_prices = json['prices']['LTC']
+        return dict([(r, Decimal(via_prices[r])) for r in via_prices])
 
 
 class HitBTC(ExchangeBase):
@@ -205,7 +205,7 @@ class Kraken(ExchangeBase):
 class OKCoin(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('www.okcoin.cn', '/api/ticker.do?symbol=ltc_cny')
+        json = self.get_json('www.okcoin.cn', '/api/ticker.do?symbol=via_cny')
         return {'CNY': Decimal(json['ticker']['last'])}
 
 
@@ -220,12 +220,12 @@ class MercadoBitcoin(ExchangeBase):
 class WEX(ExchangeBase):
 
     def get_rates(self, ccy):
-        json_eur = self.get_json('wex.nz', '/api/3/ticker/ltc_eur')
-        json_rub = self.get_json('wex.nz', '/api/3/ticker/ltc_rur')
-        json_usd = self.get_json('wex.nz', '/api/3/ticker/ltc_usd')
-        return {'EUR': Decimal(json_eur['ltc_eur']['last']),
-                'RUB': Decimal(json_rub['ltc_rur']['last']),
-                'USD': Decimal(json_usd['ltc_usd']['last'])}
+        json_eur = self.get_json('wex.nz', '/api/3/ticker/via_eur')
+        json_rub = self.get_json('wex.nz', '/api/3/ticker/via_rur')
+        json_usd = self.get_json('wex.nz', '/api/3/ticker/via_usd')
+        return {'EUR': Decimal(json_eur['via_eur']['last']),
+                'RUB': Decimal(json_rub['via_rur']['last']),
+                'USD': Decimal(json_usd['via_usd']['last'])}
 
 
 class Bitcointoyou(ExchangeBase):
