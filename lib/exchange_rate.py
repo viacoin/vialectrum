@@ -89,7 +89,7 @@ class ExchangeBase(PrintError):
 class Bit2C(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('www.bit2c.co.il', '/Exchanges/LTCNIS/Ticker.json')
+        json = self.get_json('www.bit2c.co.il', '/Exchanges/VIANIS/Ticker.json')
         return {'NIS': Decimal(json['ll'])}
 
 
@@ -97,7 +97,7 @@ class BitcoinAverage(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/short')
-        return dict([(r.replace("LTC", ""), Decimal(json[r]['last']))
+        return dict([(r.replace("VIA", ""), Decimal(json[r]['last']))
                      for r in json if r != 'timestamp'])
 
     def history_ccys(self):
@@ -107,7 +107,7 @@ class BitcoinAverage(ExchangeBase):
 
     def historical_rates(self, ccy):
         history = self.get_csv('apiv2.bitcoinaverage.com',
-                               "/indices/global/history/LTC%s?period=alltime&format=csv" % ccy)
+                               "/indices/global/history/VIA%s?period=alltime&format=csv" % ccy)
         return dict([(h['DateTime'][:10], h['Average'])
                      for h in history])
 
@@ -116,8 +116,8 @@ class BitcoinVenezuela(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('api.bitcoinvenezuela.com', '/')
-        rates = [(r, json['LTC'][r]) for r in json['LTC']
-                 if json['LTC'][r] is not None]  # Giving NULL sometimes
+        rates = [(r, json['VIA'][r]) for r in json['VIA']
+                 if json['VIA'][r] is not None]  # Giving NULL sometimes
         return dict(rates)
 
     def history_ccys(self):
@@ -125,7 +125,7 @@ class BitcoinVenezuela(ExchangeBase):
 
     def historical_rates(self, ccy):
         return self.get_json('api.bitcoinvenezuela.com',
-                             "/historical/index.php?coin=LTC")[ccy +'_LTC']
+                             "/historical/index.php?coin=VIA")[ccy +'_VIA']
 
 class Bitfinex(ExchangeBase):
     def get_rates(self, ccy):
@@ -149,8 +149,8 @@ class BTCChina(ExchangeBase):
 
 class CaVirtEx(ExchangeBase):
     def get_rates(self, ccy):
-        json = self.get_json('www.cavirtex.com', '/api2/ticker.json?currencypair=LTCCAD')
-        return {'CAD': Decimal(json['ticker']['LTCCAD']['last'])}
+        json = self.get_json('www.cavirtex.com', '/api2/ticker.json?currencypair=VIACAD')
+        return {'CAD': Decimal(json['ticker']['VIACAD']['last'])}
 
 
 class CoinSpot(ExchangeBase):
@@ -164,7 +164,7 @@ class GoCoin(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('x.g0cn.com', '/prices')
-        via_prices = json['prices']['LTC']
+        via_prices = json['prices']['VIA']
         return dict([(r, Decimal(via_prices[r])) for r in via_prices])
 
 
@@ -172,7 +172,7 @@ class HitBTC(ExchangeBase):
 
     def get_rates(self, ccy):
         ccys = ['EUR', 'USD']
-        json = self.get_json('api.hitbtc.com', '/api/1/public/LTC%s/ticker' % ccy)
+        json = self.get_json('api.hitbtc.com', '/api/1/public/VIA%s/ticker' % ccy)
         result = dict.fromkeys(ccys)
         if ccy in ccys:
             result[ccy] = Decimal(json['last'])
@@ -183,21 +183,21 @@ class Kraken(ExchangeBase):
 
     def get_rates(self, ccy):
         dicts = self.get_json('api.kraken.com', '/0/public/AssetPairs')
-        pairs = [k for k in dicts['result'] if k.startswith('XLTCZ')]
+        pairs = [k for k in dicts['result'] if k.startswith('XVIAZ')]
         json = self.get_json('api.kraken.com',
                              '/0/public/Ticker?pair=%s' % ','.join(pairs))
         ccys = [p[5:] for p in pairs]
         result = dict.fromkeys(ccys)
-        result[ccy] = Decimal(json['result']['XLTCZ'+ccy]['c'][0])
+        result[ccy] = Decimal(json['result']['XVIAZ'+ccy]['c'][0])
         return result
 
     def history_ccys(self):
         return ['EUR', 'USD']
 
     def historical_rates(self, ccy):
-        query = '/0/public/OHLC?pair=LTC%s&interval=1440' % ccy
+        query = '/0/public/OHLC?pair=VIA%s&interval=1440' % ccy
         json = self.get_json('api.kraken.com', query)
-        history = json['result']['XLTCZ'+ccy]
+        history = json['result']['XVIAZ'+ccy]
         return dict([(time.strftime('%Y-%m-%d', time.localtime(t[0])), t[4])
                                     for t in history])
 

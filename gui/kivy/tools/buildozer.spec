@@ -4,7 +4,7 @@
 title = Vialectrum
 
 # (str) Package name
-package.name = Electrum_LTC
+package.name = Electrum_VIA
 
 # (str) Package domain (needed for android/ios packaging)
 package.domain = org.vialectrum

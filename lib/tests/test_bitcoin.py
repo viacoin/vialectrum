@@ -149,9 +149,9 @@ class Test_bitcoin(unittest.TestCase):
     def test_address_to_script(self):
         # bech32 native segwit
         # test vectors from BIP-0173
-        self.assertEqual(address_to_script('LTC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KGMN4N9'), '0014751e76e8199196d454941c45d1b3a323f1433bd6')
+        self.assertEqual(address_to_script('VIA1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KGMN4N9'), '0014751e76e8199196d454941c45d1b3a323f1433bd6')
         self.assertEqual(address_to_script('via1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7k0tul4w'), '5128751e76e8199196d454941c45d1b3a323f1433bd6751e76e8199196d454941c45d1b3a323f1433bd6')
-        self.assertEqual(address_to_script('LTC1SW50QZGYDF5'), '6002751e')
+        self.assertEqual(address_to_script('VIA1SW50QZGYDF5'), '6002751e')
         self.assertEqual(address_to_script('via1zw508d6qejxtdg4y5r3zarvaryvdzur3w'), '5210751e76e8199196d454941c45d1b3a323')
 
         # base58 P2PKH

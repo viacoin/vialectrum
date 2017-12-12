@@ -39,7 +39,7 @@ def inv_dict(d):
     return {v: k for k, v in d.items()}
 
 
-base_units = {'LTC':8, 'mLTC':5, 'uLTC':2}
+base_units = {'VIA':8, 'mVIA':5, 'uVIA':2}
 fee_levels = [_('Within 25 blocks'), _('Within 10 blocks'), _('Within 5 blocks'), _('Within 2 blocks'), _('In the next block')]
 
 def normalize_version(v):
@@ -420,14 +420,14 @@ mainnet_block_explorers = {
     'BlockCypher.com': ('https://live.blockcypher.com/via',
                         {'tx': 'tx', 'addr': 'address'}),
     'SoChain': ('https://chain.so',
-                        {'tx': 'tx/LTC', 'addr': 'address/LTC'}),
+                        {'tx': 'tx/VIA', 'addr': 'address/VIA'}),
     'system default': ('blockchain:',
                         {'tx': 'tx', 'addr': 'address'}),
 }
 
 testnet_block_explorers = {
     'SoChain': ('https://chain.so',
-                        {'tx': 'tx/LTCTEST', 'addr': 'address/LTCTEST'}),
+                        {'tx': 'tx/VIATEST', 'addr': 'address/VIATEST'}),
     'system default': ('blockchain:',
                        {'tx': 'tx', 'addr': 'address'}),
 }
