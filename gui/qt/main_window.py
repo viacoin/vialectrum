@@ -39,7 +39,7 @@ from PyQt5.QtWidgets import *
 from vialectrum.util import bh2u, bfh
 
 from vialectrum import keystore
-from vialectrum.bitcoin import COIN, is_address, TYPE_ADDRESS
+from vialectrum.bitcoin import COIN, is_address, TYPE_ADDRESS, NetworkConstants
 from vialectrum.plugins import run_hook
 from vialectrum.i18n import _
 from vialectrum.util import (format_time, format_satoshis, PrintError,
@@ -363,8 +363,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.setGeometry(100, 100, 840, 400)
 
     def watching_only_changed(self):
-        title = 'Vialectrum %s  -  %s' % (self.wallet.electrum_version,
-                                            self.wallet.basename())
+        name = "Vialectrum Testnet" if NetworkConstants.TESTNET else "Vialectrum"
+        title = '%s %s  -  %s' % (name, self.wallet.electrum_version,
+                                        self.wallet.basename())
         extra = [self.wallet.storage.get('wallet_type', '?')]
         if self.wallet.is_watching_only():
             self.warn_if_watching_only()
@@ -2348,6 +2349,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         vbox.addWidget(keys_e)
 
         addresses = self.wallet.get_unused_addresses()
+        if not addresses:
+            try:
+                addresses = self.wallet.get_receiving_addresses()
+            except AttributeError:
+                addresses = self.wallet.get_addresses()
         h, address_e = address_field(addresses)
         vbox.addLayout(h)
 
