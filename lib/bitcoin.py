@@ -619,7 +619,7 @@ from ecdsa.util import string_to_number, number_to_string
 
 def msg_magic(message):
     length = bfh(var_int(len(message)))
-    return b"\x19Viacoin Signed Message:\n" + length + message
+    return b"\x18Viacoin Signed Message:\n" + length + message
 
 
 def verify_message(address, sig, message):
