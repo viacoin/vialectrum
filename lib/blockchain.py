@@ -168,6 +168,10 @@ class Blockchain(util.PrintError):
 
     def verify_chunk(self, index, data):
         num = len(data) // 80
+        # Viacoin: no verify chunks
+        self.save_chunk(index, data)
+        return
+        ##############################
         prev_header = None
         if index != 0:
             prev_header = self.read_header(index * 2016 - 1)
