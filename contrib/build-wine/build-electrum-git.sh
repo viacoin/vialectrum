@@ -38,7 +38,7 @@ for i in ./locale/*; do
 done
 popd
 
-pushd electrum-ltc
+pushd vialectrum
 if [ ! -z "$1" ]; then
     git checkout $1
 fi
