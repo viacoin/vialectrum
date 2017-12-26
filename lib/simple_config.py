@@ -85,15 +85,18 @@ class SimpleConfig(PrintError):
         if path is None:
             path = self.user_dir()
 
+        def make_dir(path):
+            # Make directory if it does not yet exist.
+            if not os.path.exists(path):
+                if os.path.islink(path):
+                    raise BaseException('Dangling link: ' + path)
+                os.mkdir(path)
+                os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+        make_dir(path)
         if self.get('testnet'):
             path = os.path.join(path, 'testnet')
-
-        # Make directory if it does not yet exist.
-        if not os.path.exists(path):
-            if os.path.islink(path):
-                raise BaseException('Dangling link: ' + path)
-            os.mkdir(path)
-            os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            make_dir(path)
 
         self.print_error("electrum directory", path)
         return path
@@ -253,7 +256,11 @@ class SimpleConfig(PrintError):
         return fee_rate
 
     def estimate_fee(self, size):
-        return int(self.fee_per_kb() * size / 1000.)
+        return self.estimate_fee_for_feerate(self.fee_per_kb(), size)
+
+    @classmethod
+    def estimate_fee_for_feerate(cls, fee_per_kb, size):
+        return int(fee_per_kb * size / 1000.)
 
     def update_fee_estimates(self, key, value):
         self.fee_estimates[key] = value

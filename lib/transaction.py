@@ -645,7 +645,7 @@ class Transaction:
         num_sig = txin.get('num_sig', 1)
         if estimate_size:
             pubkey_size = self.estimate_pubkey_size_for_txin(txin)
-            pk_list = ["00" * pubkey_size] * num_sig
+            pk_list = ["00" * pubkey_size] * len(txin.get('x_pubkeys', [None]))
             # we assume that signature will be 0x48 bytes long
             sig_list = [ "00" * 0x48 ] * num_sig
         else:
@@ -863,19 +863,25 @@ class Transaction:
         return self.virtual_size_from_weight(weight)
 
     @classmethod
-    def estimated_input_weight(cls, txin):
+    def estimated_input_weight(cls, txin, is_segwit_tx):
         '''Return an estimate of serialized input weight in weight units.'''
         script = cls.input_script(txin, True)
         input_size = len(cls.serialize_input(txin, script)) // 2
 
-        # note: we should actually branch based on tx.is_segwit()
-        # only if none of the inputs have a witness, is the size actually 0
         if cls.is_segwit_input(txin):
+            assert is_segwit_tx
             witness_size = len(cls.serialize_witness(txin, True)) // 2
         else:
-            witness_size = 0
+            witness_size = 1 if is_segwit_tx else 0
 
         return 4 * input_size + witness_size
+
+    @classmethod
+    def estimated_output_size(cls, address):
+        """Return an estimate of serialized output size in bytes."""
+        script = bitcoin.address_to_script(address)
+        # 8 byte value + 1 byte script len + script
+        return 9 + len(script) // 2
 
     @classmethod
     def virtual_size_from_weight(cls, weight):

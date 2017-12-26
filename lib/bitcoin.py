@@ -37,13 +37,13 @@ from . import version
 from .util import print_error, InvalidPassword, assert_bytes, to_bytes, inv_dict
 from . import segwit_addr
 
-def read_json_dict(filename):
+def read_json(filename, default):
     path = os.path.join(os.path.dirname(__file__), filename)
     try:
         with open(path, 'r') as f:
             r = json.loads(f.read())
     except:
-        r = {}
+        r = default
     return r
 
 
@@ -78,10 +78,10 @@ class NetworkConstants:
         cls.ADDRTYPE_P2PKH = 71
         cls.ADDRTYPE_P2SH = 33
         cls.SEGWIT_HRP = "via"
-        cls.HEADERS_URL = "https://headers.vialectrum.org/blockchain_headers"
         cls.GENESIS = "4e9b54001f9976049830128ec0331515eaabe35a70970d79971da1539a400ba1"
         cls.DEFAULT_PORTS = {'t': '50001', 's': '50002'}
-        cls.DEFAULT_SERVERS = read_json_dict('servers.json')
+        cls.DEFAULT_SERVERS = read_json('servers.json', {})
+        cls.CHECKPOINTS = read_json('checkpoints.json', [])
 
     @classmethod
     def set_testnet(cls):
@@ -90,10 +90,10 @@ class NetworkConstants:
         cls.ADDRTYPE_P2PKH = 111
         cls.ADDRTYPE_P2SH = 58
         cls.SEGWIT_HRP = "tvia"
-        cls.HEADERS_URL = "https://vialectrum.org/testnet_headers"
         cls.GENESIS = "770aa712aa08fdcbdecc1c8df1b3e2d4e17a7cf6e63a28b785b32e74c96cb27d"
         cls.DEFAULT_PORTS = {'t':'51001', 's':'51002'}
-        cls.DEFAULT_SERVERS = read_json_dict('servers_testnet.json')
+        cls.DEFAULT_SERVERS = read_json('servers_testnet.json', {})
+        cls.CHECKPOINTS = read_json('checkpoints_testnet.json', [])
 
 
 NetworkConstants.set_mainnet()

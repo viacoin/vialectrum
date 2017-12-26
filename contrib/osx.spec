@@ -22,6 +22,7 @@ hiddenimports += collect_submodules('keepkeylib')
 datas = [
     (home+'lib/currencies.json', 'vialectrum'),
     (home+'lib/servers.json', 'vialectrum'),
+    (home+'lib/checkpoints.json', 'vialectrum'),
     (home+'lib/wordlist/english.txt', 'vialectrum/wordlist'),
     (home+'lib/locale', 'vialectrum/locale'),
     (home+'plugins', 'vialectrum_plugins'),

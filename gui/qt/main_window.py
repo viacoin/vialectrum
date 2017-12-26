@@ -38,7 +38,8 @@ from PyQt5.QtWidgets import *
 
 from vialectrum.util import bh2u, bfh
 
-from vialectrum import keystore
+
+from vialectrum import keystore, simple_config
 from vialectrum.bitcoin import COIN, is_address, TYPE_ADDRESS, NetworkConstants
 from vialectrum.plugins import run_hook
 from vialectrum.i18n import _
@@ -54,7 +55,7 @@ try:
 except:
     plot_history = None
 
-from .amountedit import AmountEdit, BTCAmountEdit, MyLineEdit
+from .amountedit import AmountEdit, BTCAmountEdit, MyLineEdit, FeerateEdit
 from .qrcodewidget import QRCodeWidget, QRDialog
 from .qrtextedit import ShowQRTextEdit, ScanQRTextEdit
 from .transaction_dialog import show_transaction
@@ -1067,31 +1068,69 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.config.set_key('fee_level', pos, False)
             else:
                 self.config.set_key('fee_per_kb', fee_rate, False)
+
+            self.feerate_e.setAmount(fee_rate // 1000)
+            self.fee_e.setModified(False)
+
+            self.fee_slider.activate()
             self.spend_max() if self.is_max else self.update_fee()
 
         self.fee_slider = FeeSlider(self, self.config, fee_cb)
         self.fee_slider.setFixedWidth(140)
 
+        def on_fee_or_feerate(edit_changed, editing_finished):
+            edit_other = self.feerate_e if edit_changed == self.fee_e else self.fee_e
+            if editing_finished:
+                if not edit_changed.get_amount():
+                    # This is so that when the user blanks the fee and moves on,
+                    # we go back to auto-calculate mode and put a fee back.
+                    edit_changed.setModified(False)
+            else:
+                # edit_changed was edited just now, so make sure we will
+                # freeze the correct fee setting (this)
+                edit_other.setModified(False)
+            self.fee_slider.deactivate()
+            self.update_fee()
+
+        class TxSizeLabel(QLabel):
+            def setAmount(self, byte_size):
+                self.setText(('x   %s bytes   =' % byte_size) if byte_size else '')
+
+        self.size_e = TxSizeLabel()
+        self.size_e.setAlignment(Qt.AlignCenter)
+        self.size_e.setAmount(0)
+        self.size_e.setStyleSheet(ColorScheme.DEFAULT.as_stylesheet())
+
+        self.feerate_e = FeerateEdit(lambda: 2 if self.fee_unit else 0)
+        self.feerate_e.textEdited.connect(partial(on_fee_or_feerate, self.feerate_e, False))
+        self.feerate_e.editingFinished.connect(partial(on_fee_or_feerate, self.feerate_e, True))
+
         self.fee_e = BTCAmountEdit(self.get_decimal_point)
-        if not self.config.get('show_fee', False):
-            self.fee_e.setVisible(False)
-        self.fee_e.textEdited.connect(self.update_fee)
-        # This is so that when the user blanks the fee and moves on,
-        # we go back to auto-calculate mode and put a fee back.
-        self.fee_e.editingFinished.connect(self.update_fee)
+        self.fee_e.textEdited.connect(partial(on_fee_or_feerate, self.fee_e, False))
+        self.fee_e.editingFinished.connect(partial(on_fee_or_feerate, self.fee_e, True))
+
         self.connect_fields(self, self.amount_e, self.fiat_send_e, self.fee_e)
 
-        self.rbf_checkbox = QCheckBox(_('Replaceable'))
-        msg = [_('If you check this box, your transaction will be marked as non-final,'),
-               _('and you will have the possiblity, while it is unconfirmed, to replace it with a transaction that pays a higher fee.'),
-               _('Note that some merchants do not accept non-final transactions until they are confirmed.')]
-        self.rbf_checkbox.setToolTip('<p>' + ' '.join(msg) + '</p>')
-        self.rbf_checkbox.setVisible(False)
+        vbox_feelabel = QVBoxLayout()
+        vbox_feelabel.addWidget(self.fee_e_label)
+        vbox_feelabel.addStretch(1)
+        grid.addLayout(vbox_feelabel, 5, 0)
 
-        grid.addWidget(self.fee_e_label, 5, 0)
-        grid.addWidget(self.fee_slider, 5, 1)
-        grid.addWidget(self.fee_e, 5, 2)
-        grid.addWidget(self.rbf_checkbox, 5, 3)
+        self.fee_adv_controls = QWidget()
+        hbox = QHBoxLayout(self.fee_adv_controls)
+        hbox.setContentsMargins(0, 0, 0, 0)
+        hbox.addWidget(self.feerate_e)
+        hbox.addWidget(self.size_e)
+        hbox.addWidget(self.fee_e)
+
+        vbox_feecontrol = QVBoxLayout()
+        vbox_feecontrol.addWidget(self.fee_adv_controls)
+        vbox_feecontrol.addWidget(self.fee_slider)
+
+        grid.addLayout(vbox_feecontrol, 5, 1, 1, 3)
+
+        if not self.config.get('show_fee', False):
+            self.fee_adv_controls.setVisible(False)
 
         self.preview_button = EnterButton(_("Preview"), self.do_preview)
         self.preview_button.setToolTip(_('Display the details of your transactions before signing it.'))
@@ -1116,26 +1155,40 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         def entry_changed():
             text = ""
+
+            amt_color = ColorScheme.DEFAULT
+            fee_color = ColorScheme.DEFAULT
+            feerate_color = ColorScheme.DEFAULT
+
             if self.not_enough_funds:
                 amt_color, fee_color = ColorScheme.RED, ColorScheme.RED
+                feerate_color = ColorScheme.RED
                 text = _( "Not enough funds" )
                 c, u, x = self.wallet.get_frozen_balance()
                 if c+u+x:
                     text += ' (' + self.format_amount(c+u+x).strip() + ' ' + self.base_unit() + ' ' +_("are frozen") + ')'
 
+            # blue color denotes auto-filled values
             elif self.fee_e.isModified():
-                amt_color, fee_color = ColorScheme.DEFAULT, ColorScheme.DEFAULT
+                feerate_color = ColorScheme.BLUE
+            elif self.feerate_e.isModified():
+                fee_color = ColorScheme.BLUE
             elif self.amount_e.isModified():
-                amt_color, fee_color = ColorScheme.DEFAULT, ColorScheme.BLUE
+                fee_color = ColorScheme.BLUE
+                feerate_color = ColorScheme.BLUE
             else:
-                amt_color, fee_color = ColorScheme.BLUE, ColorScheme.BLUE
+                amt_color = ColorScheme.BLUE
+                fee_color = ColorScheme.BLUE
+                feerate_color = ColorScheme.BLUE
 
             self.statusBar().showMessage(text)
             self.amount_e.setStyleSheet(amt_color.as_stylesheet())
             self.fee_e.setStyleSheet(fee_color.as_stylesheet())
+            self.feerate_e.setStyleSheet(feerate_color.as_stylesheet())
 
         self.amount_e.textChanged.connect(entry_changed)
         self.fee_e.textChanged.connect(entry_changed)
+        self.feerate_e.textChanged.connect(entry_changed)
 
         self.invoices_label = QLabel(_('Invoices'))
         from .invoice_list import InvoiceList
@@ -1176,8 +1229,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if not self.config.get('offline') and self.config.is_dynfee() and not self.config.has_fee_estimates():
             self.statusBar().showMessage(_('Waiting for fee estimates...'))
             return False
-        freeze_fee = (self.fee_e.isModified()
-                      and (self.fee_e.text() or self.fee_e.hasFocus()))
+        freeze_fee = self.is_send_fee_frozen()
+        freeze_feerate = self.is_send_feerate_frozen()
         amount = '!' if self.is_max else self.amount_e.get_amount()
         if amount is None:
             if not freeze_fee:
@@ -1185,13 +1238,16 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.not_enough_funds = False
             self.statusBar().showMessage('')
         else:
-            fee = self.fee_e.get_amount() if freeze_fee else None
+            fee_estimator = self.get_send_fee_estimator()
             outputs = self.payto_e.get_outputs(self.is_max)
             if not outputs:
                 _type, addr = self.get_payto_or_dummy()
                 outputs = [(_type, addr, amount)]
             try:
-                tx = self.wallet.make_unsigned_transaction(self.get_coins(), outputs, self.config, fee)
+                is_sweep = bool(self.tx_external_keypairs)
+                tx = self.wallet.make_unsigned_transaction(
+                    self.get_coins(), outputs, self.config,
+                    fixed_fee=fee_estimator, is_sweep=is_sweep)
                 self.not_enough_funds = False
             except NotEnoughFunds:
                 self.not_enough_funds = True
@@ -1199,33 +1255,23 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     self.fee_e.setAmount(None)
                 return
             except BaseException:
+                traceback.print_exc(file=sys.stderr)
                 return
 
+            size = tx.estimated_size()
+            self.size_e.setAmount(size)
+
+            fee = tx.get_fee()
             if not freeze_fee:
-                fee = None if self.not_enough_funds else tx.get_fee()
+                fee = None if self.not_enough_funds else fee
                 self.fee_e.setAmount(fee)
+            if not freeze_feerate:
+                fee_rate = fee // size if fee is not None else None
+                self.feerate_e.setAmount(fee_rate)
 
             if self.is_max:
                 amount = tx.output_value()
                 self.amount_e.setAmount(amount)
-
-            if fee is None:
-                return
-            rbf_policy = self.config.get('rbf_policy', 2)
-            if rbf_policy == 0:
-                b = True
-            elif rbf_policy == 1:
-                fee_rate = fee * 1000 / tx.estimated_size()
-                try:
-                    c = self.config.reverse_dynfee(fee_rate)
-                    b = c in [-1, 25]
-                except:
-                    b = False
-            elif rbf_policy == 2:
-                b = False
-            self.rbf_checkbox.setVisible(b)
-            self.rbf_checkbox.setChecked(b)
-
 
     def from_list_delete(self, item):
         i = self.from_list.indexOfTopLevelItem(item)
@@ -1287,6 +1333,26 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return func(self, *args, **kwargs)
         return request_password
 
+    def is_send_fee_frozen(self):
+        return self.fee_e.isVisible() and self.fee_e.isModified() \
+               and (self.fee_e.text() or self.fee_e.hasFocus())
+
+    def is_send_feerate_frozen(self):
+        return self.feerate_e.isVisible() and self.feerate_e.isModified() \
+               and (self.feerate_e.text() or self.feerate_e.hasFocus())
+
+    def get_send_fee_estimator(self):
+        if self.is_send_fee_frozen():
+            fee_estimator = self.fee_e.get_amount()
+        elif self.is_send_feerate_frozen():
+            amount = self.feerate_e.get_amount()
+            amount = 0 if amount is None else float(amount)
+            fee_estimator = partial(
+                simple_config.SimpleConfig.estimate_fee_for_feerate, amount)
+        else:
+            fee_estimator = None
+        return fee_estimator
+
     def read_send_tab(self):
         if self.payment_request and self.payment_request.has_expired():
             self.show_error(_('Payment request has expired'))
@@ -1324,10 +1390,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.show_error(_('Invalid Amount'))
                 return
 
-        freeze_fee = self.fee_e.isVisible() and self.fee_e.isModified() and (self.fee_e.text() or self.fee_e.hasFocus())
-        fee = self.fee_e.get_amount() if freeze_fee else None
+        fee_estimator = self.get_send_fee_estimator()
         coins = self.get_coins()
-        return outputs, fee, label, coins
+        return outputs, fee_estimator, label, coins
 
     def do_preview(self):
         self.do_send(preview = True)
@@ -1338,9 +1403,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         r = self.read_send_tab()
         if not r:
             return
-        outputs, fee, tx_desc, coins = r
+        outputs, fee_estimator, tx_desc, coins = r
         try:
-            tx = self.wallet.make_unsigned_transaction(coins, outputs, self.config, fee)
+            is_sweep = bool(self.tx_external_keypairs)
+            tx = self.wallet.make_unsigned_transaction(
+                coins, outputs, self.config, fixed_fee=fee_estimator,
+                is_sweep=is_sweep)
         except NotEnoughFunds:
             self.show_message(_("Insufficient funds"))
             return
@@ -1352,7 +1420,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         amount = tx.output_value() if self.is_max else sum(map(lambda x:x[2], outputs))
         fee = tx.get_fee()
 
-        use_rbf = self.rbf_checkbox.isChecked()
+        use_rbf = self.config.get('use_rbf', True)
         if use_rbf:
             tx.set_rbf(True)
 
@@ -1408,8 +1476,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         '''Sign the transaction in a separate thread.  When done, calls
         the callback with a success code of True or False.
         '''
-        # call hook to see if plugin needs gui interaction
-        run_hook('sign_tx', self, tx)
 
         def on_signed(result):
             callback(True)
@@ -1418,8 +1484,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             callback(False)
 
         if self.tx_external_keypairs:
+            # can sign directly
             task = partial(Transaction.sign, tx, self.tx_external_keypairs)
         else:
+            # call hook to see if plugin needs gui interaction
+            run_hook('sign_tx', self, tx)
             task = partial(self.wallet.sign_transaction, tx, password)
         WaitingDialog(self, _('Signing transaction...'), task,
                       on_signed, on_failed)
@@ -1558,11 +1627,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.not_enough_funds = False
         self.payment_request = None
         self.payto_e.is_pr = False
-        for e in [self.payto_e, self.message_e, self.amount_e, self.fiat_send_e, self.fee_e]:
+        for e in [self.payto_e, self.message_e, self.amount_e, self.fiat_send_e,
+                  self.fee_e, self.feerate_e]:
             e.setText('')
             e.setFrozen(False)
+        self.fee_slider.activate()
+        self.size_e.setAmount(0)
         self.set_pay_from([])
-        self.rbf_checkbox.setChecked(False)
         self.tx_external_keypairs = {}
         self.update_status()
         run_hook('do_clear', self)
@@ -2432,6 +2503,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.fiat_receive_e.setVisible(b)
         self.history_list.refresh_headers()
         self.history_list.update()
+        self.address_list.refresh_headers()
         self.address_list.update()
         self.update_status()
 
@@ -2498,19 +2570,20 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         feebox_cb.setToolTip(_("Show fee edit box in send tab."))
         def on_feebox(x):
             self.config.set_key('show_fee', x == Qt.Checked)
-            self.fee_e.setVisible(bool(x))
+            self.fee_adv_controls.setVisible(bool(x))
         feebox_cb.stateChanged.connect(on_feebox)
         fee_widgets.append((feebox_cb, None))
 
-        rbf_policy = self.config.get('rbf_policy', 2)
-        rbf_label = HelpLabel(_('Propose Replace-By-Fee') + ':', '')
-        rbf_combo = QComboBox()
-        rbf_combo.addItems([_('Always'), _('If the fee is low'), _('Never')])
-        rbf_combo.setCurrentIndex(rbf_policy)
-        def on_rbf(x):
-            self.config.set_key('rbf_policy', x)
-        rbf_combo.currentIndexChanged.connect(on_rbf)
-        fee_widgets.append((rbf_label, rbf_combo))
+        use_rbf_cb = QCheckBox(_('Use Replace-By-Fee'))
+        use_rbf_cb.setChecked(self.config.get('use_rbf', True))
+        use_rbf_cb.setToolTip(
+            _('If you check this box, your transactions will be marked as non-final,') + '\n' + \
+            _('and you will have the possiblity, while they are unconfirmed, to replace them with transactions that pay higher fees.') + '\n' + \
+            _('Note that some merchants do not accept non-final transactions until they are confirmed.'))
+        def on_use_rbf(x):
+            self.config.set_key('use_rbf', x == Qt.Checked)
+        use_rbf_cb.stateChanged.connect(on_use_rbf)
+        fee_widgets.append((use_rbf_cb, None))
 
         self.fee_unit = self.config.get('fee_unit', 0)
         fee_unit_label = HelpLabel(_('Fee Unit') + ':', '')
@@ -2669,19 +2742,20 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return '\n'.join([key, "", " ".join(lines)])
 
         choosers = sorted(coinchooser.COIN_CHOOSERS.keys())
-        chooser_name = coinchooser.get_name(self.config)
-        msg = _('Choose coin (UTXO) selection method.  The following are available:\n\n')
-        msg += '\n\n'.join(fmt_docs(*item) for item in coinchooser.COIN_CHOOSERS.items())
-        chooser_label = HelpLabel(_('Coin selection') + ':', msg)
-        chooser_combo = QComboBox()
-        chooser_combo.addItems(choosers)
-        i = choosers.index(chooser_name) if chooser_name in choosers else 0
-        chooser_combo.setCurrentIndex(i)
-        def on_chooser(x):
-            chooser_name = choosers[chooser_combo.currentIndex()]
-            self.config.set_key('coin_chooser', chooser_name)
-        chooser_combo.currentIndexChanged.connect(on_chooser)
-        tx_widgets.append((chooser_label, chooser_combo))
+        if len(choosers) > 1:
+            chooser_name = coinchooser.get_name(self.config)
+            msg = _('Choose coin (UTXO) selection method.  The following are available:\n\n')
+            msg += '\n\n'.join(fmt_docs(*item) for item in coinchooser.COIN_CHOOSERS.items())
+            chooser_label = HelpLabel(_('Coin selection') + ':', msg)
+            chooser_combo = QComboBox()
+            chooser_combo.addItems(choosers)
+            i = choosers.index(chooser_name) if chooser_name in choosers else 0
+            chooser_combo.setCurrentIndex(i)
+            def on_chooser(x):
+                chooser_name = choosers[chooser_combo.currentIndex()]
+                self.config.set_key('coin_chooser', chooser_name)
+            chooser_combo.currentIndexChanged.connect(on_chooser)
+            tx_widgets.append((chooser_label, chooser_combo))
 
         def on_unconf(x):
             self.config.set_key('confirmed_only', bool(x))

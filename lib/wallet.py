@@ -34,8 +34,12 @@ import time
 import json
 import copy
 import errno
+import traceback
 from functools import partial
 from collections import defaultdict
+from numbers import Number
+
+import sys
 
 from .i18n import _
 from .util import NotEnoughFunds, PrintError, UserCancelled, profiler, format_satoshis
@@ -860,7 +864,8 @@ class Abstract_Wallet(PrintError):
     def dust_threshold(self):
         return dust_threshold(self.network)
 
-    def make_unsigned_transaction(self, inputs, outputs, config, fixed_fee=None, change_addr=None):
+    def make_unsigned_transaction(self, inputs, outputs, config, fixed_fee=None,
+                                  change_addr=None, is_sweep=False):
         # check outputs
         i_max = None
         for i, o in enumerate(outputs):
@@ -902,8 +907,12 @@ class Abstract_Wallet(PrintError):
         # Fee estimator
         if fixed_fee is None:
             fee_estimator = config.estimate_fee
-        else:
+        elif isinstance(fixed_fee, Number):
             fee_estimator = lambda size: fixed_fee
+        elif callable(fixed_fee):
+            fee_estimator = fixed_fee
+        else:
+            raise BaseException('Invalid argument fixed_fee: %s' % fixed_fee)
 
         if i_max is None:
             # Let the coin chooser select the coins to spend
@@ -1432,9 +1441,6 @@ class Imported_Wallet(Simple_Wallet):
         return False
 
     def is_deterministic(self):
-        return False
-
-    def is_used(self, address):
         return False
 
     def is_change(self, address):
