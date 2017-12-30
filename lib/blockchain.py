@@ -34,7 +34,7 @@ except ImportError:
     util.print_msg("Warning: package scrypt not available, using fallback")
     from .scrypt import scrypt_1024_1_1_80 as getPoWHash
 
-MAX_TARGET = 0x0000F8FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+MAX_TARGET = 0x000001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 
 def serialize_header(res):
     s = int_to_hex(res.get('version'), 4) \
@@ -159,6 +159,7 @@ class Blockchain(util.PrintError):
         self._size = os.path.getsize(p)//80 if os.path.exists(p) else 0
 
     def verify_header(self, header, prev_hash, target):
+        return True # Viacoin: no chain verify
         _hash = hash_header(header)
         _powhash = pow_hash_header(header)
         if prev_hash != header.get('prev_block_hash'):
@@ -173,6 +174,9 @@ class Blockchain(util.PrintError):
 
     def verify_chunk(self, index, data):
         num = len(data) // 80
+        # Viacoin: no verify chunks
+        self.save_chunk(index, data)
+        ############################
         prev_hash = self.get_hash(index * 2016 - 1)
         target = self.get_target(index-1)
         for i in range(num):
