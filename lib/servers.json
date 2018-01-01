@@ -1,4 +1,16 @@
 {
+    "4ws35lg5lkekpjjp.onion": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
+    "tghi24vuhwm5rcqy.onion": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
     "viax1.bitops.me": {
         "pruning": "-",
         "s": "50002",
