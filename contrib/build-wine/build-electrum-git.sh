@@ -25,7 +25,7 @@ for repo in vialectrum vialectrum-locale vialectrum-icons; do
 	git checkout master
 	cd ..
     else
-	URL=https://github.com/pooler/$repo.git
+	URL=https://github.com/vialectrum/$repo.git
 	git clone -b master $URL $repo
     fi
 done
