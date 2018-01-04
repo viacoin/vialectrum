@@ -128,9 +128,17 @@ class BitcoinVenezuela(ExchangeBase):
                              "/historical/index.php?coin=VIA")[ccy +'_VIA']
 
 class Bitfinex(ExchangeBase):
+
     def get_rates(self, ccy):
         json = self.get_json('api.bitfinex.com', '/v1/pubticker/viausd')
         return {'USD': Decimal(json['last_price'])}
+
+
+class Bitso(ExchangeBase):
+
+    def get_rates(self, ccy):
+        json = self.get_json('api.bitso.com', '/v3/ticker/?book=via_mxn')
+        return {'MXN': Decimal(json['payload']['last'])}
 
 
 class BitStamp(ExchangeBase):
@@ -140,17 +148,13 @@ class BitStamp(ExchangeBase):
         return {'USD': Decimal(json['last'])}
 
 
-class BTCChina(ExchangeBase):
+class Coinbase(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('data.btcchina.com', '/data/ticker?market=viacny')
-        return {'CNY': Decimal(json['ticker']['last'])}
-
-
-class CaVirtEx(ExchangeBase):
-    def get_rates(self, ccy):
-        json = self.get_json('www.cavirtex.com', '/api2/ticker.json?currencypair=VIACAD')
-        return {'CAD': Decimal(json['ticker']['VIACAD']['last'])}
+        json = self.get_json('api.coinbase.com',
+                             '/v2/exchange-rates?currency=VIA')
+        rates = json['data']['rates']
+        return dict([(k, Decimal(rates[k])) for k in rates])
 
 
 class CoinSpot(ExchangeBase):
@@ -205,16 +209,22 @@ class Kraken(ExchangeBase):
 class OKCoin(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('www.okcoin.cn', '/api/ticker.do?symbol=via_cny')
-        return {'CNY': Decimal(json['ticker']['last'])}
+        json = self.get_json('www.okcoin.com', '/api/v1/ticker.do?symbol=via_usd')
+        return {'USD': Decimal(json['ticker']['last'])}
 
 
 class MercadoBitcoin(ExchangeBase):
 
     def get_rates(self,ccy):
-        json = self.get_json('mercadobitcoin.net',
-                                "/api/v2/ticker_viacoin")
+        json = self.get_json('mercadobitcoin.net', '/api/v2/ticker_viacoin')
         return {'BRL': Decimal(json['ticker']['last'])}
+
+
+class QuadrigaCX(ExchangeBase):
+
+    def get_rates(self,ccy):
+        json = self.get_json('api.quadrigacx.com', '/v2/ticker?book=ltc_cad')
+        return {'CAD': Decimal(json['last'])}
 
 
 class WEX(ExchangeBase):
@@ -226,14 +236,6 @@ class WEX(ExchangeBase):
         return {'EUR': Decimal(json_eur['via_eur']['last']),
                 'RUB': Decimal(json_rub['via_rur']['last']),
                 'USD': Decimal(json_usd['via_usd']['last'])}
-
-
-class Bitcointoyou(ExchangeBase):
-
-    def get_rates(self,ccy):
-        json = self.get_json('bitcointoyou.com',
-                                "/API/ticker_viacoin.aspx")
-        return {'BRL': Decimal(json['ticker']['last'])}
 
 
 def dictinvert(d):
