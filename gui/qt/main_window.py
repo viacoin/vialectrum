@@ -620,7 +620,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def format_amount_and_units(self, amount):
         text = self.format_amount(amount) + ' '+ self.base_unit()
-        x = self.fx.format_amount_and_units(amount)
+        x = self.fx.format_amount_and_units(amount) if self.fx else None
         if text and x:
             text += ' (%s)'%x
         return text
@@ -1071,6 +1071,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
             if fee_rate:
                 self.feerate_e.setAmount(fee_rate // 1000)
+            else:
+                self.feerate_e.setAmount(None)
             self.fee_e.setModified(False)
 
             self.fee_slider.activate()
@@ -1104,12 +1106,25 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.size_e.setStyleSheet(ColorScheme.DEFAULT.as_stylesheet())
 
         self.feerate_e = FeerateEdit(lambda: 2 if self.fee_unit else 0)
+        self.feerate_e.setAmount(self.config.fee_per_byte())
         self.feerate_e.textEdited.connect(partial(on_fee_or_feerate, self.feerate_e, False))
         self.feerate_e.editingFinished.connect(partial(on_fee_or_feerate, self.feerate_e, True))
 
         self.fee_e = BTCAmountEdit(self.get_decimal_point)
         self.fee_e.textEdited.connect(partial(on_fee_or_feerate, self.fee_e, False))
         self.fee_e.editingFinished.connect(partial(on_fee_or_feerate, self.fee_e, True))
+
+        def feerounding_onclick():
+            text = (_('To somewhat protect your privacy, Electrum tries to create change with similar precision to other outputs.') + ' ' +
+                    _('At most 100 satoshis might be lost due to this rounding.') + '\n' +
+                    _('Also, dust is not kept as change, but added to the fee.'))
+            QMessageBox.information(self, 'Fee rounding', text)
+
+        self.feerounding_icon = QPushButton(QIcon(':icons/info.png'), '')
+        self.feerounding_icon.setFixedWidth(20)
+        self.feerounding_icon.setFlat(True)
+        self.feerounding_icon.clicked.connect(feerounding_onclick)
+        self.feerounding_icon.setVisible(False)
 
         self.connect_fields(self, self.amount_e, self.fiat_send_e, self.fee_e)
 
@@ -1124,12 +1139,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         hbox.addWidget(self.feerate_e)
         hbox.addWidget(self.size_e)
         hbox.addWidget(self.fee_e)
+        hbox.addWidget(self.feerounding_icon, Qt.AlignLeft)
+        hbox.addStretch(1)
 
         vbox_feecontrol = QVBoxLayout()
         vbox_feecontrol.addWidget(self.fee_adv_controls)
         vbox_feecontrol.addWidget(self.fee_slider)
 
-        grid.addLayout(vbox_feecontrol, 5, 1, 1, 3)
+        grid.addLayout(vbox_feecontrol, 5, 1, 1, -1)
 
         if not self.config.get('show_fee', False):
             self.fee_adv_controls.setVisible(False)
@@ -1253,15 +1270,22 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             try:
                 tx = make_tx(fee_estimator)
                 self.not_enough_funds = False
-            except NotEnoughFunds:
-                self.not_enough_funds = True
+            except (NotEnoughFunds, NoDynamicFeeEstimates) as e:
                 if not freeze_fee:
                     self.fee_e.setAmount(None)
-                return
-            except NoDynamicFeeEstimates:
-                tx = make_tx(0)
-                size = tx.estimated_size()
-                self.size_e.setAmount(size)
+                if not freeze_feerate:
+                    self.feerate_e.setAmount(None)
+                self.feerounding_icon.setVisible(False)
+
+                if isinstance(e, NotEnoughFunds):
+                    self.not_enough_funds = True
+                elif isinstance(e, NoDynamicFeeEstimates):
+                    try:
+                        tx = make_tx(0)
+                        size = tx.estimated_size()
+                        self.size_e.setAmount(size)
+                    except BaseException:
+                        pass
                 return
             except BaseException:
                 traceback.print_exc(file=sys.stderr)
@@ -1271,12 +1295,35 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.size_e.setAmount(size)
 
             fee = tx.get_fee()
-            if not freeze_fee:
-                fee = None if self.not_enough_funds else fee
-                self.fee_e.setAmount(fee)
-            if not freeze_feerate:
-                fee_rate = fee // size if fee is not None else None
-                self.feerate_e.setAmount(fee_rate)
+            fee = None if self.not_enough_funds else fee
+
+            # Displayed fee/fee_rate values are set according to user input.
+            # Due to rounding or dropping dust in CoinChooser,
+            # actual fees often differ somewhat.
+            if freeze_feerate or self.fee_slider.is_active():
+                displayed_feerate = self.feerate_e.get_amount()
+                displayed_feerate = displayed_feerate // 1000 if displayed_feerate else 0
+                displayed_fee = displayed_feerate * size
+                self.fee_e.setAmount(displayed_fee)
+            else:
+                if freeze_fee:
+                    displayed_fee = self.fee_e.get_amount()
+                else:
+                    # fallback to actual fee if nothing is frozen
+                    displayed_fee = fee
+                    self.fee_e.setAmount(displayed_fee)
+                displayed_fee = displayed_fee if displayed_fee else 0
+                displayed_feerate = displayed_fee // size if displayed_fee is not None else None
+                self.feerate_e.setAmount(displayed_feerate)
+
+            # show/hide fee rounding icon
+            feerounding = (fee - displayed_fee) if fee else 0
+            if feerounding:
+                self.feerounding_icon.setToolTip(
+                    _('additional {} satoshis will be added').format(feerounding))
+                self.feerounding_icon.setVisible(True)
+            else:
+                self.feerounding_icon.setVisible(False)
 
             if self.is_max:
                 amount = tx.output_value()
@@ -1355,7 +1402,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             fee_estimator = self.fee_e.get_amount()
         elif self.is_send_feerate_frozen():
             amount = self.feerate_e.get_amount()
-            amount = 0 if amount is None else float(amount)
+            amount = 0 if amount is None else amount
             fee_estimator = partial(
                 simple_config.SimpleConfig.estimate_fee_for_feerate, amount)
         else:
@@ -1439,6 +1486,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         if preview:
             self.show_transaction(tx, tx_desc)
+            return
+
+        if not self.network:
+            self.show_error(_("You can't broadcast a transaction without a live network connection."))
             return
 
         # confirmation dialog
@@ -1641,7 +1692,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             e.setText('')
             e.setFrozen(False)
         self.fee_slider.activate()
+        self.feerate_e.setAmount(self.config.fee_per_byte())
         self.size_e.setAmount(0)
+        self.feerounding_icon.setVisible(False)
         self.set_pay_from([])
         self.tx_external_keypairs = {}
         self.update_status()
@@ -2684,7 +2737,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         unit_combo = QComboBox()
         unit_combo.addItems(units)
         unit_combo.setCurrentIndex(units.index(self.base_unit()))
-        def on_unit(x):
+        def on_unit(x, nz):
             unit_result = units[unit_combo.currentIndex()]
             if self.base_unit() == unit_result:
                 return
@@ -2699,13 +2752,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             else:
                 raise Exception('Unknown base unit')
             self.config.set_key('decimal_point', self.decimal_point, True)
+            nz.setMaximum(self.decimal_point)
             self.history_list.update()
             self.request_list.update()
             self.address_list.update()
             for edit, amount in zip(edits, amounts):
                 edit.setAmount(amount)
             self.update_status()
-        unit_combo.currentIndexChanged.connect(on_unit)
+        unit_combo.currentIndexChanged.connect(lambda x: on_unit(x, nz))
         gui_widgets.append((unit_label, unit_combo))
 
         block_explorers = sorted(util.block_explorer_info().keys())
@@ -3029,6 +3083,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(QLabel(_('Output amount') + ':'), 2, 0)
         grid.addWidget(output_amount, 2, 1)
         fee_e = BTCAmountEdit(self.get_decimal_point)
+        # FIXME with dyn fees, without estimates, there are all kinds of crashes here
         def f(x):
             a = max_fee - fee_e.get_amount()
             output_amount.setText((self.format_amount(a) + ' ' + self.base_unit()) if a else '')
