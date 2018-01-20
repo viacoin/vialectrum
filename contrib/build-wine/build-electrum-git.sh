@@ -43,7 +43,7 @@ if [ ! -z "$1" ]; then
     git checkout $1
 fi
 
-VERSION=`git describe --tags`
+VERSION=`git describe --tags --always`
 echo "Last commit: $VERSION"
 find -exec touch -d '2000-11-11T11:11:11+00:00' {} +
 popd
@@ -82,4 +82,4 @@ mv vialectrum-setup.exe $NAME_ROOT-$VERSION-setup.exe
 cd ..
 
 echo "Done."
-md5sum dist/electrum*exe
+md5sum dist/vialectrum*exe
