@@ -89,10 +89,10 @@ Mac OS X / macOS
 ::
 
     # On MacPorts installs: 
-    sudo python3 setup-release.py py2app
+    sudo python3 setup.py py2app
     
     # On Homebrew installs: 
-    ARCHFLAGS="-arch i386 -arch x86_64" sudo python3 setup-release.py py2app --includes sip
+    ARCHFLAGS="-arch i386 -arch x86_64" sudo python3 setup.py py2app --includes sip
     
     sudo hdiutil create -fs HFS+ -volname "Vialectrum" -srcfolder dist/Vialectrum.app dist/electrum-via-VERSION-macosx.dmg
 
