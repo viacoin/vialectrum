@@ -6,18 +6,11 @@ from vialectrum.util import bfh, bh2u
 from vialectrum.bitcoin import (b58_address_to_hash160, xpub_from_pubkey,
                                   TYPE_ADDRESS, TYPE_SCRIPT, NetworkConstants,
                                   is_segwit_address)
-<<<<<<< HEAD
 from vialectrum.i18n import _
 from vialectrum.plugins import BasePlugin
 from vialectrum.transaction import deserialize
 from vialectrum.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
-=======
-from electrum_ltc.i18n import _
-from electrum_ltc.plugins import BasePlugin
-from electrum_ltc.transaction import deserialize
-from electrum_ltc.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
-from electrum_ltc.base_wizard import ScriptTypeNotSupported
->>>>>>> upstream/master
+from vialectrum.base_wizard import ScriptTypeNotSupported
 
 from ..hw_wallet import HW_PluginBase
 
