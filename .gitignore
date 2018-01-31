@@ -21,3 +21,6 @@ bin/
 .cache/
 .coverage
 seed
+seed2
+
+contrib/build-wine/tmp/*
