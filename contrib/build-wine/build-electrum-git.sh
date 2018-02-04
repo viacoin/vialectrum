@@ -55,7 +55,8 @@ cp -r vialectrum-locale/locale $WINEPREFIX/drive_c/vialectrum/lib/
 cp vialectrum-icons/icons_rc.py $WINEPREFIX/drive_c/vialectrum/gui/qt/
 
 # Install frozen dependencies
-$PYTHON -m pip install -r ../../requirements.txt
+$PYTHON -m pip install -r ../../deterministic-build/requirements.txt
+$PYTHON -m pip install -r ../../deterministic-build/requirements-hw.txt
 
 pushd $WINEPREFIX/drive_c/vialectrum
 $PYTHON setup.py install

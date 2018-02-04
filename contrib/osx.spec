@@ -3,6 +3,8 @@
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 import sys
+import os
+
 for i, x in enumerate(sys.argv):
     if x == '--name':
         VERSION = sys.argv[i+1]
@@ -10,7 +12,7 @@ for i, x in enumerate(sys.argv):
 else:
     raise BaseException('no version')
 
-home = '/Users/vialectrum/vialectrum/'
+electrum = "../"
 block_cipher=None
 
 # see https://github.com/pyinstaller/pyinstaller/issues/2005
@@ -21,35 +23,35 @@ hiddenimports += collect_submodules('keepkeylib')
 hiddenimports += ['_scrypt']
 
 datas = [
-    (home+'lib/currencies.json', 'vialectrum'),
-    (home+'lib/servers.json', 'vialectrum'),
-    (home+'lib/checkpoints.json', 'vialectrum'),
-    (home+'lib/servers_testnet.json', 'vialectrum'),
-    (home+'lib/checkpoints_testnet.json', 'vialectrum'),
-    (home+'lib/wordlist/english.txt', 'vialectrum/wordlist'),
-    (home+'lib/locale', 'vialectrum/locale'),
-    (home+'plugins', 'vialectrum_plugins'),
+    (electrum+'lib/currencies.json', 'vialectrum'),
+    (electrum+'lib/servers.json', 'vialectrum'),
+    (electrum+'lib/checkpoints.json', 'vialectrum'),
+    (electrum+'lib/servers_testnet.json', 'vialectrum'),
+    (electrum+'lib/checkpoints_testnet.json', 'vialectrum'),
+    (electrum+'lib/wordlist/english.txt', 'vialectrum/wordlist'),
+    (electrum+'lib/locale', 'vialectrum/locale'),
+    (electrum+'plugins', 'vialectrum_plugins'),
 ]
 datas += collect_data_files('trezorlib')
 datas += collect_data_files('btchip')
 datas += collect_data_files('keepkeylib')
 
 # We don't put these files in to actually include them in the script but to make the Analysis method scan them for imports
-a = Analysis([home+'vialectrum',
-              home+'gui/qt/main_window.py',
-              home+'gui/text.py',
-              home+'lib/util.py',
-              home+'lib/wallet.py',
-              home+'lib/simple_config.py',
-              home+'lib/bitcoin.py',
-              home+'lib/dnssec.py',
-              home+'lib/commands.py',
-              home+'plugins/cosigner_pool/qt.py',
-              home+'plugins/email_requests/qt.py',
-              home+'plugins/trezor/client.py',
-              home+'plugins/trezor/qt.py',
-              home+'plugins/keepkey/qt.py',
-              home+'plugins/ledger/qt.py',
+a = Analysis([electrum+'vialectrum',
+              electrum+'gui/qt/main_window.py',
+              electrum+'gui/text.py',
+              electrum+'lib/util.py',
+              electrum+'lib/wallet.py',
+              electrum+'lib/simple_config.py',
+              electrum+'lib/bitcoin.py',
+              electrum+'lib/dnssec.py',
+              electrum+'lib/commands.py',
+              electrum+'plugins/cosigner_pool/qt.py',
+              electrum+'plugins/email_requests/qt.py',
+              electrum+'plugins/trezor/client.py',
+              electrum+'plugins/trezor/qt.py',
+              electrum+'plugins/keepkey/qt.py',
+              electrum+'plugins/ledger/qt.py',
               ],
              datas=datas,
              hiddenimports=hiddenimports,
@@ -71,16 +73,15 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          icon=home+'electrum.icns',
+          icon=electrum+'electrum.icns',
           console=False)
 
 app = BUNDLE(exe,
              version = VERSION,
              name='Vialectrum.app',
-             icon=home+'electrum.icns',
+             icon=electrum+'electrum.icns',
              bundle_identifier=None,
              info_plist = {
                  'NSHighResolutionCapable':'True'
              }
 )
-

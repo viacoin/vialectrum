@@ -433,6 +433,8 @@ def time_difference(distance_in_time, include_seconds):
 mainnet_block_explorers = {
     'cryptoID': ('https://chainz.cryptoid.info/via/',
                     {'tx': 'tx.dws?', 'addr': 'address.dws?'}),
+    'explorer.viacoin.org': ('http://explorer.viacoin.org',
+                    {'tx': 'tx', 'addr': 'address'}),
 }
 
 testnet_block_explorers = {
