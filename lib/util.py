@@ -58,6 +58,19 @@ class InvalidPassword(Exception):
     def __str__(self):
         return _("Incorrect password")
 
+
+class FileImportFailed(Exception):
+    def __str__(self):
+        return _("Failed to import file.")
+
+
+class FileImportFailedEncrypted(FileImportFailed):
+    def __str__(self):
+        return (_('Failed to import file.') + ' ' +
+                _('Perhaps it is encrypted...') + '\n' +
+                _('Importing encrypted files is not supported.'))
+
+
 # Throw this exception to unwind the stack like when an error occurs.
 # However unlike other exceptions the user won't be informed.
 class UserCancelled(Exception):
@@ -711,3 +724,7 @@ def setup_thread_excepthook():
         self.run = run_with_except_hook
 
     threading.Thread.__init__ = init
+
+
+def versiontuple(v):
+    return tuple(map(int, (v.split("."))))

@@ -36,7 +36,6 @@ from vialectrum.util import timestamp_to_datetime, profiler
 TX_ICONS = [
     "warning.png",
     "warning.png",
-    "warning.png",
     "unconfirmed.png",
     "unconfirmed.png",
     "offline_tx.png",
@@ -59,10 +58,15 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
         self.setColumnHidden(1, True)
 
     def refresh_headers(self):
-        headers = ['', '', _('Date'), _('Description') , _('Amount'), _('Balance')]
+        headers = ['', '', _('Date'), _('Description'), _('Amount'), _('Balance')]
         fx = self.parent.fx
         if fx and fx.show_history():
-            headers.extend(['%s '%fx.ccy + _('Amount'), '%s '%fx.ccy + _('Balance')])
+            headers.extend(['%s '%fx.ccy + _('Value')])
+            headers.extend(['%s '%fx.ccy + _('Acquisition price')])
+            headers.extend(['%s '%fx.ccy + _('Capital Gains')])
+            self.editable_columns |= {6}
+        else:
+            self.editable_columns -= {6}
         self.update_headers(headers)
 
     def get_domain(self):
@@ -71,7 +75,6 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
 
     @profiler
     def on_update(self):
-        # TODO save and restore scroll position (maybe based on y coord or selected item?)
         self.wallet = self.parent.wallet
         h = self.wallet.get_history(self.get_domain())
         item = self.currentItem()
@@ -88,11 +91,23 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
             balance_str = self.parent.format_amount(balance, whitespaces=True)
             label = self.wallet.get_label(tx_hash)
             entry = ['', tx_hash, status_str, label, v_str, balance_str]
-            if fx and fx.show_history():
+            fiat_value = None
+            if value is not None and fx and fx.show_history():
                 date = timestamp_to_datetime(time.time() if conf <= 0 else timestamp)
-                for amount in [value, balance]:
-                    text = fx.historical_value_str(amount, date)
-                    entry.append(text)
+                fiat_value = self.wallet.get_fiat_value(tx_hash, fx.ccy)
+                if not fiat_value:
+                    fiat_value = fx.historical_value(value, date)
+                    fiat_default = True
+                else:
+                    fiat_default = False
+                value_str = fx.format_fiat(fiat_value)
+                entry.append(value_str)
+                # fixme: should use is_mine
+                if value < 0:
+                    ap, lp = self.wallet.capital_gain(tx_hash, fx.timestamp_rate, fx.ccy)
+                    cg = None if lp is None or ap is None else lp - ap
+                    entry.append(fx.format_fiat(ap))
+                    entry.append(fx.format_fiat(cg))
             item = QTreeWidgetItem(entry)
             item.setIcon(0, icon)
             item.setToolTip(0, str(conf) + " confirmation" + ("s" if conf != 1 else ""))
@@ -106,11 +121,26 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
             if value and value < 0:
                 item.setForeground(3, QBrush(QColor("#BC1E1E")))
                 item.setForeground(4, QBrush(QColor("#BC1E1E")))
+            if fiat_value and not fiat_default:
+                item.setForeground(6, QBrush(QColor("#1E1EFF")))
             if tx_hash:
                 item.setData(0, Qt.UserRole, tx_hash)
             self.insertTopLevelItem(0, item)
             if current_tx == tx_hash:
                 self.setCurrentItem(item)
+
+    def on_edited(self, item, column, prior):
+        '''Called only when the text actually changes'''
+        key = item.data(0, Qt.UserRole)
+        text = item.text(column)
+        # fixme
+        if column == 3:
+            self.parent.wallet.set_label(key, text)
+            self.update_labels()
+            self.parent.update_completions()
+        elif column == 6:
+            self.parent.wallet.set_fiat_value(key, self.parent.fx.ccy, text)
+            self.on_update()
 
     def on_doubleclick(self, item, column):
         if self.permit_edit(item, column):
@@ -166,9 +196,9 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
         if height == TX_HEIGHT_LOCAL:
             menu.addAction(_("Remove"), lambda: self.remove_local_tx(tx_hash))
 
-        menu.addAction(_("Copy %s")%column_title, lambda: self.parent.app.clipboard().setText(column_data))
-        if column in self.editable_columns:
-            menu.addAction(_("Edit %s")%column_title, lambda: self.editItem(item, column))
+        menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))
+        for c in self.editable_columns:
+            menu.addAction(_("Edit {}").format(self.headerItem().text(c)), lambda: self.editItem(item, c))
 
         menu.addAction(_("Details"), lambda: self.parent.show_transaction(tx))
 
@@ -214,4 +244,5 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
                 self.parent.show_error(e)
             else:
                 self.wallet.save_transactions(write=True)
-                self.on_update()
+                # need to update at least: history_list, utxo_list, address_list
+                self.parent.need_update.set()

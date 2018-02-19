@@ -1,9 +1,14 @@
 # -*- mode: python -*-
 
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules, collect_dynamic_libs
 
 import sys
 import os
+
+PACKAGE='Electrum-LTC'
+PYPKG='electrum_ltc'
+MAIN_SCRIPT='electrum-ltc'
+ICONS_FILE='electrum.icns'
 
 for i, x in enumerate(sys.argv):
     if x == '--name':
@@ -12,8 +17,8 @@ for i, x in enumerate(sys.argv):
 else:
     raise BaseException('no version')
 
-electrum = "../"
-block_cipher=None
+electrum = os.path.abspath(".") + "/"
+block_cipher = None
 
 # see https://github.com/pyinstaller/pyinstaller/issues/2005
 hiddenimports = []
@@ -23,21 +28,35 @@ hiddenimports += collect_submodules('keepkeylib')
 hiddenimports += ['_scrypt']
 
 datas = [
-    (electrum+'lib/currencies.json', 'vialectrum'),
-    (electrum+'lib/servers.json', 'vialectrum'),
-    (electrum+'lib/checkpoints.json', 'vialectrum'),
-    (electrum+'lib/servers_testnet.json', 'vialectrum'),
-    (electrum+'lib/checkpoints_testnet.json', 'vialectrum'),
-    (electrum+'lib/wordlist/english.txt', 'vialectrum/wordlist'),
-    (electrum+'lib/locale', 'vialectrum/locale'),
-    (electrum+'plugins', 'vialectrum_plugins'),
+    (electrum+'lib/currencies.json', PYPKG),
+    (electrum+'lib/servers.json', PYPKG),
+    (electrum+'lib/checkpoints.json', PYPKG),
+    (electrum+'lib/servers_testnet.json', PYPKG),
+    (electrum+'lib/checkpoints_testnet.json', PYPKG),
+    (electrum+'lib/wordlist/english.txt', PYPKG + '/wordlist'),
+    (electrum+'lib/locale', PYPKG + '/locale'),
+    (electrum+'plugins', PYPKG + '_plugins'),
 ]
 datas += collect_data_files('trezorlib')
 datas += collect_data_files('btchip')
 datas += collect_data_files('keepkeylib')
 
+# We had an issue with PyQt 5.10 not picking up the libqmacstyles.dylib properly,
+# and thus Electrum looking terrible on Mac.
+# The below 3 statements are a workaround for that issue.
+# This should 'do nothing bad' in any case should a future version of PyQt5 not even
+# need this.
+binaries = []
+dylibs_in_pyqt5 = collect_dynamic_libs('PyQt5', 'DUMMY_NOT_USED')
+for tuple in dylibs_in_pyqt5:
+    # find libqmacstyle.dylib ...
+    if "libqmacstyle.dylib" in tuple[0]:
+        # .. and include all the .dylibs in that dir in our 'binaries' PyInstaller spec
+        binaries += [( os.path.dirname(tuple[0]) + '/*.dylib', 'PyQt5/Qt/plugins/styles' )]
+        break
+ 
 # We don't put these files in to actually include them in the script but to make the Analysis method scan them for imports
-a = Analysis([electrum+'vialectrum',
+a = Analysis([electrum+MAIN_SCRIPT,
               electrum+'gui/qt/main_window.py',
               electrum+'gui/text.py',
               electrum+'lib/util.py',
@@ -53,13 +72,14 @@ a = Analysis([electrum+'vialectrum',
               electrum+'plugins/keepkey/qt.py',
               electrum+'plugins/ledger/qt.py',
               ],
+             binaries=binaries,
              datas=datas,
              hiddenimports=hiddenimports,
              hookspath=[])
 
 # http://stackoverflow.com/questions/19055089/pyinstaller-onefile-warning-pyconfig-h-when-importing-scipy-or-scipy-signal
 for d in a.datas:
-    if 'pyconfig' in d[0]: 
+    if 'pyconfig' in d[0]:
         a.datas.remove(d)
         break
 
@@ -69,17 +89,17 @@ exe = EXE(pyz,
           a.scripts,
           a.binaries,
           a.datas,
-          name='Vialectrum',
+          name=PACKAGE,
           debug=False,
           strip=False,
           upx=True,
-          icon=electrum+'electrum.icns',
+          icon=electrum+ICONS_FILE,
           console=False)
 
 app = BUNDLE(exe,
              version = VERSION,
-             name='Vialectrum.app',
-             icon=electrum+'electrum.icns',
+             name=PACKAGE + '.app',
+             icon=electrum+ICONS_FILE,
              bundle_identifier=None,
              info_plist = {
                  'NSHighResolutionCapable':'True'

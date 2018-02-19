@@ -132,7 +132,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.need_update = threading.Event()
 
         self.decimal_point = config.get('decimal_point', 8)
-        self.fee_unit = config.get('fee_unit', 0)
         self.num_zeros     = int(config.get('num_zeros',0))
 
         self.completions = QStringListModel()
@@ -294,7 +293,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.need_update.set()
             self.gui_object.network_updated_signal_obj.network_updated_signal \
                 .emit(event, args)
-
         elif event == 'new_transaction':
             self.tx_notifications.append(args[0])
             self.notify_transactions_signal.emit()
@@ -316,6 +314,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if self.config.is_dynfee():
                 self.fee_slider.update()
                 self.do_update_fee()
+        elif event == 'fee_histogram':
+            if self.config.is_dynfee():
+                self.fee_slider.update()
+                self.do_update_fee()
+            # todo: update only unconfirmed tx
+            self.history_list.update()
         else:
             self.print_error("unexpected network_qt signal:", event, args)
 
@@ -637,10 +641,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return text
 
     def format_fee_rate(self, fee_rate):
-        if self.fee_unit == 0:
-            return format_satoshis(fee_rate/1000, False, self.num_zeros, 0, False)  + ' sat/byte'
-        else:
-            return self.format_amount(fee_rate) + ' ' + self.base_unit() + '/kB'
+        return format_satoshis(fee_rate/1000, False, self.num_zeros, 0, False)  + ' sat/byte'
 
     def get_decimal_point(self):
         return self.decimal_point
@@ -1012,6 +1013,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.qr_window and self.qr_window.isVisible():
             self.qr_window.set_content(addr, amount, message, uri)
 
+    def set_feerounding_text(self, num_satoshis_added):
+        self.feerounding_text = (_('Additional {} satoshis are going to be added.')
+                                 .format(num_satoshis_added))
+
     def create_send_tab(self):
         # A 4-column grid layout.  All the stretch is in the last column.
         # The exchange rate plugin adds a fiat widget in column 2
@@ -1077,7 +1082,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         def fee_cb(dyn, pos, fee_rate):
             if dyn:
-                self.config.set_key('fee_level', pos, False)
+                if self.config.use_mempool_fees():
+                    self.config.set_key('depth_level', pos, False)
+                else:
+                    self.config.set_key('fee_level', pos, False)
             else:
                 self.config.set_key('fee_per_kb', fee_rate, False)
 
@@ -1117,7 +1125,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.size_e.setFixedWidth(140)
         self.size_e.setStyleSheet(ColorScheme.DEFAULT.as_stylesheet())
 
-        self.feerate_e = FeerateEdit(lambda: 2 if self.fee_unit else 0)
+        self.feerate_e = FeerateEdit(lambda: 0)
         self.feerate_e.setAmount(self.config.fee_per_byte())
         self.feerate_e.textEdited.connect(partial(on_fee_or_feerate, self.feerate_e, False))
         self.feerate_e.editingFinished.connect(partial(on_fee_or_feerate, self.feerate_e, True))
@@ -1127,8 +1135,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.fee_e.editingFinished.connect(partial(on_fee_or_feerate, self.fee_e, True))
 
         def feerounding_onclick():
-            text = (_('To somewhat protect your privacy, Electrum tries to create change with similar precision to other outputs.') + ' ' +
-                    _('At most 100 satoshis might be lost due to this rounding.') + '\n' +
+            text = (self.feerounding_text + '\n\n' +
+                    _('To somewhat protect your privacy, Electrum tries to create change with similar precision to other outputs.') + ' ' +
+                    _('At most 100 satoshis might be lost due to this rounding.') + ' ' +
+                    _("You can disable this setting in '{}'.").format(_('Preferences')) + '\n' +
                     _('Also, dust is not kept as change, but added to the fee.'))
             QMessageBox.information(self, 'Fee rounding', text)
 
@@ -1257,9 +1267,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         '''Recalculate the fee.  If the fee was manually input, retain it, but
         still build the TX to see if there are enough funds.
         '''
-        if not self.config.get('offline') and self.config.is_dynfee() and not self.config.has_fee_estimates():
-            self.statusBar().showMessage(_('Waiting for fee estimates...'))
-            return False
         freeze_fee = self.is_send_fee_frozen()
         freeze_feerate = self.is_send_feerate_frozen()
         amount = '!' if self.is_max else self.amount_e.get_amount()
@@ -1330,12 +1337,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
             # show/hide fee rounding icon
             feerounding = (fee - displayed_fee) if fee else 0
-            if feerounding:
-                self.feerounding_icon.setToolTip(
-                    _('additional {} satoshis will be added').format(feerounding))
-                self.feerounding_icon.setVisible(True)
-            else:
-                self.feerounding_icon.setVisible(False)
+            self.set_feerounding_text(feerounding)
+            self.feerounding_icon.setToolTip(self.feerounding_text)
+            self.feerounding_icon.setVisible(bool(feerounding))
 
             if self.is_max:
                 amount = tx.output_value()
@@ -2117,6 +2121,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if not bitcoin.is_address(address):
             self.show_message(_('Invalid Viacoin address.'))
             return
+        if self.wallet.is_watching_only():
+            self.show_message(_('This is a watching-only wallet.'))
+            return
         if not self.wallet.is_mine(address):
             self.show_message(_('Address not in wallet.'))
             return
@@ -2187,6 +2194,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     @protected
     def do_decrypt(self, message_e, pubkey_e, encrypted_e, password):
+        if self.wallet.is_watching_only():
+            self.show_message(_('This is a watching-only wallet.'))
+            return
         cyphertext = encrypted_e.toPlainText()
         task = partial(self.wallet.decrypt_message, pubkey_e.text(), cyphertext, password)
         self.wallet.thread.add(task, on_success=lambda text: message_e.setText(text.decode('utf-8')))
@@ -2485,32 +2495,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             plt.show()
 
     def do_export_history(self, wallet, fileName, is_csv):
-        history = wallet.get_history()
+        history = wallet.export_history(fx=self.fx)
         lines = []
         for item in history:
-            tx_hash, height, confirmations, timestamp, value, balance = item
-            if height>0:
-                if timestamp is not None:
-                    time_string = format_time(timestamp)
-                else:
-                    time_string = _("unverified")
-            else:
-                time_string = _("unconfirmed")
-
-            if value is not None:
-                value_string = format_satoshis(value, True)
-            else:
-                value_string = '--'
-
-            if tx_hash:
-                label = wallet.get_label(tx_hash)
-            else:
-                label = ""
-
             if is_csv:
-                lines.append([tx_hash, label, confirmations, value_string, time_string])
+                lines.append([item['txid'], item.get('label', ''), item['confirmations'], item['value'], item['date']])
             else:
-                lines.append({'txid':tx_hash, 'date':"%16s"%time_string, 'label':label, 'value':value_string})
+                lines.append(item)
 
         with open(fileName, "w+") as f:
             if is_csv:
@@ -2520,7 +2511,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     transaction.writerow(line)
             else:
                 import json
-                f.write(json.dumps(lines, indent = 4))
+                f.write(json.dumps(lines, indent=4))
 
     def sweep_key_dialog(self):
         d = WindowModalDialog(self, title=_('Sweep private keys'))
@@ -2671,6 +2662,21 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         nz.valueChanged.connect(on_nz)
         gui_widgets.append((nz_label, nz))
 
+        msg = '\n'.join([
+            _('Time based: fee rate is based on average confirmation time estimates'),
+            _('Mempool based: fee rate is targetting a depth in the memory pool')
+            ]
+        )
+        fee_type_label = HelpLabel(_('Fee estimation') + ':', msg)
+        fee_type_combo = QComboBox()
+        fee_type_combo.addItems([_('Time based'), _('Mempool based')])
+        fee_type_combo.setCurrentIndex(1 if self.config.use_mempool_fees() else 0)
+        def on_fee_type(x):
+            self.config.set_key('mempool_fees', x==1)
+            self.fee_slider.update()
+        fee_type_combo.currentIndexChanged.connect(on_fee_type)
+        fee_widgets.append((fee_type_label, fee_type_combo))
+
         def on_dynfee(x):
             self.config.set_key('dynamic_fees', x == Qt.Checked)
             self.fee_slider.update()
@@ -2699,18 +2705,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.config.set_key('use_rbf', x == Qt.Checked)
         use_rbf_cb.stateChanged.connect(on_use_rbf)
         fee_widgets.append((use_rbf_cb, None))
-
-        self.fee_unit = self.config.get('fee_unit', 0)
-        fee_unit_label = HelpLabel(_('Fee Unit') + ':', '')
-        fee_unit_combo = QComboBox()
-        fee_unit_combo.addItems([_('sat/byte'), _('mVIA/kB')])
-        fee_unit_combo.setCurrentIndex(self.fee_unit)
-        def on_fee_unit(x):
-            self.fee_unit = x
-            self.config.set_key('fee_unit', x)
-            self.fee_slider.update()
-        fee_unit_combo.currentIndexChanged.connect(on_fee_unit)
-        fee_widgets.append((fee_unit_label, fee_unit_combo))
 
         msg = _('OpenAlias record, used to receive coins and to sign payment requests.') + '\n\n'\
               + _('The following alias providers are available:') + '\n'\
@@ -2881,6 +2875,18 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         unconf_cb.setChecked(conf_only)
         unconf_cb.stateChanged.connect(on_unconf)
         tx_widgets.append((unconf_cb, None))
+
+        def on_outrounding(x):
+            self.config.set_key('coin_chooser_output_rounding', bool(x))
+        enable_outrounding = self.config.get('coin_chooser_output_rounding', False)
+        outrounding_cb = QCheckBox(_('Enable output value rounding'))
+        outrounding_cb.setToolTip(
+            _('Set the value of the change output so that it has similar precision to the other outputs.') + '\n' +
+            _('This might improve your privacy somewhat.') + '\n' +
+            _('If enabled, at most 100 satoshis might be lost due to this, per transaction.'))
+        outrounding_cb.setChecked(enable_outrounding)
+        outrounding_cb.stateChanged.connect(on_outrounding)
+        tx_widgets.append((outrounding_cb, None))
 
         # Fiat Currency
         hist_checkbox = QCheckBox()

@@ -10,7 +10,7 @@ from vialectrum.plugins import BasePlugin
 from vialectrum.keystore import Hardware_KeyStore
 from vialectrum.transaction import Transaction
 from ..hw_wallet import HW_PluginBase
-from vialectrum.util import print_error, is_verbose, bfh, bh2u
+from vialectrum.util import print_error, is_verbose, bfh, bh2u, versiontuple
 
 try:
     import hid
@@ -56,9 +56,6 @@ class Ledger_Client():
 
     def i4b(self, x):
         return pack('>I', x)
-
-    def versiontuple(self, v):
-        return tuple(map(int, (v.split("."))))
 
     def test_pin_unlocked(func):
         """Function decorator to test the Ledger for being unlocked, and if not,
@@ -140,9 +137,9 @@ class Ledger_Client():
         try:
             firmwareInfo = self.dongleObject.getFirmwareVersion()
             firmware = firmwareInfo['version']
-            self.multiOutputSupported = self.versiontuple(firmware) >= self.versiontuple(MULTI_OUTPUT_SUPPORT)
-            self.nativeSegwitSupported = self.versiontuple(firmware) >= self.versiontuple(SEGWIT_SUPPORT)
-            self.segwitSupported = self.nativeSegwitSupported or (firmwareInfo['specialVersion'] == 0x20 and self.versiontuple(firmware) >= self.versiontuple(SEGWIT_SUPPORT_SPECIAL))
+            self.multiOutputSupported = versiontuple(firmware) >= versiontuple(MULTI_OUTPUT_SUPPORT)
+            self.nativeSegwitSupported = versiontuple(firmware) >= versiontuple(SEGWIT_SUPPORT)
+            self.segwitSupported = self.nativeSegwitSupported or (firmwareInfo['specialVersion'] == 0x20 and versiontuple(firmware) >= versiontuple(SEGWIT_SUPPORT_SPECIAL))
 
             if not checkFirmware(firmwareInfo):
                 self.dongleObject.dongle.close()
@@ -173,6 +170,10 @@ class Ledger_Client():
                 raise Exception("Dongle is temporarily locked - please unplug it and replug it again")
             if ((e.sw & 0xFFF0) == 0x63c0):
                 raise Exception("Invalid PIN - please unplug the dongle and plug it again before retrying")
+            if e.sw == 0x6f00 and e.message == 'Invalid channel':
+                # based on docs 0x6f00 might be a more general error, hence we also compare message to be sure
+                raise Exception("Invalid channel.\n"
+                                "Please make sure that 'Browser support' is disabled on your device.")
             raise e
 
     def checkDevice(self):
@@ -237,7 +238,7 @@ class Ledger_KeyStore(Hardware_KeyStore):
         return address_path[2:]
 
     def decrypt_message(self, pubkey, message, password):
-        raise RuntimeError(_('Encryption and decryption are currently not supported for %s') % self.device)
+        raise RuntimeError(_('Encryption and decryption are currently not supported for {}').format(self.device))
 
     def sign_message(self, sequence, message, password):
         self.signing = True

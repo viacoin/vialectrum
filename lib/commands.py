@@ -440,46 +440,20 @@ class Commands:
         return tx.as_dict()
 
     @command('w')
-    def history(self):
+    def history(self, year=None, show_addresses=False, show_fiat=False):
         """Wallet history. Returns the transaction history of your wallet."""
-        balance = 0
-        out = []
-        for item in self.wallet.get_history():
-            tx_hash, height, conf, timestamp, value, balance = item
-            if timestamp:
-                date = datetime.datetime.fromtimestamp(timestamp).isoformat(' ')[:-3]
-            else:
-                date = "----"
-            label = self.wallet.get_label(tx_hash)
-            tx = self.wallet.transactions.get(tx_hash)
-            tx.deserialize()
-            input_addresses = []
-            output_addresses = []
-            for x in tx.inputs():
-                if x['type'] == 'coinbase': continue
-                addr = x.get('address')
-                if addr == None: continue
-                if addr == "(pubkey)":
-                    prevout_hash = x.get('prevout_hash')
-                    prevout_n = x.get('prevout_n')
-                    _addr = self.wallet.find_pay_to_pubkey_address(prevout_hash, prevout_n)
-                    if _addr:
-                        addr = _addr
-                input_addresses.append(addr)
-            for addr, v in tx.get_outputs():
-                output_addresses.append(addr)
-            out.append({
-                'txid': tx_hash,
-                'timestamp': timestamp,
-                'date': date,
-                'input_addresses': input_addresses,
-                'output_addresses': output_addresses,
-                'label': label,
-                'value': str(Decimal(value)/COIN) if value is not None else None,
-                'height': height,
-                'confirmations': conf
-            })
-        return out
+        kwargs = {'show_addresses': show_addresses}
+        if year:
+            import time
+            start_date = datetime.datetime(year, 1, 1)
+            end_date = datetime.datetime(year+1, 1, 1)
+            kwargs['from_timestamp'] = time.mktime(start_date.timetuple())
+            kwargs['to_timestamp'] = time.mktime(end_date.timetuple())
+        if show_fiat:
+            from .exchange_rate import FxThread
+            fx = FxThread(self.config, None)
+            kwargs['fx'] = fx
+        return self.wallet.export_history(**kwargs)
 
     @command('w')
     def setlabel(self, key, label):
@@ -627,7 +601,8 @@ class Commands:
     def addtransaction(self, tx):
         """ Add a transaction to the wallet history """
         tx = Transaction(tx)
-        self.wallet.add_transaction(tx.txid(), tx)
+        if not self.wallet.add_transaction(tx.txid(), tx):
+            return False
         self.wallet.save_transactions()
         return tx.txid()
 
@@ -735,6 +710,9 @@ command_options = {
     'pending':     (None, "Show only pending requests."),
     'expired':     (None, "Show only expired requests."),
     'paid':        (None, "Show only paid requests."),
+    'show_addresses': (None, "Show input and output addresses"),
+    'show_fiat':   (None, "Show fiat value of transactions"),
+    'year':        (None, "Show history for a given year"),
 }
 
 
@@ -745,6 +723,7 @@ arg_types = {
     'num': int,
     'nbits': int,
     'imax': int,
+    'year': int,
     'entropy': int,
     'tx': tx_from_str,
     'pubkeys': json_loads,
@@ -808,7 +787,7 @@ def subparser_call(self, parser, namespace, values, option_string=None):
         parser = self._name_parser_map[parser_name]
     except KeyError:
         tup = parser_name, ', '.join(self._name_parser_map)
-        msg = _('unknown parser %r (choices: %s)') % tup
+        msg = _('unknown parser {!r} (choices: {})').format(*tup)
         raise ArgumentError(self, msg)
     # parse all the remaining options into the namespace
     # store any unrecognized options on the object, so that the top
