@@ -278,12 +278,10 @@ class Abstract_Wallet(PrintError):
     @profiler
     def build_spent_outpoints(self):
         self.spent_outpoints = {}
-        for txid, tx in self.transactions.items():
-            for txi in tx.inputs():
-                ser = Transaction.get_outpoint_from_txin(txi)
-                if ser is None:
-                    continue
-                self.spent_outpoints[ser] = txid
+        for txid, items in self.txi.items():
+            for addr, l in items.items():
+                for ser, v in l:
+                    self.spent_outpoints[ser] = txid
 
     @profiler
     def check_history(self):
@@ -709,7 +707,12 @@ class Abstract_Wallet(PrintError):
                     h.append((tx_hash, tx_height))
         return h
 
-    def find_pay_to_pubkey_address(self, prevout_hash, prevout_n):
+    def get_txin_address(self, txi):
+        addr = txi.get('address')
+        if addr != "(pubkey)":
+            return addr
+        prevout_hash = txi.get('prevout_hash')
+        prevout_n = txi.get('prevout_n')
         dd = self.txo.get(prevout_hash, {})
         for addr, l in dd.items():
             for n, v, is_cb in l:
@@ -717,10 +720,21 @@ class Abstract_Wallet(PrintError):
                     self.print_error("found pay-to-pubkey address:", addr)
                     return addr
 
+    def get_txout_address(self, txo):
+        _type, x, v = txo
+        if _type == TYPE_ADDRESS:
+            addr = x
+        elif _type == TYPE_PUBKEY:
+            addr = bitcoin.public_key_to_p2pkh(bfh(x))
+        else:
+            addr = None
+        return addr
+
     def get_conflicting_transactions(self, tx):
         """Returns a set of transaction hashes from the wallet history that are
         directly conflicting with tx, i.e. they have common outpoints being
-        spent with tx.
+        spent with tx. If the tx is already in wallet history, that will not be
+        reported as a conflict.
         """
         conflicting_txns = set()
         with self.transaction_lock:
@@ -734,14 +748,31 @@ class Abstract_Wallet(PrintError):
                 # this outpoint (ser) has already been spent, by spending_tx
                 assert spending_tx_hash in self.transactions
                 conflicting_txns |= {spending_tx_hash}
+            txid = tx.txid()
+            if txid in conflicting_txns:
+                # this tx is already in history, so it conflicts with itself
+                if len(conflicting_txns) > 1:
+                    raise Exception('Found conflicting transactions already in wallet history.')
+                conflicting_txns -= {txid}
             return conflicting_txns
 
     def add_transaction(self, tx_hash, tx):
-        if tx in self.transactions:
-            return True
-        is_coinbase = tx.inputs()[0]['type'] == 'coinbase'
-        related = False
         with self.transaction_lock:
+            # NOTE: returning if tx in self.transactions might seem like a good idea
+            # BUT we track is_mine inputs in a txn, and during subsequent calls
+            # of add_transaction tx, we might learn of more-and-more inputs of
+            # being is_mine, as we roll the gap_limit forward
+            is_coinbase = tx.inputs()[0]['type'] == 'coinbase'
+            tx_height = self.get_tx_height(tx_hash)[0]
+            is_mine = any([self.is_mine(txin['address']) for txin in tx.inputs()])
+            # do not save if tx is local and not mine
+            if tx_height == TX_HEIGHT_LOCAL and not is_mine:
+                # FIXME the test here should be for "not all is_mine"; cannot detect conflict in some cases
+                return False
+            # raise exception if unrelated to wallet
+            is_for_me = any([self.is_mine(self.get_txout_address(txo)) for txo in tx.outputs()])
+            if not is_mine and not is_for_me:
+                raise UnrelatedTransactionException()
             # Find all conflicting transactions.
             # In case of a conflict,
             #     1. confirmed > mempool > local
@@ -751,7 +782,6 @@ class Abstract_Wallet(PrintError):
             #     or drop this txn
             conflicting_txns = self.get_conflicting_transactions(tx)
             if conflicting_txns:
-                tx_height = self.get_tx_height(tx_hash)[0]
                 existing_mempool_txn = any(
                     self.get_tx_height(tx_hash2)[0] in (TX_HEIGHT_UNCONFIRMED, TX_HEIGHT_UNCONF_PARENT)
                     for tx_hash2 in conflicting_txns)
@@ -771,44 +801,34 @@ class Abstract_Wallet(PrintError):
                     to_remove |= self.get_depending_transactions(conflicting_tx_hash)
                 for tx_hash2 in to_remove:
                     self.remove_transaction(tx_hash2)
-
             # add inputs
             self.txi[tx_hash] = d = {}
             for txi in tx.inputs():
-                addr = txi.get('address')
+                addr = self.get_txin_address(txi)
                 if txi['type'] != 'coinbase':
                     prevout_hash = txi['prevout_hash']
                     prevout_n = txi['prevout_n']
                     ser = prevout_hash + ':%d'%prevout_n
-                    self.spent_outpoints[ser] = tx_hash
-                if addr == "(pubkey)":
-                    addr = self.find_pay_to_pubkey_address(prevout_hash, prevout_n)
                 # find value from prev output
                 if addr and self.is_mine(addr):
-                    related = True
                     dd = self.txo.get(prevout_hash, {})
                     for n, v, is_cb in dd.get(addr, []):
                         if n == prevout_n:
                             if d.get(addr) is None:
                                 d[addr] = []
                             d[addr].append((ser, v))
+                            # we only track is_mine spends
+                            self.spent_outpoints[ser] = tx_hash
                             break
                     else:
                         self.pruned_txo[ser] = tx_hash
-
             # add outputs
             self.txo[tx_hash] = d = {}
             for n, txo in enumerate(tx.outputs()):
+                v = txo[2]
                 ser = tx_hash + ':%d'%n
-                _type, x, v = txo
-                if _type == TYPE_ADDRESS:
-                    addr = x
-                elif _type == TYPE_PUBKEY:
-                    addr = bitcoin.public_key_to_p2pkh(bfh(x))
-                else:
-                    addr = None
+                addr = self.get_txout_address(txo)
                 if addr and self.is_mine(addr):
-                    related = True
                     if d.get(addr) is None:
                         d[addr] = []
                     d[addr].append((n, v, is_coinbase))
@@ -820,30 +840,19 @@ class Abstract_Wallet(PrintError):
                     if dd.get(addr) is None:
                         dd[addr] = []
                     dd[addr].append((ser, v))
-
-            if not related:
-                raise UnrelatedTransactionException()
-
             # save
             self.transactions[tx_hash] = tx
             return True
 
     def remove_transaction(self, tx_hash):
         def undo_spend(outpoint_to_txid_map):
-            if tx:
-                # if we have the tx, this should often be faster
-                for txi in tx.inputs():
-                    ser = Transaction.get_outpoint_from_txin(txi)
+            for addr, l in self.txi[tx_hash].items():
+                for ser, v in l:
                     outpoint_to_txid_map.pop(ser, None)
-            else:
-                for ser, hh in list(outpoint_to_txid_map.items()):
-                    if hh == tx_hash:
-                        outpoint_to_txid_map.pop(ser)
 
         with self.transaction_lock:
             self.print_error("removing tx from history", tx_hash)
-            #tx = self.transactions.pop(tx_hash)
-            tx = self.transactions.get(tx_hash, None)
+            self.transactions.pop(tx_hash, None)
             undo_spend(self.pruned_txo)
             undo_spend(self.spent_outpoints)
 
@@ -873,13 +882,17 @@ class Abstract_Wallet(PrintError):
 
     def receive_history_callback(self, addr, hist, tx_fees):
         with self.lock:
-            old_hist = self.history.get(addr, [])
+            old_hist = self.get_address_history(addr)
             for tx_hash, height in old_hist:
                 if (tx_hash, height) not in hist:
                     # make tx local
                     self.unverified_tx.pop(tx_hash, None)
                     self.verified_tx.pop(tx_hash, None)
                     self.verifier.merkle_roots.pop(tx_hash, None)
+                    # but remove completely if not is_mine
+                    if self.txi[tx_hash] == {}:
+                        # FIXME the test here should be for "not all is_mine"; cannot detect conflict in some cases
+                        self.remove_transaction(tx_hash)
             self.history[addr] = hist
 
         for tx_hash, tx_height in hist:
@@ -945,13 +958,18 @@ class Abstract_Wallet(PrintError):
         # return last balance
         return balance
 
-    def export_history(self, domain=None, from_timestamp=None, to_timestamp=None, fx=None, show_addresses=False):
-        from .util import format_time, format_satoshis, timestamp_to_datetime
-        h = self.get_history(domain)
+    @profiler
+    def get_full_history(self, domain=None, from_timestamp=None, to_timestamp=None, fx=None, show_addresses=False):
+        from .util import timestamp_to_datetime, Satoshis, Fiat
         out = []
         init_balance = None
+        init_timestamp = None
+        end_balance = None
+        end_timestamp = None
+        end_balance = 0
         capital_gains = 0
         fiat_income = 0
+        h = self.get_history(domain)
         for tx_hash, height, conf, timestamp, value, balance in h:
             if from_timestamp and timestamp < from_timestamp:
                 continue
@@ -962,17 +980,15 @@ class Abstract_Wallet(PrintError):
                 'height':height,
                 'confirmations':conf,
                 'timestamp':timestamp,
-                'value': format_satoshis(value, True) if value is not None else '--',
-                'balance': format_satoshis(balance)
+                'value': Satoshis(value),
+                'balance': Satoshis(balance)
             }
             if init_balance is None:
                 init_balance = balance - value
+                init_timestamp = timestamp
             end_balance = balance
-            if item['height']>0:
-                date_str = format_time(timestamp) if timestamp is not None else _("unverified")
-            else:
-                date_str = _("unconfirmed")
-            item['date'] = date_str
+            end_timestamp = timestamp
+            item['date'] = timestamp_to_datetime(timestamp) if timestamp is not None else None
             item['label'] = self.get_label(tx_hash)
             if show_addresses:
                 tx = self.transactions.get(tx_hash)
@@ -981,14 +997,9 @@ class Abstract_Wallet(PrintError):
                 output_addresses = []
                 for x in tx.inputs():
                     if x['type'] == 'coinbase': continue
-                    addr = x.get('address')
-                    if addr == None: continue
-                    if addr == "(pubkey)":
-                        prevout_hash = x.get('prevout_hash')
-                        prevout_n = x.get('prevout_n')
-                        _addr = self.wallet.find_pay_to_pubkey_address(prevout_hash, prevout_n)
-                        if _addr:
-                            addr = _addr
+                    addr = self.get_txin_address(x)
+                    if addr is None:
+                        continue
                     input_addresses.append(addr)
                 for addr, v in tx.get_outputs():
                     output_addresses.append(addr)
@@ -999,36 +1010,43 @@ class Abstract_Wallet(PrintError):
                 fiat_value = self.get_fiat_value(tx_hash, fx.ccy)
                 if fiat_value is None:
                     fiat_value = fx.historical_value(value, date)
-                item['fiat_value'] = fx.format_fiat(fiat_value)
+                    fiat_default = True
+                else:
+                    fiat_default = False
+                item['fiat_value'] = Fiat(fiat_value, fx.ccy)
+                item['fiat_default'] = fiat_default
                 if value < 0:
                     ap, lp = self.capital_gain(tx_hash, fx.timestamp_rate, fx.ccy)
-                    cg = None if lp is None or ap is None else lp - ap
-                    item['acquisition_price'] = fx.format_fiat(ap)
-                    item['capital_gain'] = fx.format_fiat(cg)
-                    if cg is not None:
-                        capital_gains += cg
+                    cg = lp - ap
+                    item['acquisition_price'] = Fiat(ap, fx.ccy)
+                    item['capital_gain'] = Fiat(cg, fx.ccy)
+                    capital_gains += cg
                 else:
                     if fiat_value is not None:
                         fiat_income += fiat_value
             out.append(item)
-
-        if from_timestamp and to_timestamp:
-            summary = {
-                'start_date': format_time(from_timestamp),
-                'end_date': format_time(to_timestamp),
-                'start_balance': format_satoshis(init_balance),
-                'end_balance': format_satoshis(end_balance),
-                'capital_gains': fx.format_fiat(capital_gains),
-                'fiat_income': fx.format_fiat(fiat_income)
-            }
-            if fx:
-                start_date = timestamp_to_datetime(from_timestamp)
-                end_date = timestamp_to_datetime(to_timestamp)
-                summary['start_fiat_balance'] = fx.format_fiat(fx.historical_value(init_balance, start_date))
-                summary['end_fiat_balance'] = fx.format_fiat(fx.historical_value(end_balance, end_date))
-            out.append(summary)
-
-        return out
+        result = {'transactions': out}
+        if from_timestamp is not None and to_timestamp is not None:
+            start_date = timestamp_to_datetime(from_timestamp)
+            end_date = timestamp_to_datetime(to_timestamp)
+        else:
+            start_date = timestamp_to_datetime(init_timestamp)
+            end_date = timestamp_to_datetime(end_timestamp)
+        summary = {
+            'start_date': start_date,
+            'end_date': end_date,
+            'start_balance': Satoshis(init_balance),
+            'end_balance': Satoshis(end_balance)
+        }
+        result['summary'] = summary
+        if fx:
+            unrealized = self.unrealized_gains(domain, fx.timestamp_rate, fx.ccy)
+            summary['start_fiat_balance'] = Fiat(fx.historical_value(init_balance, start_date), fx.ccy)
+            summary['end_fiat_balance'] = Fiat(fx.historical_value(end_balance, end_date), fx.ccy)
+            summary['capital_gains'] = Fiat(capital_gains, fx.ccy)
+            summary['fiat_income'] = Fiat(fiat_income, fx.ccy)
+            summary['unrealized_gains'] = Fiat(unrealized, fx.ccy)
+        return result
 
     def get_label(self, tx_hash):
         label = self.labels.get(tx_hash, '')
@@ -1664,6 +1682,14 @@ class Abstract_Wallet(PrintError):
         height, conf, timestamp = self.get_tx_height(txid)
         return price_func(timestamp)
 
+    def unrealized_gains(self, domain, price_func, ccy):
+        coins = self.get_utxos(domain)
+        now = time.time()
+        p = price_func(now)
+        ap = sum(self.coin_price(coin, price_func, ccy, self.txin_value(coin)) for coin in coins)
+        lp = sum([coin['value'] for coin in coins]) * p / Decimal(COIN)
+        return lp - ap
+
     def capital_gain(self, txid, price_func, ccy):
         """
         Difference between the fiat price of coins leaving the wallet because of transaction txid,
@@ -1676,15 +1702,12 @@ class Abstract_Wallet(PrintError):
         fiat_value = self.get_fiat_value(txid, ccy)
         if fiat_value is None:
             p = self.price_at_timestamp(txid, price_func)
-            liquidation_price = None if p is None else out_value/Decimal(COIN) * p
+            liquidation_price = out_value/Decimal(COIN) * p
         else:
             liquidation_price = - fiat_value
-        try:
-            acquisition_price = out_value/Decimal(COIN) * self.average_price(tx, price_func, ccy)
-        except:
-            acquisition_price = None
-        return acquisition_price, liquidation_price
 
+        acquisition_price = out_value/Decimal(COIN) * self.average_price(tx, price_func, ccy)
+        return acquisition_price, liquidation_price
 
     def average_price(self, tx, price_func, ccy):
         """ average price of the inputs of a transaction """
@@ -1703,10 +1726,11 @@ class Abstract_Wallet(PrintError):
             if fiat_value is not None:
                 return fiat_value
             else:
-                return self.price_at_timestamp(txid, price_func) * txin_value/Decimal(COIN)
+                p = self.price_at_timestamp(txid, price_func)
+                return p * txin_value/Decimal(COIN)
         else:
             # could be some coinjoin transaction..
-            return None
+            return Decimal('NaN')
 
 
 class Simple_Wallet(Abstract_Wallet):
