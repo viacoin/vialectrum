@@ -1924,7 +1924,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.send_button.setVisible(not self.wallet.is_watching_only())
 
     def change_password_dialog(self):
-        from electrum_ltc.storage import STO_EV_XPUB_PW
+        from vialectrum.storage import STO_EV_XPUB_PW
         if self.wallet.get_available_storage_encryption_version() == STO_EV_XPUB_PW:
             from .password_dialog import ChangePasswordDialogForHW
             d = ChangePasswordDialogForHW(self, self.wallet)

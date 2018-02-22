@@ -87,7 +87,7 @@ class Satoshis(object):
         return 'Satoshis(%d)'%self.value
 
     def __str__(self):
-        return format_satoshis(self.value) + " LTC"
+        return format_satoshis(self.value) + " VIA"
 
 class Fiat(object):
     def __new__(cls, value, ccy):

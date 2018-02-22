@@ -105,7 +105,7 @@ class Exception_Window(QWidget):
         self.show()
 
     def send_report(self):
-        if bitcoin.NetworkConstants.GENESIS[-4:] not in ["29a0", "bfe2"] and ".electrum-ltc.org" in report_server:
+        if bitcoin.NetworkConstants.GENESIS[-4:] not in ["29a0", "bfe2"] and ".vialectrum.org" in report_server:
             # Gah! Some kind of altcoin wants to send us crash reports.
             self.main_window.show_critical(_("Please report this issue manually."))
             return

@@ -456,6 +456,6 @@ class FxThread(ThreadJob):
         return Decimal(satoshis) / COIN * Decimal(rate)
 
     def timestamp_rate(self, timestamp):
-        from electrum_ltc.util import timestamp_to_datetime
+        from vialectrum.util import timestamp_to_datetime
         date = timestamp_to_datetime(timestamp)
         return self.history_rate(date)
