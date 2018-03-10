@@ -2,12 +2,12 @@ import threading
 
 from PyQt5.Qt import QInputDialog, QLineEdit, QVBoxLayout, QLabel
 
-from electrum_ltc.i18n import _
-from electrum_ltc.plugins import hook
-from electrum_ltc.wallet import Standard_Wallet
+from vialectrum.i18n import _
+from vialectrum.plugins import hook
+from vialectrum.wallet import Standard_Wallet
 from .ledger import LedgerPlugin
 from ..hw_wallet.qt import QtHandlerBase, QtPluginBase
-from electrum_ltc_gui.qt.util import *
+from vialectrum_gui.qt.util import *
 
 #from btchip.btchipPersoWizard import StartBTChipPersoDialog
 
@@ -44,7 +44,7 @@ class Ledger_Handler(QtHandlerBase):
         else:
             self.word = str(response[0])
         self.done.set()
-    
+
     def message_dialog(self, msg):
         self.clear_dialog()
         self.dialog = dialog = WindowModalDialog(self.top_level_window(), _("Ledger Status"))
@@ -63,25 +63,25 @@ class Ledger_Handler(QtHandlerBase):
         dialog.exec_()
         self.word = dialog.pin
         self.done.set()
-                    
+
     def get_auth(self, data):
         self.done.clear()
         self.auth_signal.emit(data)
         self.done.wait()
         return self.word
-        
+
     def get_setup(self):
         self.done.clear()
         self.setup_signal.emit()
         self.done.wait()
-        return 
-        
+        return
+
     def setup_dialog(self):
         dialog = StartBTChipPersoDialog()
         dialog.exec_()
 
 
-        
-        
-        
-        
+
+
+
+

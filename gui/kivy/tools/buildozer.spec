@@ -1,13 +1,13 @@
 [app]
 
 # (str) Title of your application
-title = Electrum-LTC
+title = Vialectrum
 
 # (str) Package name
-package.name = Electrum_LTC
+package.name = Electrum_VIA
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.electrum_ltc
+package.domain = org.vialectrum
 
 # (str) Source code where the main.py live
 source.dir = .
@@ -38,7 +38,7 @@ requirements = python3crystax==3.6, android, openssl, plyer, kivy==master
 presplash.filename = %(source.dir)s/icons/electrum_presplash.png
 
 # (str) Icon of the application
-icon.filename = %(source.dir)s/icons/electrum_launcher.png
+icon.filename = %(source.dir)s/icons/vialectrum_launcher.png
 
 # (str) Supported orientation (one of landscape, portrait or all)
 orientation = portrait

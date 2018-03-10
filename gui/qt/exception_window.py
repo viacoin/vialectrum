@@ -35,8 +35,8 @@ import PyQt5.QtCore as QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
 
-from electrum_ltc.i18n import _
-from electrum_ltc import ELECTRUM_VERSION, bitcoin, constants
+from vialectrum.i18n import _
+from vialectrum import ELECTRUM_VERSION, bitcoin, constants
 
 issue_template = """<h2>Traceback</h2>
 <pre>
@@ -51,7 +51,7 @@ issue_template = """<h2>Traceback</h2>
   <li>Locale: {locale}</li>
 </ul>
 """
-report_server = "https://crashhub.electrum-ltc.org/crash"
+report_server = "https://crashhub.vialectrum.org/crash"
 
 
 class Exception_Window(QWidget):
@@ -61,7 +61,7 @@ class Exception_Window(QWidget):
         self.exc_args = (exctype, value, tb)
         self.main_window = main_window
         QWidget.__init__(self)
-        self.setWindowTitle('Electrum-LTC - ' + _('An Error Occured'))
+        self.setWindowTitle('Vialectrum - ' + _('An Error Occured'))
         self.setMinimumSize(600, 300)
 
         main_box = QVBoxLayout()
@@ -107,7 +107,7 @@ class Exception_Window(QWidget):
         self.show()
 
     def send_report(self):
-        if constants.net.GENESIS[-4:] not in ["29a0", "bfe2"] and ".electrum-ltc.org" in report_server:
+        if constants.net.GENESIS[-4:] not in ["29a0", "bfe2"] and ".vialectrum.org" in report_server:
             # Gah! Some kind of altcoin wants to send us crash reports.
             self.main_window.show_critical(_("Please report this issue manually."))
             return

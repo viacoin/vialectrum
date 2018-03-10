@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 import sys
-from electrum_ltc import Network
-from electrum_ltc.util import json_encode, print_msg
-from electrum_ltc import bitcoin
+from vialectrum import Network
+from vialectrum.util import json_encode, print_msg
+from vialectrum import bitcoin
 
 try:
     addr = sys.argv[1]
 except Exception:
-    print("usage: get_history <litecoin_address>")
+    print("usage: get_history <viacoin_address>")
     sys.exit(1)
 
 n = Network()

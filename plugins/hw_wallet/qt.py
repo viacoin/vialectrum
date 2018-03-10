@@ -27,11 +27,11 @@
 import threading
 
 from PyQt5.Qt import QVBoxLayout, QLabel
-from electrum_ltc_gui.qt.password_dialog import PasswordDialog, PW_PASSPHRASE
-from electrum_ltc_gui.qt.util import *
+from vialectrum_gui.qt.password_dialog import PasswordDialog, PW_PASSPHRASE
+from vialectrum_gui.qt.util import *
 
-from electrum_ltc.i18n import _
-from electrum_ltc.util import PrintError
+from vialectrum.i18n import _
+from vialectrum.util import PrintError
 
 # The trickiest thing about this handler was getting windows properly
 # parented on MacOSX.
@@ -172,9 +172,9 @@ class QtHandlerBase(QObject, PrintError):
 
 
 
-from electrum_ltc.plugins import hook
-from electrum_ltc.util import UserCancelled
-from electrum_ltc_gui.qt.main_window import StatusBarButton
+from vialectrum.plugins import hook
+from vialectrum.util import UserCancelled
+from vialectrum_gui.qt.main_window import StatusBarButton
 
 class QtPluginBase(object):
 

@@ -1,4 +1,4 @@
-from electrum_ltc.util import print_msg, print_error, raw_input
+from vialectrum.util import print_msg, print_error, raw_input
 
 class CmdLineHandler:
 

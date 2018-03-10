@@ -23,7 +23,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from .util import *
-from electrum_ltc.i18n import _
+from vialectrum.i18n import _
 
 
 class UTXOList(MyTreeWidget):

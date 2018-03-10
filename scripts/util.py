@@ -1,8 +1,8 @@
 import select, time, queue
-# import electrum_ltc as electrum
-from electrum_ltc import Connection, Interface, SimpleConfig
+# import vialectrum as electrum
+from vialectrum import Connection, Interface, SimpleConfig
 
-from electrum_ltc.network import parse_servers
+from vialectrum.network import parse_servers
 from collections import defaultdict
 
 # electrum.util.set_verbosity(1)

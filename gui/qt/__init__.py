@@ -38,14 +38,14 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 import PyQt5.QtCore as QtCore
 
-from electrum_ltc.i18n import _, set_language
-from electrum_ltc.plugins import run_hook
-from electrum_ltc import WalletStorage
-# from electrum_ltc.synchronizer import Synchronizer
-# from electrum_ltc.verifier import SPV
-# from electrum_ltc.util import DebugMem
-from electrum_ltc.util import UserCancelled, print_error
-# from electrum_ltc.wallet import Abstract_Wallet
+from vialectrum.i18n import _, set_language
+from vialectrum.plugins import run_hook
+from vialectrum import WalletStorage
+# from vialectrum.synchronizer import Synchronizer
+# from vialectrum.verifier import SPV
+# from vialectrum.util import DebugMem
+from vialectrum.util import UserCancelled, print_error
+# from vialectrum.wallet import Abstract_Wallet
 
 from .installwizard import InstallWizard, GoBack
 
@@ -96,7 +96,7 @@ class ElectrumGui:
         if hasattr(QtCore.Qt, "AA_ShareOpenGLContexts"):
             QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
         if hasattr(QGuiApplication, 'setDesktopFileName'):
-            QGuiApplication.setDesktopFileName('electrum-ltc.desktop')
+            QGuiApplication.setDesktopFileName('vialectrum.desktop')
         self.config = config
         self.daemon = daemon
         self.plugins = plugins
@@ -110,7 +110,7 @@ class ElectrumGui:
         # init tray
         self.dark_icon = self.config.get("dark_icon", False)
         self.tray = QSystemTrayIcon(self.tray_icon(), None)
-        self.tray.setToolTip('Electrum-LTC')
+        self.tray.setToolTip('Vialectrum')
         self.tray.activated.connect(self.tray_activated)
         self.build_tray_menu()
         self.tray.show()
@@ -132,7 +132,7 @@ class ElectrumGui:
             submenu.addAction(_("Close"), window.close)
         m.addAction(_("Dark/Light"), self.toggle_tray_icon)
         m.addSeparator()
-        m.addAction(_("Exit Electrum-LTC"), self.close)
+        m.addAction(_("Exit Vialectrum"), self.close)
 
     def tray_icon(self):
         if self.dark_icon:
