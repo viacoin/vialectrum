@@ -4,7 +4,8 @@ from binascii import hexlify, unhexlify
 
 from vialectrum.util import bfh, bh2u, versiontuple
 from vialectrum.bitcoin import (b58_address_to_hash160, xpub_from_pubkey,
-                                  TYPE_ADDRESS, TYPE_SCRIPT, NetworkConstants)
+                                  TYPE_ADDRESS, TYPE_SCRIPT)
+from vialectrum import constants
 from vialectrum.i18n import _
 from vialectrum.plugins import BasePlugin, Device
 from vialectrum.transaction import deserialize
@@ -126,8 +127,28 @@ class TrezorPlugin(HW_PluginBase):
         self.device_manager().register_enumerate_func(self.enumerate)
 
     def enumerate(self):
-        from trezorlib.device import TrezorDevice
-        return [Device(d.get_path(), -1, d.get_path(), 'TREZOR', 0) for d in TrezorDevice.enumerate()]
+        try:
+            from trezorlib.transport import all_transports
+        except ImportError:
+            # compat for trezorlib < 0.9.2
+            def all_transports():
+                from trezorlib.transport_bridge import BridgeTransport
+                from trezorlib.transport_hid import HidTransport
+                from trezorlib.transport_udp import UdpTransport
+                from trezorlib.transport_webusb import WebUsbTransport
+                return (BridgeTransport, HidTransport, UdpTransport, WebUsbTransport)
+
+        devices = []
+        for transport in all_transports():
+            try:
+                new_devices = transport.enumerate()
+            except BaseException as e:
+                self.print_error('enumerate failed for {}. error {}'
+                                 .format(transport.__name__, str(e)))
+            else:
+                devices.extend(new_devices)
+
+        return [Device(d.get_path(), -1, d.get_path(), 'TREZOR', 0) for d in devices]
 
     def create_client(self, device, handler):
         from trezorlib.device import TrezorDevice
@@ -173,7 +194,7 @@ class TrezorPlugin(HW_PluginBase):
         return client
 
     def get_coin_name(self):
-        return "Testnet" if NetworkConstants.TESTNET else "Litecoin"
+        return "Testnet" if constants.net.TESTNET else "Litecoin"
 
     def initialize_device(self, device_id, wizard, handler):
         # Initialization method
@@ -434,6 +455,9 @@ class TrezorPlugin(HW_PluginBase):
 
     def electrum_tx_to_txtype(self, tx):
         t = self.types.TransactionType()
+        if tx is None:
+            # probably for segwit input and we don't need this prev txn
+            return t
         d = deserialize(tx.raw)
         t.version = d['version']
         t.lock_time = d['lockTime']

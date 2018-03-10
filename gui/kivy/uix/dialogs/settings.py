@@ -8,7 +8,6 @@ from vialectrum.i18n import languages
 from vialectrum_gui.kivy.i18n import _
 from vialectrum.plugins import run_hook
 from vialectrum import coinchooser
-from vialectrum.util import fee_levels
 
 from .choice_dialog import ChoiceDialog
 
@@ -48,12 +47,6 @@ Builder.load_string('''
                     title: _('Denomination') + ': ' + self.bu
                     description: _("Base unit for Viacoin amounts.")
                     action: partial(root.unit_dialog, self)
-                CardSeparator
-                SettingsItem:
-                    status: root.fee_status()
-                    title: _('Fees') + ': ' + self.status
-                    description: _("Fees paid to the Viacoin miners.")
-                    action: partial(root.fee_dialog, self)
                 CardSeparator
                 SettingsItem:
                     status: root.fx_status()
@@ -113,7 +106,6 @@ class SettingsDialog(Factory.Popup):
         layout.bind(minimum_height=layout.setter('height'))
         # cached dialogs
         self._fx_dialog = None
-        self._fee_dialog = None
         self._proxy_dialog = None
         self._language_dialog = None
         self._unit_dialog = None
@@ -205,14 +197,6 @@ class SettingsDialog(Factory.Popup):
 
     def fee_status(self):
         return self.config.get_fee_status()
-
-    def fee_dialog(self, label, dt):
-        if self._fee_dialog is None:
-            from .fee_dialog import FeeDialog
-            def cb():
-                label.status = self.fee_status()
-            self._fee_dialog = FeeDialog(self.app, self.config, cb)
-        self._fee_dialog.open()
 
     def boolean_dialog(self, name, title, message, dt):
         from .checkbox_dialog import CheckBoxDialog

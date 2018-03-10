@@ -22,21 +22,13 @@ from .password_dialog import PasswordLayout, PasswordLayoutForHW, PW_NEW
 class GoBack(Exception):
     pass
 
-MSG_GENERATING_WAIT = _("Vialectrum is generating your addresses, please wait...")
-MSG_ENTER_ANYTHING = _("Please enter a seed phrase, a master key, a list of "
-                       "Viacoin addresses, or a list of private keys")
-MSG_ENTER_SEED_OR_MPK = _("Please enter a seed phrase or a master key (xpub or xprv):")
-MSG_COSIGNER = _("Please enter the master public key of cosigner #{}:")
+
 MSG_ENTER_PASSWORD = _("Choose a password to encrypt your wallet keys.") + '\n'\
                      + _("Leave this field empty if you want to disable encryption.")
 MSG_HW_STORAGE_ENCRYPTION = _("Set wallet file encryption.") + '\n'\
                           + _("Your wallet file does not contain secrets, mostly just metadata. ") \
                           + _("It also contains your master public key that allows watching your addresses.") + '\n\n'\
                           + _("Note: If you enable this setting, you will need your hardware device to open your wallet.")
-MSG_RESTORE_PASSPHRASE = \
-    _("Please enter your seed derivation passphrase. "
-      "Note: this is NOT your encryption password. "
-      "Leave this field empty if you did not use one or are unsure.")
 
 
 class CosignWidget(QWidget):
@@ -192,7 +184,8 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
             try:
                 self.storage = WalletStorage(path, manual_upgrades=True)
                 self.next_button.setEnabled(True)
-            except IOError:
+            except BaseException:
+                traceback.print_exc(file=sys.stderr)
                 self.storage = None
                 self.next_button.setEnabled(False)
             if self.storage:
@@ -253,8 +246,6 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
                     try:
                         self.run('choose_hw_device', HWD_SETUP_DECRYPT_WALLET)
                     except InvalidPassword as e:
-                        # FIXME if we get here because of mistyped passphrase
-                        # then that passphrase gets "cached"
                         QMessageBox.information(
                             None, _('Error'),
                             _('Failed to decrypt using this hardware device.') + '\n' +
@@ -478,7 +469,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         self.accept_signal.emit()
 
     def waiting_dialog(self, task, msg):
-        self.please_wait.setText(MSG_GENERATING_WAIT)
+        self.please_wait.setText(msg)
         self.refresh_gui()
         t = threading.Thread(target = task)
         t.start()

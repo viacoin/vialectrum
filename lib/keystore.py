@@ -28,7 +28,7 @@ from unicodedata import normalize
 
 from . import bitcoin
 from .bitcoin import *
-
+from . import constants
 from .util import PrintError, InvalidPassword, hfu
 from .mnemonic import Mnemonic, load_wordlist
 from .plugins import run_hook
@@ -139,7 +139,10 @@ class Imported_KeyStore(Software_KeyStore):
     def import_privkey(self, sec, password):
         txin_type, privkey, compressed = deserialize_privkey(sec)
         pubkey = public_key_from_private_key(privkey, compressed)
-        self.keypairs[pubkey] = pw_encode(sec, password)
+        # re-serialize the key so the internal storage format is consistent
+        serialized_privkey = serialize_privkey(
+            privkey, compressed, txin_type, internal_use=True)
+        self.keypairs[pubkey] = pw_encode(serialized_privkey, password)
         return txin_type, pubkey
 
     def delete_imported_key(self, key):
@@ -685,7 +688,7 @@ is_bip32_key = lambda x: is_xprv(x) or is_xpub(x)
 
 
 def bip44_derivation(account_id, bip43_purpose=44):
-    coin = 13 if bitcoin.NetworkConstants.TESTNET else 14
+    coin = 1 if constants.net.TESTNET else 2
     return "m/%d'/%d'/%d'" % (bip43_purpose, coin, int(account_id))
 
 def from_seed(seed, passphrase, is_p2sh):

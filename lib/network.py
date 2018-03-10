@@ -37,9 +37,11 @@ import socks
 from . import util
 from . import bitcoin
 from .bitcoin import *
+from . import constants
 from .interface import Connection, Interface
 from . import blockchain
 from .version import ELECTRUM_VERSION, PROTOCOL_VERSION
+from .i18n import _
 
 
 NODES_RETRY_INTERVAL = 60
@@ -59,7 +61,7 @@ def parse_servers(result):
             for v in item[2]:
                 if re.match("[st]\d*", v):
                     protocol, port = v[0], v[1:]
-                    if port == '': port = bitcoin.NetworkConstants.DEFAULT_PORTS[protocol]
+                    if port == '': port = constants.net.DEFAULT_PORTS[protocol]
                     out[protocol] = port
                 elif re.match("v(.?)+", v):
                     version = v[1:]
@@ -93,7 +95,7 @@ def filter_protocol(hostmap, protocol = 's'):
 
 def pick_random_server(hostmap = None, protocol = 's', exclude_set = set()):
     if hostmap is None:
-        hostmap = bitcoin.NetworkConstants.DEFAULT_SERVERS
+        hostmap = constants.net.DEFAULT_SERVERS
     eligible = list(set(filter_protocol(hostmap, protocol)) - exclude_set)
     return random.choice(eligible) if eligible else None
 
@@ -363,7 +365,7 @@ class Network(util.DaemonThread):
         return list(self.interfaces.keys())
 
     def get_servers(self):
-        out = bitcoin.NetworkConstants.DEFAULT_SERVERS
+        out = constants.net.DEFAULT_SERVERS
         if self.irc_servers:
             out.update(filter_version(self.irc_servers.copy()))
         else:
@@ -549,7 +551,7 @@ class Network(util.DaemonThread):
                 self.donation_address = result
         elif method == 'mempool.get_fee_histogram':
             if error is None:
-                self.print_error(result)
+                self.print_error('fee_histogram', result)
                 self.config.mempool_fees = result
                 self.notify('fee_histogram')
         elif method == 'blockchain.estimatefee':
@@ -675,7 +677,7 @@ class Network(util.DaemonThread):
                     # check cached response for subscriptions
                     r = self.sub_cache.get(k)
                 if r is not None:
-                    util.print_error("cache hit", k)
+                    self.print_error("cache hit", k)
                     callback(r)
                 else:
                     message_id = self.queue_request(method, params)
@@ -777,25 +779,29 @@ class Network(util.DaemonThread):
         error = response.get('error')
         result = response.get('result')
         params = response.get('params')
+        blockchain = interface.blockchain
         if result is None or params is None or error is not None:
             interface.print_error(error or 'bad response')
             return
         index = params[0]
         # Ignore unsolicited chunks
         if index not in self.requested_chunks:
+            interface.print_error("received chunk %d (unsolicited)" % index)
             return
+        else:
+            interface.print_error("received chunk %d" % index)
         self.requested_chunks.remove(index)
-        connect = interface.blockchain.connect_chunk(index, result)
+        connect = blockchain.connect_chunk(index, result)
         if not connect:
             self.connection_down(interface.server)
             return
         # If not finished, get the next chunk
-        if interface.blockchain.height() < interface.tip:
+        if index >= len(blockchain.checkpoints) and blockchain.height() < interface.tip:
             self.request_chunk(interface, index+1)
         else:
             interface.mode = 'default'
-            interface.print_error('catch up done', interface.blockchain.height())
-            interface.blockchain.catch_up = None
+            interface.print_error('catch up done', blockchain.height())
+            blockchain.catch_up = None
         self.notify('updated')
 
     def request_header(self, interface, height):
@@ -962,7 +968,7 @@ class Network(util.DaemonThread):
     def init_headers_file(self):
         b = self.blockchains[0]
         filename = b.path()
-        length = 80 * len(bitcoin.NetworkConstants.CHECKPOINTS) * 2016
+        length = 80 * len(constants.net.CHECKPOINTS) * 2016
         if not os.path.exists(filename) or os.path.getsize(filename) < length:
             with open(filename, 'wb') as f:
                 if length>0:
@@ -987,7 +993,7 @@ class Network(util.DaemonThread):
         if not height:
             return
         if height < self.max_checkpoint():
-            self.connection_down(interface)
+            self.connection_down(interface.server)
             return
         interface.tip_header = header
         interface.tip = height
@@ -1065,7 +1071,7 @@ class Network(util.DaemonThread):
         try:
             r = q.get(True, timeout)
         except queue.Empty:
-            raise BaseException('Server did not answer')
+            raise util.TimeoutException(_('Server did not answer'))
         if r.get('error'):
             raise BaseException(r.get('error'))
         return r.get('result')
@@ -1087,4 +1093,4 @@ class Network(util.DaemonThread):
             f.write(json.dumps(cp, indent=4))
 
     def max_checkpoint(self):
-        return max(0, len(bitcoin.NetworkConstants.CHECKPOINTS) * 2016 - 1)
+        return max(0, len(constants.net.CHECKPOINTS) * 2016 - 1)
