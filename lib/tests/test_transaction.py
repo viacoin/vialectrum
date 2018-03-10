@@ -57,7 +57,7 @@ class TestTransaction(unittest.TestCase):
         expected = {
             'inputs': [{
                 'type': 'p2pkh',
-                'address': 'LNH44gMp6kNHu4Npo5JDNY6FPjewvMKDnz',
+                'address': 'Vd3viBDSRu2Si2apMixYXRMLsLaeEEBDLe',
                 'num_sig': 1,
                 'prevout_hash': '3140eb24b43386f35ba69e3875eb6c93130ac66201d01c58f598defc949a5c2a',
                 'prevout_n': 0,
@@ -68,7 +68,7 @@ class TestTransaction(unittest.TestCase):
                 'x_pubkeys': ['ff0488b21e03ef2afea18000000089689bff23e1e7fb2f161daa37270a97a3d8c2e537584b2d304ecb47b86d21fc021b010d3bd425f8cf2e04824bfdf1f1f5ff1d51fadd9a41f9e3fb8dd3403b1bfe00000000']}],
             'lockTime': 0,
             'outputs': [{
-                'address': 'LNREont24PYd5kkxTKoxVNhbugLowNb7H8',
+                'address': 'VdC7THjePYCmtixx1yUHeFxhPHGWKEXiN2',
                 'prevout_n': 0,
                 'scriptPubKey': '76a914230ac37834073a42146f11ef8414ae929feaafc388ac',
                 'type': TYPE_ADDRESS,
@@ -80,12 +80,12 @@ class TestTransaction(unittest.TestCase):
         self.assertEqual(tx.deserialize(), None)
 
         self.assertEqual(tx.as_dict(), {'hex': unsigned_blob, 'complete': False, 'final': True})
-        self.assertEqual(tx.get_outputs(), [('LNREont24PYd5kkxTKoxVNhbugLowNb7H8', 1000000)])
-        self.assertEqual(tx.get_output_addresses(), ['LNREont24PYd5kkxTKoxVNhbugLowNb7H8'])
+        self.assertEqual(tx.get_outputs(), [('VdC7THjePYCmtixx1yUHeFxhPHGWKEXiN2', 1000000)])
+        self.assertEqual(tx.get_output_addresses(), ['VdC7THjePYCmtixx1yUHeFxhPHGWKEXiN2'])
 
-        self.assertTrue(tx.has_address('LNREont24PYd5kkxTKoxVNhbugLowNb7H8'))
-        self.assertTrue(tx.has_address('LNH44gMp6kNHu4Npo5JDNY6FPjewvMKDnz'))
-        self.assertFalse(tx.has_address('LWdgGJGqSmaGYcp6e21RvpGmcuexJorNEH'))
+        self.assertTrue(tx.has_address('VdC7THjePYCmtixx1yUHeFxhPHGWKEXiN2'))
+        self.assertTrue(tx.has_address('Vd3viBDSRu2Si2apMixYXRMLsLaeEEBDLe'))
+        self.assertFalse(tx.has_address('VmQYuo8TmvERMb26Cffm5hXs6WaeiPzHme'))
 
         self.assertEqual(tx.serialize(), unsigned_blob)
 
@@ -101,7 +101,7 @@ class TestTransaction(unittest.TestCase):
         expected = {
             'inputs': [{
                 'type': 'p2pkh',
-                'address': 'LNH44gMp6kNHu4Npo5JDNY6FPjewvMKDnz',
+                'address': 'Vd3viBDSRu2Si2apMixYXRMLsLaeEEBDLe',
                 'num_sig': 1,
                 'prevout_hash': '3140eb24b43386f35ba69e3875eb6c93130ac66201d01c58f598defc949a5c2a',
                 'prevout_n': 0,
@@ -112,7 +112,7 @@ class TestTransaction(unittest.TestCase):
                 'x_pubkeys': ['02e61d176da16edd1d258a200ad9759ef63adf8e14cd97f53227bae35cdb84d2f6']}],
             'lockTime': 0,
             'outputs': [{
-                'address': 'LNREont24PYd5kkxTKoxVNhbugLowNb7H8',
+                'address': 'VdC7THjePYCmtixx1yUHeFxhPHGWKEXiN2',
                 'prevout_n': 0,
                 'scriptPubKey': '76a914230ac37834073a42146f11ef8414ae929feaafc388ac',
                 'type': TYPE_ADDRESS,
@@ -136,10 +136,10 @@ class TestTransaction(unittest.TestCase):
 
     def test_estimated_output_size(self):
         estimated_output_size = transaction.Transaction.estimated_output_size
-        self.assertEqual(estimated_output_size('LNuZh2Eeps3L114Lu4PVCxBR61UvrUKgze'), 34)
-        self.assertEqual(estimated_output_size('MBmyiC29MUQSfPC2gKtdrazbSWHvGqJCnU'), 32)
-        self.assertEqual(estimated_output_size('ltc1q3g5tmkmlvxryhh843v4dz026avatc0zz8xd49e'), 31)
-        self.assertEqual(estimated_output_size('ltc1qnvks7gfdu72de8qv6q6rhkkzu70fqz4wpjzuxjf6aydsx7wxfwcqsmgvk5'), 43)
+        self.assertEqual(estimated_output_size('VdgSLX6HA1hUoyGLTi3pMqSWZcQdCSDeGa'), 34)
+        self.assertEqual(estimated_output_size('EM2iyLxFHQXYm1pZGCEDcTNDjvut5b5BWT'), 32)
+        self.assertEqual(estimated_output_size('via1q3g5tmkmlvxryhh843v4dz026avatc0zzflnzx0'), 31)
+        self.assertEqual(estimated_output_size('via1qnvks7gfdu72de8qv6q6rhkkzu70fqz4wpjzuxjf6aydsx7wxfwcqczxd98'), 43)
 
     # TODO other tests for segwit tx
     def test_tx_signed_segwit(self):
@@ -160,7 +160,7 @@ class TestTransaction(unittest.TestCase):
 
     def test_parse_xpub(self):
         res = xpubkey_to_address('fe4e13b0f311a55b8a5db9a32e959da9f011b131019d4cebe6141b9e2c93edcbfc0954c358b062a9f94111548e50bde5847a3096b8b7872dcffadb0e9579b9017b01000200')
-        self.assertEqual(res, ('04ee98d63800824486a1cf5b4376f2f574d86e0a3009a6448105703453f3368e8e1d8d090aaecdd626a45cc49876709a3bbb6dc96a4311b3cac03e225df5f63dfc', 'LTv6KFwtiNafLvxggFFQMRSQEXtBUru9eG'))
+        self.assertEqual(res, ('04ee98d63800824486a1cf5b4376f2f574d86e0a3009a6448105703453f3368e8e1d8d090aaecdd626a45cc49876709a3bbb6dc96a4311b3cac03e225df5f63dfc', 'VigxxkoX3XEp9uAgEtujWJhVi8osq3QtRV'))
 
     def test_version_field(self):
         tx = transaction.Transaction(v2_blob)

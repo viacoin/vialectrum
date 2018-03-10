@@ -160,13 +160,14 @@ class Blockchain(util.PrintError):
         self._size = os.path.getsize(p)//80 if os.path.exists(p) else 0
 
     def verify_header(self, header, prev_hash, target):
-        return True # Viacoin: no chain verify
-        _hash = hash_header(header)
-        _powhash = pow_hash_header(header)
         if prev_hash != header.get('prev_block_hash'):
             raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if constants.net.TESTNET:
             return
+        if header.get('version') & 0x100 != 0: # Viacoin auxpow
+            return
+        # _hash = hash_header(header)
+        _powhash = pow_hash_header(header)
         bits = self.target_to_bits(target)
         if bits != header.get('bits'):
             raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
@@ -175,9 +176,6 @@ class Blockchain(util.PrintError):
 
     def verify_chunk(self, index, data):
         num = len(data) // 80
-        # Viacoin: no verify chunks
-        self.save_chunk(index, data)
-        ############################
         prev_hash = self.get_hash(index * 2016 - 1)
         target = self.get_target(index-1)
         for i in range(num):
@@ -304,13 +302,13 @@ class Blockchain(util.PrintError):
             h, t, _ = self.checkpoints[index]
             return t
         # new target
-        # Litecoin: go back the full period unless it's the first retarget
+        # Viacoin: go back the full period unless it's the first retarget
         first_timestamp = self.get_timestamp(index * 2016 - 1 if index > 0 else 0)
         last = self.read_header(index * 2016 + 2015)
         bits = last.get('bits')
         target = self.bits_to_target(bits)
         nActualTimespan = last.get('timestamp') - first_timestamp
-        nTargetTimespan = 336 * 60 * 60
+        nTargetTimespan = 84 * 60 * 60
         nActualTimespan = max(nActualTimespan, nTargetTimespan // 4)
         nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
         new_target = min(MAX_TARGET, (target * nActualTimespan) // nTargetTimespan)
@@ -373,7 +371,7 @@ class Blockchain(util.PrintError):
         for index in range(n):
             h = self.get_hash((index+1) * 2016 -1)
             target = self.get_target(index)
-            # Litecoin: also store the timestamp of the last block
+            # Viacoin: also store the timestamp of the last block
             tstamp = self.get_timestamp((index+1) * 2016 - 1)
             cp.append((h, target, tstamp))
         return cp

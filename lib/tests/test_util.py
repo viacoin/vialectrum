@@ -23,37 +23,37 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_parse_URI_address(self):
-        self._do_test_parse_URI('viacoin:LectrumELqJWMECz7W2iarBpT4VvAPqwAv',
-                                {'address': 'LectrumELqJWMECz7W2iarBpT4VvAPqwAv'})
+        self._do_test_parse_URI('viacoin:Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE',
+                                {'address': 'Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE'})
 
     def test_parse_URI_only_address(self):
-        self._do_test_parse_URI('LectrumELqJWMECz7W2iarBpT4VvAPqwAv',
-                                {'address': 'LectrumELqJWMECz7W2iarBpT4VvAPqwAv'})
+        self._do_test_parse_URI('Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE',
+                                {'address': 'Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE'})
 
 
     def test_parse_URI_address_label(self):
-        self._do_test_parse_URI('viacoin:LectrumELqJWMECz7W2iarBpT4VvAPqwAv?label=electrum%20test',
-                                {'address': 'LectrumELqJWMECz7W2iarBpT4VvAPqwAv', 'label': 'electrum test'})
+        self._do_test_parse_URI('viacoin:Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE?label=electrum%20test',
+                                {'address': 'Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE', 'label': 'electrum test'})
 
     def test_parse_URI_address_message(self):
-        self._do_test_parse_URI('viacoin:LectrumELqJWMECz7W2iarBpT4VvAPqwAv?message=electrum%20test',
-                                {'address': 'LectrumELqJWMECz7W2iarBpT4VvAPqwAv', 'message': 'electrum test', 'memo': 'electrum test'})
+        self._do_test_parse_URI('viacoin:Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE?message=electrum%20test',
+                                {'address': 'Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE', 'message': 'electrum test', 'memo': 'electrum test'})
 
     def test_parse_URI_address_amount(self):
-        self._do_test_parse_URI('viacoin:LectrumELqJWMECz7W2iarBpT4VvAPqwAv?amount=0.0003',
-                                {'address': 'LectrumELqJWMECz7W2iarBpT4VvAPqwAv', 'amount': 30000})
+        self._do_test_parse_URI('viacoin:Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE?amount=0.0003',
+                                {'address': 'Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE', 'amount': 30000})
 
     def test_parse_URI_address_request_url(self):
-        self._do_test_parse_URI('viacoin:LectrumELqJWMECz7W2iarBpT4VvAPqwAv?r=http://domain.tld/page?h%3D2a8628fc2fbe',
-                                {'address': 'LectrumELqJWMECz7W2iarBpT4VvAPqwAv', 'r': 'http://domain.tld/page?h=2a8628fc2fbe'})
+        self._do_test_parse_URI('viacoin:Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE?r=http://domain.tld/page?h%3D2a8628fc2fbe',
+                                {'address': 'Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE', 'r': 'http://domain.tld/page?h=2a8628fc2fbe'})
 
     def test_parse_URI_ignore_args(self):
-        self._do_test_parse_URI('viacoin:LectrumELqJWMECz7W2iarBpT4VvAPqwAv?test=test',
-                                {'address': 'LectrumELqJWMECz7W2iarBpT4VvAPqwAv', 'test': 'test'})
+        self._do_test_parse_URI('viacoin:Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE?test=test',
+                                {'address': 'Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE', 'test': 'test'})
 
     def test_parse_URI_multiple_args(self):
-        self._do_test_parse_URI('viacoin:LectrumELqJWMECz7W2iarBpT4VvAPqwAv?amount=0.00004&label=electrum-test&message=electrum%20test&test=none&r=http://domain.tld/page',
-                                {'address': 'LectrumELqJWMECz7W2iarBpT4VvAPqwAv', 'amount': 4000, 'label': 'electrum-test', 'message': u'electrum test', 'memo': u'electrum test', 'r': 'http://domain.tld/page', 'test': 'none'})
+        self._do_test_parse_URI('viacoin:Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE?amount=0.00004&label=electrum-test&message=electrum%20test&test=none&r=http://domain.tld/page',
+                                {'address': 'Vem9EJC7DfuuaM13TfH2NqY3hPNGVPNniE', 'amount': 4000, 'label': 'electrum-test', 'message': u'electrum test', 'memo': u'electrum test', 'r': 'http://domain.tld/page', 'test': 'none'})
 
     def test_parse_URI_no_address_request_url(self):
         self._do_test_parse_URI('viacoin:?r=http://domain.tld/page?h%3D2a8628fc2fbe',

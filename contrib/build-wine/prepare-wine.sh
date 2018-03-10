@@ -65,9 +65,9 @@ echo "done"
 
 wine 'wineboot'
 
-mkdir -p /tmp/electrum-ltc-build
+mkdir -p /tmp/vialectrum-build
 
-cd /tmp/electrum-ltc-build
+cd /tmp/vialectrum-build
 
 # Install Python
 # note: you might need "sudo apt-get install dirmngr" for the following
