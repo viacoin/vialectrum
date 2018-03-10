@@ -19,9 +19,9 @@ VERSION=`git describe --tags`
 
 # Paramterize
 PYTHON_VERSION=3.6.4
-BUILDDIR=/tmp/electrum-ltc-build
-PACKAGE=Electrum-LTC
-GIT_REPO=https://github.com/pooler/electrum-ltc
+BUILDDIR=/tmp/vialectrum-build
+PACKAGE=Vialectrum
+GIT_REPO=https://github.com/vialectrum/vialectrum
 
 
 info "Installing Python $PYTHON_VERSION"
@@ -53,11 +53,11 @@ mkdir $BUILDDIR
 
 info "Downloading icons and locale..."
 for repo in icons locale; do
-  git clone $GIT_REPO-$repo $BUILDDIR/electrum-ltc-$repo
+  git clone $GIT_REPO-$repo $BUILDDIR/vialectrum-$repo
 done
 
-cp -R $BUILDDIR/electrum-ltc-locale/locale/ ./lib/locale/
-cp    $BUILDDIR/electrum-ltc-icons/icons_rc.py ./gui/qt/
+cp -R $BUILDDIR/vialectrum-locale/locale/ ./lib/locale/
+cp    $BUILDDIR/vialectrum-icons/icons_rc.py ./gui/qt/
 
 
 info "Downloading libusb..."
@@ -81,4 +81,4 @@ info "Building binary"
 pyinstaller --noconfirm --ascii --name $VERSION contrib/build-osx/osx.spec || fail "Could not build binary"
 
 info "Creating .DMG"
-hdiutil create -fs HFS+ -volname $PACKAGE -srcfolder dist/$PACKAGE.app dist/electrum-ltc-$VERSION.dmg || fail "Could not create .DMG"
+hdiutil create -fs HFS+ -volname $PACKAGE -srcfolder dist/$PACKAGE.app dist/vialectrum-$VERSION.dmg || fail "Could not create .DMG"

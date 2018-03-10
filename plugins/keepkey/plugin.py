@@ -2,16 +2,16 @@ import threading
 
 from binascii import hexlify, unhexlify
 
-from electrum_ltc.util import bfh, bh2u
-from electrum_ltc.bitcoin import (b58_address_to_hash160, xpub_from_pubkey,
-                                  TYPE_ADDRESS, TYPE_SCRIPT,
-                                  is_segwit_address)
-from electrum_ltc import constants
-from electrum_ltc.i18n import _
-from electrum_ltc.plugins import BasePlugin
-from electrum_ltc.transaction import deserialize
-from electrum_ltc.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
-from electrum_ltc.base_wizard import ScriptTypeNotSupported
+from vialectrum.util import bfh, bh2u
+from vialectrum.bitcoin import (b58_address_to_hash160, xpub_from_pubkey,
+                                TYPE_ADDRESS, TYPE_SCRIPT,
+                                is_segwit_address)
+from vialectrum import constants
+from vialectrum.i18n import _
+from vialectrum.plugins import BasePlugin
+from vialectrum.transaction import deserialize
+from vialectrum.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
+from vialectrum.base_wizard import ScriptTypeNotSupported
 
 from ..hw_wallet import HW_PluginBase
 
@@ -140,7 +140,7 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
         return client
 
     def get_coin_name(self):
-        return "Testnet" if constants.net.TESTNET else "Litecoin"
+        return "Testnet" if constants.net.TESTNET else "Viacoin"
 
     def initialize_device(self, device_id, wizard, handler):
         # Initialization method

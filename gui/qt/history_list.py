@@ -26,13 +26,13 @@
 import webbrowser
 import datetime
 
-from electrum_ltc.wallet import AddTransactionException, TX_HEIGHT_LOCAL
+from vialectrum.wallet import AddTransactionException, TX_HEIGHT_LOCAL
 from .util import *
-from electrum_ltc.i18n import _
-from electrum_ltc.util import block_explorer_URL, profiler
+from vialectrum.i18n import _
+from vialectrum.util import block_explorer_URL, profiler
 
 try:
-    from electrum_ltc.plot import plot_history, NothingToPlotException
+    from vialectrum.plot import plot_history, NothingToPlotException
 except:
     plot_history = None
 
@@ -381,7 +381,7 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
         d = WindowModalDialog(self, _('Export History'))
         d.setMinimumSize(400, 200)
         vbox = QVBoxLayout(d)
-        defaultname = os.path.expanduser('~/electrum-ltc-history.csv')
+        defaultname = os.path.expanduser('~/vialectrum-history.csv')
         select_msg = _('Select file to export your wallet transactions to')
         hbox, filename_e, csv_button = filename_field(self, self.config, defaultname, select_msg)
         vbox.addLayout(hbox)
@@ -419,5 +419,5 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
                 for line in lines:
                     transaction.writerow(line)
             else:
-                from electrum_ltc.util import json_encode
+                from vialectrum.util import json_encode
                 f.write(json_encode(history))

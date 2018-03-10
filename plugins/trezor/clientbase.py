@@ -1,10 +1,10 @@
 import time
 from struct import pack
 
-from electrum_ltc.i18n import _
-from electrum_ltc.util import PrintError, UserCancelled
-from electrum_ltc.keystore import bip39_normalize_passphrase
-from electrum_ltc.bitcoin import serialize_xpub
+from vialectrum.i18n import _
+from vialectrum.util import PrintError, UserCancelled
+from vialectrum.keystore import bip39_normalize_passphrase
+from vialectrum.bitcoin import serialize_xpub
 
 
 class GuiMixin(object):
@@ -62,7 +62,8 @@ class GuiMixin(object):
             msg = _("Enter a passphrase to generate this wallet.  Each time "
                     "you use this wallet your {} will prompt you for the "
                     "passphrase.  If you forget the passphrase you cannot "
-                    "access the litecoins in the wallet.").format(self.device)
+                    "access the viacoins in the wallet.") % self.device
+                    "access the viacoins in the wallet.").format(self.device)
         else:
             msg = _("Enter the passphrase to unlock this wallet:")
         passphrase = self.handler.get_passphrase(msg, self.creating_wallet)

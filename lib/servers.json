@@ -1,72 +1,55 @@
 {
-    "backup.electrum-ltc.org": {
-        "pruning": "-",
-        "s": "443",
-        "t": "50001",
-        "version": "1.2"
-    },
-    "btc.cihar.com": {
-        "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.2"
-    },
-    "elec.luggs.co": {
-        "pruning": "-",
-        "s": "444",
-        "version": "1.2"
-    },
-    "electrum-ltc.bysh.me": {
+    "4ws35lg5lkekpjjp.onion": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.2"
+        "version": "1.1"
     },
-    "electrum-ltc.klippb.org": {
-        "pruning": "-",
-        "s": "50002",
-        "version": "1.2"
-    },
-    "electrum-ltc.wilv.in": {
+    "tghi24vuhwm5rcqy.onion": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.2"
+        "version": "1.1"
     },
-    "electrum-ltc0.snel.it": {
-        "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.2"
-    },
-    "electrum.leblancnet.us": {
-        "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.2"
-    },
-    "electrum.ltc.xurious.com": {
+    "viax1.bitops.me": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.2"
+        "version": "1.1"
     },
-    "electrumx.nmdps.net": {
+    "vialectrum.viacoin.net": {
         "pruning": "-",
-        "s": "9434",
-        "t": "9433",
-        "version": "1.2"
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
     },
-    "ltc.asis.io": {
+    "vialectrum.bitops.me": {
         "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.2"
+        "s": "50002",
+        "t":"50001",
+        "version": "1.1"
     },
-    "ltc01.knas.systems": {
+    "viax2.bitops.me": {
         "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.2"
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
+    "vialectrum.barbatos.fr": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
+    "209.250.241.186": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
+    "viax3.bitops.me":{
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
     }
 }

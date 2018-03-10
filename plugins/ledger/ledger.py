@@ -3,14 +3,14 @@ import hashlib
 import sys
 import traceback
 
-from electrum_ltc import bitcoin
-from electrum_ltc.bitcoin import TYPE_ADDRESS, int_to_hex, var_int
-from electrum_ltc.i18n import _
-from electrum_ltc.plugins import BasePlugin
-from electrum_ltc.keystore import Hardware_KeyStore
-from electrum_ltc.transaction import Transaction
+from vialectrum import bitcoin
+from vialectrum.bitcoin import TYPE_ADDRESS, int_to_hex, var_int
+from vialectrum.i18n import _
+from vialectrum.plugins import BasePlugin
+from vialectrum.keystore import Hardware_KeyStore
+from vialectrum.transaction import Transaction
 from ..hw_wallet import HW_PluginBase
-from electrum_ltc.util import print_error, is_verbose, bfh, bh2u, versiontuple
+from vialectrum.util import print_error, is_verbose, bfh, bh2u, versiontuple
 
 try:
     import hid
@@ -27,7 +27,7 @@ except ImportError:
 
 MSG_NEEDS_FW_UPDATE_GENERIC = _('Firmware version too old. Please update at') + \
                       ' https://www.ledgerwallet.com'
-MSG_NEEDS_FW_UPDATE_SEGWIT = _('Firmware version (or "Litecoin" app) too old for Segwit support. Please update at') + \
+MSG_NEEDS_FW_UPDATE_SEGWIT = _('Firmware version (or "Viacoin" app) too old for Segwit support. Please update at') + \
                       ' https://www.ledgerwallet.com'
 MULTI_OUTPUT_SUPPORT = '1.1.4'
 SEGWIT_SUPPORT = '1.1.9'
@@ -530,7 +530,7 @@ class LedgerPlugin(HW_PluginBase):
         device_id = device_info.device.id_
         client = devmgr.client_by_id(device_id)
         client.handler = self.create_handler(wizard)
-        client.get_xpub("m/44'/2'", 'standard') # TODO replace by direct derivation once Nano S > 1.1
+        client.get_xpub("m/44'/14'", 'standard') # TODO replace by direct derivation once Nano S > 1.1
 
     def get_xpub(self, device_id, derivation, xtype, wizard):
         devmgr = self.device_manager()

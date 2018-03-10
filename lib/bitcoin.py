@@ -448,10 +448,10 @@ def DecodeBase58Check(psz):
 # backwards compat
 # extended WIF for segwit (used in 3.0.x; but still used internally)
 SCRIPT_TYPES = {
-    'p2pkh':48,
+    'p2pkh':71,
     'p2wpkh':1,
     'p2wpkh-p2sh':2,
-    'p2sh':50,
+    'p2sh':33,
     'p2wsh':6,
     'p2wsh-p2sh':7
 }
@@ -573,7 +573,7 @@ from ecdsa.util import string_to_number, number_to_string
 
 def msg_magic(message):
     length = bfh(var_int(len(message)))
-    return b"\x19Litecoin Signed Message:\n" + length + message
+    return b"\x18Viacoin Signed Message:\n" + length + message
 
 
 def verify_message(address, sig, message):

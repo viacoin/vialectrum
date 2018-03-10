@@ -118,7 +118,7 @@ class ExchangeBase(PrintError):
 class Bit2C(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('www.bit2c.co.il', '/Exchanges/LTCNIS/Ticker.json')
+        json = self.get_json('www.bit2c.co.il', '/Exchanges/VIANIS/Ticker.json')
         return {'NIS': Decimal(json['ll'])}
 
 
@@ -126,7 +126,7 @@ class BitcoinAverage(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/short')
-        return dict([(r.replace("LTC", ""), Decimal(json[r]['last']))
+        return dict([(r.replace("VIA", ""), Decimal(json[r]['last']))
                      for r in json if r != 'timestamp'])
 
     def history_ccys(self):
@@ -136,7 +136,7 @@ class BitcoinAverage(ExchangeBase):
 
     def request_history(self, ccy):
         history = self.get_csv('apiv2.bitcoinaverage.com',
-                               "/indices/global/history/LTC%s?period=alltime&format=csv" % ccy)
+                               "/indices/global/history/VIA%s?period=alltime&format=csv" % ccy)
         return dict([(h['DateTime'][:10], h['Average'])
                      for h in history])
 
@@ -145,8 +145,8 @@ class BitcoinVenezuela(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('api.bitcoinvenezuela.com', '/')
-        rates = [(r, json['LTC'][r]) for r in json['LTC']
-                 if json['LTC'][r] is not None]  # Giving NULL sometimes
+        rates = [(r, json['VIA'][r]) for r in json['VIA']
+                 if json['VIA'][r] is not None]  # Giving NULL sometimes
         return dict(rates)
 
     def history_ccys(self):
@@ -154,26 +154,26 @@ class BitcoinVenezuela(ExchangeBase):
 
     def request_history(self, ccy):
         return self.get_json('api.bitcoinvenezuela.com',
-                             "/historical/index.php?coin=LTC")[ccy +'_LTC']
+                             "/historical/index.php?coin=VIA")[ccy +'_VIA']
 
 class Bitfinex(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('api.bitfinex.com', '/v1/pubticker/ltcusd')
+        json = self.get_json('api.bitfinex.com', '/v1/pubticker/viausd')
         return {'USD': Decimal(json['last_price'])}
 
 
 class Bitso(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('api.bitso.com', '/v3/ticker/?book=ltc_mxn')
+        json = self.get_json('api.bitso.com', '/v3/ticker/?book=via_mxn')
         return {'MXN': Decimal(json['payload']['last'])}
 
 
 class BitStamp(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('www.bitstamp.net', '/api/v2/ticker/ltcusd/')
+        json = self.get_json('www.bitstamp.net', '/api/v2/ticker/viausd/')
         return {'USD': Decimal(json['last'])}
 
 
@@ -181,7 +181,7 @@ class Coinbase(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('api.coinbase.com',
-                             '/v2/exchange-rates?currency=LTC')
+                             '/v2/exchange-rates?currency=VIA')
         rates = json['data']['rates']
         return dict([(k, Decimal(rates[k])) for k in rates])
 
@@ -190,22 +190,22 @@ class CoinSpot(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('www.coinspot.com.au', '/pubapi/latest')
-        return {'AUD': Decimal(json['prices']['ltc']['last'])}
+        return {'AUD': Decimal(json['prices']['via']['last'])}
 
 
 class GoCoin(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('x.g0cn.com', '/prices')
-        ltc_prices = json['prices']['LTC']
-        return dict([(r, Decimal(ltc_prices[r])) for r in ltc_prices])
+        via_prices = json['prices']['VIA']
+        return dict([(r, Decimal(via_prices[r])) for r in via_prices])
 
 
 class HitBTC(ExchangeBase):
 
     def get_rates(self, ccy):
         ccys = ['EUR', 'USD']
-        json = self.get_json('api.hitbtc.com', '/api/1/public/LTC%s/ticker' % ccy)
+        json = self.get_json('api.hitbtc.com', '/api/1/public/VIA%s/ticker' % ccy)
         result = dict.fromkeys(ccys)
         if ccy in ccys:
             result[ccy] = Decimal(json['last'])
@@ -216,21 +216,21 @@ class Kraken(ExchangeBase):
 
     def get_rates(self, ccy):
         dicts = self.get_json('api.kraken.com', '/0/public/AssetPairs')
-        pairs = [k for k in dicts['result'] if k.startswith('XLTCZ')]
+        pairs = [k for k in dicts['result'] if k.startswith('XVIAZ')]
         json = self.get_json('api.kraken.com',
                              '/0/public/Ticker?pair=%s' % ','.join(pairs))
         ccys = [p[5:] for p in pairs]
         result = dict.fromkeys(ccys)
-        result[ccy] = Decimal(json['result']['XLTCZ'+ccy]['c'][0])
+        result[ccy] = Decimal(json['result']['XVIAZ'+ccy]['c'][0])
         return result
 
     def history_ccys(self):
         return ['EUR', 'USD']
 
     def request_history(self, ccy):
-        query = '/0/public/OHLC?pair=LTC%s&interval=1440' % ccy
+        query = '/0/public/OHLC?pair=VIA%s&interval=1440' % ccy
         json = self.get_json('api.kraken.com', query)
-        history = json['result']['XLTCZ'+ccy]
+        history = json['result']['XVIAZ'+ccy]
         return dict([(time.strftime('%Y-%m-%d', time.localtime(t[0])), t[4])
                                     for t in history])
 
@@ -238,14 +238,14 @@ class Kraken(ExchangeBase):
 class OKCoin(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('www.okcoin.com', '/api/v1/ticker.do?symbol=ltc_usd')
+        json = self.get_json('www.okcoin.com', '/api/v1/ticker.do?symbol=via_usd')
         return {'USD': Decimal(json['ticker']['last'])}
 
 
 class MercadoBitcoin(ExchangeBase):
 
     def get_rates(self,ccy):
-        json = self.get_json('www.mercadobitcoin.net', '/api/ltc/ticker/')
+        json = self.get_json('www.mercadobitcoin.net', '/api/via/ticker/')
         return {'BRL': Decimal(json['ticker']['last'])}
 
 
@@ -259,12 +259,12 @@ class QuadrigaCX(ExchangeBase):
 class WEX(ExchangeBase):
 
     def get_rates(self, ccy):
-        json_eur = self.get_json('wex.nz', '/api/3/ticker/ltc_eur')
-        json_rub = self.get_json('wex.nz', '/api/3/ticker/ltc_rur')
-        json_usd = self.get_json('wex.nz', '/api/3/ticker/ltc_usd')
-        return {'EUR': Decimal(json_eur['ltc_eur']['last']),
-                'RUB': Decimal(json_rub['ltc_rur']['last']),
-                'USD': Decimal(json_usd['ltc_usd']['last'])}
+        json_eur = self.get_json('wex.nz', '/api/3/ticker/via_eur')
+        json_rub = self.get_json('wex.nz', '/api/3/ticker/via_rur')
+        json_usd = self.get_json('wex.nz', '/api/3/ticker/via_usd')
+        return {'EUR': Decimal(json_eur['via_eur']['last']),
+                'RUB': Decimal(json_rub['via_rur']['last']),
+                'USD': Decimal(json_usd['via_usd']['last'])}
 
 
 def dictinvert(d):
@@ -464,6 +464,6 @@ class FxThread(ThreadJob):
         return self.fiat_value(satoshis, self.history_rate(d_t))
 
     def timestamp_rate(self, timestamp):
-        from electrum_ltc.util import timestamp_to_datetime
+        from vialectrum.util import timestamp_to_datetime
         date = timestamp_to_datetime(timestamp)
         return self.history_rate(date)

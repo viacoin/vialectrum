@@ -92,7 +92,7 @@ class Contacts(dict):
                 'type': 'openalias',
                 'validated': validated
             }
-        raise Exception("Invalid Litecoin address or alias", k)
+        raise Exception("Invalid Viacoin address or alias", k)
 
     def resolve_openalias(self, url):
         # support email-style addresses, per the OA standard
@@ -102,7 +102,7 @@ class Contacts(dict):
         except DNSException as e:
             print_error('Error resolving openalias: ', str(e))
             return None
-        prefix = 'ltc'
+        prefix = 'via'
         for record in records:
             string = to_string(record.strings[0], 'utf8')
             if string.startswith('oa1:' + prefix):

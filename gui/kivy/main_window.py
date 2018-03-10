@@ -7,15 +7,15 @@ import traceback
 from decimal import Decimal
 import threading
 
-import electrum_ltc as electrum
-from electrum_ltc.bitcoin import TYPE_ADDRESS
-from electrum_ltc import WalletStorage, Wallet
-from electrum_ltc_gui.kivy.i18n import _
-from electrum_ltc.paymentrequest import InvoiceStore
-from electrum_ltc.util import profiler, InvalidPassword
-from electrum_ltc.plugins import run_hook
-from electrum_ltc.util import format_satoshis, format_satoshis_plain
-from electrum_ltc.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+import vialectrum as electrum
+from vialectrum.bitcoin import TYPE_ADDRESS
+from vialectrum import WalletStorage, Wallet
+from vialectrum_gui.kivy.i18n import _
+from vialectrum.paymentrequest import InvoiceStore
+from vialectrum.util import profiler, InvalidPassword
+from vialectrum.plugins import run_hook
+from vialectrum.util import format_satoshis, format_satoshis_plain
+from vialectrum.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
 
 from kivy.app import App
 from kivy.core.window import Window
@@ -30,10 +30,10 @@ from kivy.metrics import inch
 from kivy.lang import Builder
 
 ## lazy imports for factory so that widgets can be used in kv
-#Factory.register('InstallWizard', module='electrum_ltc_gui.kivy.uix.dialogs.installwizard')
-#Factory.register('InfoBubble', module='electrum_ltc_gui.kivy.uix.dialogs')
-#Factory.register('OutputList', module='electrum_ltc_gui.kivy.uix.dialogs')
-#Factory.register('OutputItem', module='electrum_ltc_gui.kivy.uix.dialogs')
+#Factory.register('InstallWizard', module='vialectrum_gui.kivy.uix.dialogs.installwizard')
+#Factory.register('InfoBubble', module='vialectrum_gui.kivy.uix.dialogs')
+#Factory.register('OutputList', module='vialectrum_gui.kivy.uix.dialogs')
+#Factory.register('OutputItem', module='vialectrum_gui.kivy.uix.dialogs')
 
 from .uix.dialogs.installwizard import InstallWizard
 from .uix.dialogs import InfoBubble
@@ -48,14 +48,14 @@ util = False
 
 # register widget cache for keeping memory down timeout to forever to cache
 # the data
-Cache.register('electrum_ltc_widgets', timeout=0)
+Cache.register('vialectrum_widgets', timeout=0)
 
 from kivy.uix.screenmanager import Screen
 from kivy.uix.tabbedpanel import TabbedPanel
 from kivy.uix.label import Label
 from kivy.core.clipboard import Clipboard
 
-Factory.register('TabbedCarousel', module='electrum_ltc_gui.kivy.uix.screens')
+Factory.register('TabbedCarousel', module='vialectrum_gui.kivy.uix.screens')
 
 # Register fonts without this you won't be able to use bold/italic...
 # inside markup.
@@ -67,7 +67,7 @@ Label.register('Roboto',
                'gui/kivy/data/fonts/Roboto-Bold.ttf')
 
 
-from electrum_ltc.util import base_units
+from vialectrum.util import base_units
 
 
 class ElectrumWindow(App):
@@ -99,7 +99,7 @@ class ElectrumWindow(App):
         from .uix.dialogs.choice_dialog import ChoiceDialog
         protocol = 's'
         def cb2(host):
-            from electrum_ltc import constants
+            from vialectrum import constants
             pp = servers.get(host, constants.net.DEFAULT_PORTS)
             port = pp.get(protocol, '')
             popup.ids.host.text = host
@@ -136,7 +136,7 @@ class ElectrumWindow(App):
         self.send_screen.set_URI(uri)
 
     def on_new_intent(self, intent):
-        if intent.getScheme() != 'litecoin':
+        if intent.getScheme() != 'viacoin':
             return
         uri = intent.getDataString()
         self.set_URI(uri)
@@ -158,7 +158,7 @@ class ElectrumWindow(App):
         self._trigger_update_history()
 
     def _get_bu(self):
-        return self.electrum_config.get('base_unit', 'LTC')
+        return self.electrum_config.get('base_unit', 'VIA')
 
     def _set_bu(self, value):
         assert value in base_units.keys()
@@ -247,7 +247,7 @@ class ElectrumWindow(App):
 
         App.__init__(self)#, **kwargs)
 
-        title = _('Electrum-LTC App')
+        title = _('Vialectrum App')
         self.electrum_config = config = kwargs.get('config', None)
         self.language = config.get('language', 'en')
         self.network = network = kwargs.get('network', None)
@@ -302,17 +302,17 @@ class ElectrumWindow(App):
             self.send_screen.do_clear()
 
     def on_qr(self, data):
-        from electrum_ltc.bitcoin import base_decode, is_address
+        from vialectrum.bitcoin import base_decode, is_address
         data = data.strip()
         if is_address(data):
             self.set_URI(data)
             return
-        if data.startswith('litecoin:'):
+        if data.startswith('viacoin:'):
             self.set_URI(data)
             return
         # try to decode transaction
-        from electrum_ltc.transaction import Transaction
-        from electrum_ltc.util import bh2u
+        from vialectrum.transaction import Transaction
+        from vialectrum.util import bh2u
         try:
             text = bh2u(base_decode(data, None, base=43))
             tx = Transaction(text)
@@ -349,7 +349,7 @@ class ElectrumWindow(App):
         self.receive_screen.screen.address = addr
 
     def show_pr_details(self, req, status, is_invoice):
-        from electrum_ltc.util import format_time
+        from vialectrum.util import format_time
         requestor = req.get('requestor')
         exp = req.get('exp')
         memo = req.get('memo')
@@ -371,7 +371,7 @@ class ElectrumWindow(App):
         popup.open()
 
     def show_addr_details(self, req, status):
-        from electrum_ltc.util import format_time
+        from vialectrum.util import format_time
         fund = req.get('fund')
         isaddr = 'y'
         popup = Builder.load_file('gui/kivy/uix/ui_screens/invoice.kv')
@@ -571,13 +571,13 @@ class ElectrumWindow(App):
 
         #setup lazy imports for mainscreen
         Factory.register('AnimatedPopup',
-                         module='electrum_ltc_gui.kivy.uix.dialogs')
+                         module='vialectrum_gui.kivy.uix.dialogs')
         Factory.register('QRCodeWidget',
-                         module='electrum_ltc_gui.kivy.uix.qrcodewidget')
+                         module='vialectrum_gui.kivy.uix.qrcodewidget')
 
         # preload widgets. Remove this if you want to load the widgets on demand
-        #Cache.append('electrum_ltc_widgets', 'AnimatedPopup', Factory.AnimatedPopup())
-        #Cache.append('electrum_ltc_widgets', 'QRCodeWidget', Factory.QRCodeWidget())
+        #Cache.append('vialectrum_widgets', 'AnimatedPopup', Factory.AnimatedPopup())
+        #Cache.append('vialectrum_widgets', 'QRCodeWidget', Factory.QRCodeWidget())
 
         # load and focus the ui
         self.root.manager = self.root.ids['manager']
@@ -589,7 +589,7 @@ class ElectrumWindow(App):
         self.receive_screen = None
         self.requests_screen = None
         self.address_screen = None
-        self.icon = "icons/electrum-ltc.png"
+        self.icon = "icons/vialectrum.png"
         self.tabs = self.root.ids['tabs']
 
     def update_interfaces(self, dt):
@@ -639,7 +639,7 @@ class ElectrumWindow(App):
             if not self.wallet.up_to_date or server_height == 0:
                 status = _("Synchronizing...")
             elif server_lag > 1:
-                status = _("Server lagging")
+                status = _("Server lagging ({} blocks)").format(server_lag)
             else:
                 status = ''
         else:
@@ -678,8 +678,8 @@ class ElectrumWindow(App):
                 from plyer import notification
             icon = (os.path.dirname(os.path.realpath(__file__))
                     + '/../../' + self.icon)
-            notification.notify('Electrum-LTC', message,
-                            app_icon=icon, app_name='Electrum-LTC')
+            notification.notify('Vialectrum', message,
+                            app_icon=icon, app_name='Vialectrum')
         except ImportError:
             Logger.Error('Notification: needs plyer; `sudo pip install plyer`')
 
