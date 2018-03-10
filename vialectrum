@@ -43,7 +43,7 @@ if jnius:
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 is_bundle = getattr(sys, 'frozen', False)
-is_local = not is_bundle and os.path.exists(os.path.join(script_dir, "vialectrum.desktop"))
+is_local = not is_bundle and os.path.exists(os.path.join(script_dir, "electrum-ltc.desktop"))
 is_android = 'ANDROID_DATA' in os.environ
 
 # move this back to gui/kivy/__init.py once plugins are moved
@@ -82,22 +82,24 @@ if not is_android:
 # load local module as electrum
 if is_local or is_android:
     import imp
-    imp.load_module('vialectrum', *imp.find_module('lib'))
-    imp.load_module('vialectrum_gui', *imp.find_module('gui'))
-    imp.load_module('vialectrum_plugins', *imp.find_module('plugins'))
+    imp.load_module('electrum_ltc', *imp.find_module('lib'))
+    imp.load_module('electrum_ltc_gui', *imp.find_module('gui'))
+    imp.load_module('electrum_ltc_plugins', *imp.find_module('plugins'))
 
 
-from vialectrum import bitcoin
-from vialectrum import SimpleConfig, Network
-from vialectrum.wallet import Wallet, Imported_Wallet
-from vialectrum.storage import WalletStorage
-from vialectrum.util import print_msg, print_stderr, json_encode, json_decode
-from vialectrum.util import set_verbosity, InvalidPassword
-from vialectrum.commands import get_parser, known_commands, Commands, config_variables
-from vialectrum import daemon
-from vialectrum import keystore
-from vialectrum.mnemonic import Mnemonic
-import vialectrum_plugins
+
+from electrum_ltc import bitcoin, util
+from electrum_ltc import constants
+from electrum_ltc import SimpleConfig, Network
+from electrum_ltc.wallet import Wallet, Imported_Wallet
+from electrum_ltc.storage import WalletStorage, get_derivation_used_for_hw_device_encryption
+from electrum_ltc.util import print_msg, print_stderr, json_encode, json_decode
+from electrum_ltc.util import set_verbosity, InvalidPassword
+from electrum_ltc.commands import get_parser, known_commands, Commands, config_variables
+from electrum_ltc import daemon
+from electrum_ltc import keystore
+from electrum_ltc.mnemonic import Mnemonic
+import electrum_ltc_plugins
 
 # get password routine
 def prompt_password(prompt, confirm=True):
@@ -160,6 +162,8 @@ def run_non_RPC(config):
             print_msg("Recovering wallet...")
             wallet.synchronize()
             wallet.wait_until_synchronized()
+            wallet.stop_threads()
+            # note: we don't wait for SPV
             msg = "Recovery successful" if wallet.is_found() else "Found no history for this wallet"
         else:
             msg = "This wallet was restored offline. It may contain more addresses than displayed."
@@ -189,10 +193,13 @@ def init_daemon(config_options):
     storage = WalletStorage(config.get_wallet_path())
     if not storage.file_exists():
         print_msg("Error: Wallet file not found.")
-        print_msg("Type 'vialectrum create' to create a new wallet, or provide a path to a wallet with the -w option")
+        print_msg("Type 'electrum-ltc create' to create a new wallet, or provide a path to a wallet with the -w option")
         sys.exit(0)
     if storage.is_encrypted():
-        if config.get('password'):
+        if storage.is_encrypted_with_hw_device():
+            plugins = init_plugins(config, 'cmdline')
+            password = get_password_for_hw_device_encrypted_storage(plugins)
+        elif config.get('password'):
             password = config.get('password')
         else:
             password = prompt_password('Password:', False)
@@ -219,12 +226,12 @@ def init_cmdline(config_options, server):
     if cmdname in ['payto', 'paytomany'] and config.get('broadcast'):
         cmd.requires_network = True
 
-    # instanciate wallet for command-line
+    # instantiate wallet for command-line
     storage = WalletStorage(config.get_wallet_path())
 
     if cmd.requires_wallet and not storage.file_exists():
         print_msg("Error: Wallet file not found.")
-        print_msg("Type 'vialectrum create' to create a new wallet, or provide a path to a wallet with the -w option")
+        print_msg("Type 'electrum-ltc create' to create a new wallet, or provide a path to a wallet with the -w option")
         sys.exit(0)
 
     # important warning
@@ -236,7 +243,10 @@ def init_cmdline(config_options, server):
     # commands needing password
     if (cmd.requires_wallet and storage.is_encrypted() and server is None)\
        or (cmd.requires_password and (storage.get('use_encryption') or storage.is_encrypted())):
-        if config.get('password'):
+        if storage.is_encrypted_with_hw_device():
+            # this case is handled later in the control flow
+            password = None
+        elif config.get('password'):
             password = config.get('password')
         else:
             password = prompt_password('Password:', False)
@@ -255,19 +265,57 @@ def init_cmdline(config_options, server):
     return cmd, password
 
 
-def run_offline_command(config, config_options):
+def get_connected_hw_devices(plugins):
+    support = plugins.get_hardware_support()
+    if not support:
+        print_msg('No hardware wallet support found on your system.')
+        sys.exit(1)
+    # scan devices
+    devices = []
+    devmgr = plugins.device_manager
+    for name, description, plugin in support:
+        try:
+            u = devmgr.unpaired_device_infos(None, plugin)
+        except:
+            devmgr.print_error("error", name)
+            continue
+        devices += list(map(lambda x: (name, x), u))
+    return devices
+
+
+def get_password_for_hw_device_encrypted_storage(plugins):
+    devices = get_connected_hw_devices(plugins)
+    if len(devices) == 0:
+        print_msg("Error: No connected hw device found. Can not decrypt this wallet.")
+        sys.exit(1)
+    elif len(devices) > 1:
+        print_msg("Warning: multiple hardware devices detected. "
+                  "The first one will be used to decrypt the wallet.")
+    # FIXME we use the "first" device, in case of multiple ones
+    name, device_info = devices[0]
+    plugin = plugins.get_plugin(name)
+    derivation = get_derivation_used_for_hw_device_encryption()
+    xpub = plugin.get_xpub(device_info.device.id_, derivation, 'standard', plugin.handler)
+    password = keystore.Xpub.get_pubkey_from_xpub(xpub, ())
+    return password
+
+
+def run_offline_command(config, config_options, plugins):
     cmdname = config.get('cmd')
     cmd = known_commands[cmdname]
     password = config_options.get('password')
     if cmd.requires_wallet:
         storage = WalletStorage(config.get_wallet_path())
         if storage.is_encrypted():
+            if storage.is_encrypted_with_hw_device():
+                password = get_password_for_hw_device_encrypted_storage(plugins)
+                config_options['password'] = password
             storage.decrypt(password)
         wallet = Wallet(storage)
     else:
         wallet = None
     # check password
-    if cmd.requires_password and storage.get('use_encryption'):
+    if cmd.requires_password and wallet.has_password():
         try:
             seed = wallet.check_password(password)
         except InvalidPassword:
@@ -278,7 +326,8 @@ def run_offline_command(config, config_options):
     # arguments passed to function
     args = [config.get(x) for x in cmd.params]
     # decode json arguments
-    args = list(map(json_decode, args))
+    if cmdname not in ('setconfig',):
+        args = list(map(json_decode, args))
     # options
     kwargs = {}
     for x in cmd.options:
@@ -292,11 +341,13 @@ def run_offline_command(config, config_options):
     return result
 
 def init_plugins(config, gui_name):
-    from vialectrum.plugins import Plugins
+    from electrum_ltc.plugins import Plugins
     return Plugins(config, is_local or is_android, gui_name)
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
+    # The hook will only be used in the Qt GUI right now
+    util.setup_thread_excepthook()
     # on osx, delete Process Serial Number arg generated for apps launched in Finder
     sys.argv = list(filter(lambda x: not x.startswith('-psn'), sys.argv))
 
@@ -343,7 +394,7 @@ if __name__ == '__main__':
         config_options['portable'] = True
 
     if config_options.get('portable'):
-        config_options['electrum_path'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'vialectrum_data')
+        config_options['electrum_path'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'electrum-ltc_data')
 
     # kivy sometimes freezes when we write to sys.stderr
     set_verbosity(config_options.get('verbose') and config_options.get('gui')!='kivy')
@@ -351,7 +402,7 @@ if __name__ == '__main__':
     # check uri
     uri = config_options.get('url')
     if uri:
-        if not uri.startswith('viacoin:'):
+        if not uri.startswith('litecoin:'):
             print_stderr('unknown command:', uri)
             sys.exit(1)
         config_options['url'] = uri
@@ -361,7 +412,7 @@ if __name__ == '__main__':
     cmdname = config.get('cmd')
 
     if config.get('testnet'):
-        bitcoin.NetworkConstants.set_testnet()
+        constants.set_testnet()
 
     # run non-RPC commands separately
     if cmdname in ['create', 'restore']:
@@ -396,7 +447,7 @@ if __name__ == '__main__':
                 d = daemon.Daemon(config, fd, False)
                 d.start()
                 if config.get('websocket_server'):
-                    from vialectrum import websockets
+                    from electrum_ltc import websockets
                     websockets.WebSocketServer(config, d.network).start()
                 if config.get('requests_dir'):
                     path = os.path.join(config.get('requests_dir'), 'index.html')
@@ -424,11 +475,11 @@ if __name__ == '__main__':
         else:
             cmd = known_commands[cmdname]
             if cmd.requires_network:
-                print_msg("Daemon not running; try 'vialectrum daemon start'")
+                print_msg("Daemon not running; try 'electrum-ltc daemon start'")
                 sys.exit(1)
             else:
-                init_plugins(config, 'cmdline')
-                result = run_offline_command(config, config_options)
+                plugins = init_plugins(config, 'cmdline')
+                result = run_offline_command(config, config_options, plugins)
                 # print result
     if isinstance(result, str):
         print_msg(result)

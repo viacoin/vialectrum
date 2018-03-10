@@ -7,15 +7,15 @@ import traceback
 from decimal import Decimal
 import threading
 
-import vialectrum as electrum
-from vialectrum.bitcoin import TYPE_ADDRESS
-from vialectrum import WalletStorage, Wallet
-from vialectrum_gui.kivy.i18n import _
-from vialectrum.paymentrequest import InvoiceStore
-from vialectrum.util import profiler, InvalidPassword
-from vialectrum.plugins import run_hook
-from vialectrum.util import format_satoshis, format_satoshis_plain
-from vialectrum.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+import electrum_ltc as electrum
+from electrum_ltc.bitcoin import TYPE_ADDRESS
+from electrum_ltc import WalletStorage, Wallet
+from electrum_ltc_gui.kivy.i18n import _
+from electrum_ltc.paymentrequest import InvoiceStore
+from electrum_ltc.util import profiler, InvalidPassword
+from electrum_ltc.plugins import run_hook
+from electrum_ltc.util import format_satoshis, format_satoshis_plain
+from electrum_ltc.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
 
 from kivy.app import App
 from kivy.core.window import Window
@@ -30,10 +30,10 @@ from kivy.metrics import inch
 from kivy.lang import Builder
 
 ## lazy imports for factory so that widgets can be used in kv
-#Factory.register('InstallWizard', module='vialectrum_gui.kivy.uix.dialogs.installwizard')
-#Factory.register('InfoBubble', module='vialectrum_gui.kivy.uix.dialogs')
-#Factory.register('OutputList', module='vialectrum_gui.kivy.uix.dialogs')
-#Factory.register('OutputItem', module='vialectrum_gui.kivy.uix.dialogs')
+#Factory.register('InstallWizard', module='electrum_ltc_gui.kivy.uix.dialogs.installwizard')
+#Factory.register('InfoBubble', module='electrum_ltc_gui.kivy.uix.dialogs')
+#Factory.register('OutputList', module='electrum_ltc_gui.kivy.uix.dialogs')
+#Factory.register('OutputItem', module='electrum_ltc_gui.kivy.uix.dialogs')
 
 from .uix.dialogs.installwizard import InstallWizard
 from .uix.dialogs import InfoBubble
@@ -48,14 +48,14 @@ util = False
 
 # register widget cache for keeping memory down timeout to forever to cache
 # the data
-Cache.register('vialectrum_widgets', timeout=0)
+Cache.register('electrum_ltc_widgets', timeout=0)
 
 from kivy.uix.screenmanager import Screen
 from kivy.uix.tabbedpanel import TabbedPanel
 from kivy.uix.label import Label
 from kivy.core.clipboard import Clipboard
 
-Factory.register('TabbedCarousel', module='vialectrum_gui.kivy.uix.screens')
+Factory.register('TabbedCarousel', module='electrum_ltc_gui.kivy.uix.screens')
 
 # Register fonts without this you won't be able to use bold/italic...
 # inside markup.
@@ -67,7 +67,7 @@ Label.register('Roboto',
                'gui/kivy/data/fonts/Roboto-Bold.ttf')
 
 
-from vialectrum.util import base_units
+from electrum_ltc.util import base_units
 
 
 class ElectrumWindow(App):
@@ -82,6 +82,10 @@ class ElectrumWindow(App):
     server_port = StringProperty('')
     num_chains = NumericProperty(0)
     blockchain_name = StringProperty('')
+    fee_status = StringProperty('Fee')
+    balance = StringProperty('')
+    fiat_balance = StringProperty('')
+    is_fiat = BooleanProperty(False)
     blockchain_checkpoint = NumericProperty(0)
 
     auto_connect = BooleanProperty(False)
@@ -95,8 +99,8 @@ class ElectrumWindow(App):
         from .uix.dialogs.choice_dialog import ChoiceDialog
         protocol = 's'
         def cb2(host):
-            from vialectrum.bitcoin import NetworkConstants
-            pp = servers.get(host, NetworkConstants.DEFAULT_PORTS)
+            from electrum_ltc import constants
+            pp = servers.get(host, constants.net.DEFAULT_PORTS)
             port = pp.get(protocol, '')
             popup.ids.host.text = host
             popup.ids.port.text = port
@@ -132,7 +136,7 @@ class ElectrumWindow(App):
         self.send_screen.set_URI(uri)
 
     def on_new_intent(self, intent):
-        if intent.getScheme() != 'viacoin':
+        if intent.getScheme() != 'litecoin':
             return
         uri = intent.getDataString()
         self.set_URI(uri)
@@ -154,7 +158,7 @@ class ElectrumWindow(App):
         self._trigger_update_history()
 
     def _get_bu(self):
-        return self.electrum_config.get('base_unit', 'VIA')
+        return self.electrum_config.get('base_unit', 'LTC')
 
     def _set_bu(self, value):
         assert value in base_units.keys()
@@ -175,8 +179,10 @@ class ElectrumWindow(App):
     def btc_to_fiat(self, amount_str):
         if not amount_str:
             return ''
+        if not self.fx.is_enabled():
+            return ''
         rate = self.fx.exchange_rate()
-        if not rate:
+        if rate.is_nan():
             return ''
         fiat_amount = self.get_amount(amount_str + ' ' + self.base_unit) * rate / pow(10, 8)
         return "{:.2f}".format(fiat_amount).rstrip('0').rstrip('.')
@@ -185,7 +191,7 @@ class ElectrumWindow(App):
         if not fiat_amount:
             return ''
         rate = self.fx.exchange_rate()
-        if not rate:
+        if rate.is_nan():
             return ''
         satoshis = int(pow(10,8) * Decimal(fiat_amount) / Decimal(rate))
         return format_satoshis_plain(satoshis, self.decimal_point())
@@ -241,7 +247,7 @@ class ElectrumWindow(App):
 
         App.__init__(self)#, **kwargs)
 
-        title = _('Vialectrum App')
+        title = _('Electrum-LTC App')
         self.electrum_config = config = kwargs.get('config', None)
         self.language = config.get('language', 'en')
         self.network = network = kwargs.get('network', None)
@@ -271,6 +277,7 @@ class ElectrumWindow(App):
         # cached dialogs
         self._settings_dialog = None
         self._password_dialog = None
+        self.fee_status = self.electrum_config.get_fee_status()
 
     def wallet_name(self):
         return os.path.basename(self.wallet.storage.path) if self.wallet else ' '
@@ -295,17 +302,17 @@ class ElectrumWindow(App):
             self.send_screen.do_clear()
 
     def on_qr(self, data):
-        from vialectrum.bitcoin import base_decode, is_address
+        from electrum_ltc.bitcoin import base_decode, is_address
         data = data.strip()
         if is_address(data):
             self.set_URI(data)
             return
-        if data.startswith('viacoin:'):
+        if data.startswith('litecoin:'):
             self.set_URI(data)
             return
         # try to decode transaction
-        from vialectrum.transaction import Transaction
-        from vialectrum.util import bh2u
+        from electrum_ltc.transaction import Transaction
+        from electrum_ltc.util import bh2u
         try:
             text = bh2u(base_decode(data, None, base=43))
             tx = Transaction(text)
@@ -342,7 +349,7 @@ class ElectrumWindow(App):
         self.receive_screen.screen.address = addr
 
     def show_pr_details(self, req, status, is_invoice):
-        from vialectrum.util import format_time
+        from electrum_ltc.util import format_time
         requestor = req.get('requestor')
         exp = req.get('exp')
         memo = req.get('memo')
@@ -364,7 +371,7 @@ class ElectrumWindow(App):
         popup.open()
 
     def show_addr_details(self, req, status):
-        from vialectrum.util import format_time
+        from electrum_ltc.util import format_time
         fund = req.get('fund')
         isaddr = 'y'
         popup = Builder.load_file('gui/kivy/uix/ui_screens/invoice.kv')
@@ -457,6 +464,7 @@ class ElectrumWindow(App):
         if self.network:
             interests = ['updated', 'status', 'new_transaction', 'verified', 'interfaces']
             self.network.register_callback(self.on_network_event, interests)
+            self.network.register_callback(self.on_fee, ['fee'])
             self.network.register_callback(self.on_quotes, ['on_quotes'])
             self.network.register_callback(self.on_history, ['on_history'])
         # URI passed in config
@@ -563,13 +571,13 @@ class ElectrumWindow(App):
 
         #setup lazy imports for mainscreen
         Factory.register('AnimatedPopup',
-                         module='vialectrum_gui.kivy.uix.dialogs')
+                         module='electrum_ltc_gui.kivy.uix.dialogs')
         Factory.register('QRCodeWidget',
-                         module='vialectrum_gui.kivy.uix.qrcodewidget')
+                         module='electrum_ltc_gui.kivy.uix.qrcodewidget')
 
         # preload widgets. Remove this if you want to load the widgets on demand
-        #Cache.append('vialectrum_widgets', 'AnimatedPopup', Factory.AnimatedPopup())
-        #Cache.append('vialectrum_widgets', 'QRCodeWidget', Factory.QRCodeWidget())
+        #Cache.append('electrum_ltc_widgets', 'AnimatedPopup', Factory.AnimatedPopup())
+        #Cache.append('electrum_ltc_widgets', 'QRCodeWidget', Factory.QRCodeWidget())
 
         # load and focus the ui
         self.root.manager = self.root.ids['manager']
@@ -581,7 +589,7 @@ class ElectrumWindow(App):
         self.receive_screen = None
         self.requests_screen = None
         self.address_screen = None
-        self.icon = "icons/vialectrum.png"
+        self.icon = "icons/electrum-ltc.png"
         self.tabs = self.root.ids['tabs']
 
     def update_interfaces(self, dt):
@@ -631,17 +639,17 @@ class ElectrumWindow(App):
             if not self.wallet.up_to_date or server_height == 0:
                 status = _("Synchronizing...")
             elif server_lag > 1:
-                status = _("Server lagging (%d blocks)"%server_lag)
+                status = _("Server lagging")
             else:
-                c, u, x = self.wallet.get_balance()
-                text = self.format_amount(c+x+u)
-                status = str(text.strip() + ' ' + self.base_unit)
+                status = ''
         else:
             status = _("Disconnected")
-
-        n = self.wallet.basename()
-        self.status = '[size=15dp]%s[/size]\n%s' %(n, status)
-        #fiat_balance = self.fx.format_amount_and_units(c+u+x) or ''
+        self.status = self.wallet.basename() + (' [size=15dp](%s)[/size]'%status if status else '')
+        # balance
+        c, u, x = self.wallet.get_balance()
+        text = self.format_amount(c+x+u)
+        self.balance = str(text.strip()) + ' [size=22dp]%s[/size]'% self.base_unit
+        self.fiat_balance = self.fx.format_amount(c+u+x) + ' [size=22dp]%s[/size]'% self.fx.ccy
 
     def get_max_amount(self):
         inputs = self.wallet.get_spendable_coins(None, self.electrum_config)
@@ -670,8 +678,8 @@ class ElectrumWindow(App):
                 from plyer import notification
             icon = (os.path.dirname(os.path.realpath(__file__))
                     + '/../../' + self.icon)
-            notification.notify('Vialectrum', message,
-                            app_icon=icon, app_name='Vialectrum')
+            notification.notify('Electrum-LTC', message,
+                            app_icon=icon, app_name='Electrum-LTC')
         except ImportError:
             Logger.Error('Notification: needs plyer; `sudo pip install plyer`')
 
@@ -684,9 +692,6 @@ class ElectrumWindow(App):
     def on_resume(self):
         if self.nfcscanner:
             self.nfcscanner.nfc_enable()
-        # workaround p4a bug:
-        # show an empty info bubble, to refresh the display
-        self.show_info_bubble('', duration=0.1, pos=(0,0), width=1, arrow_pos=None)
 
     def on_size(self, instance, value):
         width, height = value
@@ -819,7 +824,6 @@ class ElectrumWindow(App):
         d = LabelDialog(_('Enter description'), text, callback)
         d.open()
 
-    @profiler
     def amount_dialog(self, screen, show_max):
         from .uix.dialogs.amount_dialog import AmountDialog
         amount = screen.amount
@@ -830,6 +834,44 @@ class ElectrumWindow(App):
             screen.amount = amount
         popup = AmountDialog(show_max, amount, cb)
         popup.open()
+
+    def invoices_dialog(self, screen):
+        from .uix.dialogs.invoices import InvoicesDialog
+        if len(self.wallet.invoices.sorted_list()) == 0:
+            self.show_info(' '.join([
+                _('No saved invoices.'),
+                _('Signed invoices are saved automatically when you scan them.'),
+                _('You may also save unsigned requests or contact addresses using the save button.')
+            ]))
+            return
+        popup = InvoicesDialog(self, screen, None)
+        popup.update()
+        popup.open()
+
+    def requests_dialog(self, screen):
+        from .uix.dialogs.requests import RequestsDialog
+        if len(self.wallet.get_sorted_requests(self.electrum_config)) == 0:
+            self.show_info(_('No saved requests.'))
+            return
+        popup = RequestsDialog(self, screen, None)
+        popup.update()
+        popup.open()
+
+    def addresses_dialog(self, screen):
+        from .uix.dialogs.addresses import AddressesDialog
+        popup = AddressesDialog(self, screen, None)
+        popup.update()
+        popup.open()
+
+    def fee_dialog(self, label, dt):
+        from .uix.dialogs.fee_dialog import FeeDialog
+        def cb():
+            self.fee_status = self.electrum_config.get_fee_status()
+        fee_dialog = FeeDialog(self, self.electrum_config, cb)
+        fee_dialog.open()
+
+    def on_fee(self, event, *arg):
+        self.fee_status = self.electrum_config.get_fee_status()
 
     def protected(self, msg, f, args):
         if self.wallet.has_password():
@@ -846,7 +888,7 @@ class ElectrumWindow(App):
     def _delete_wallet(self, b):
         if b:
             basename = os.path.basename(self.wallet.storage.path)
-            self.protected(_("Enter your PIN code to confirm deletion of %s") % basename, self.__delete_wallet, ())
+            self.protected(_("Enter your PIN code to confirm deletion of {}").format(basename), self.__delete_wallet, ())
 
     def __delete_wallet(self, pw):
         wallet_path = self.get_wallet_path()
@@ -928,6 +970,10 @@ class ElectrumWindow(App):
                 return
             if not self.wallet.can_export():
                 return
-            key = str(self.wallet.export_private_key(addr, password)[0])
-            pk_label.data = key
+            try:
+                key = str(self.wallet.export_private_key(addr, password)[0])
+                pk_label.data = key
+            except InvalidPassword:
+                self.show_error("Invalid PIN")
+                return
         self.protected(_("Enter your PIN code in order to decrypt your private key"), show_private_key, (addr, pk_label))

@@ -3,18 +3,17 @@ from kivy.factory import Factory
 from kivy.properties import ObjectProperty
 from kivy.lang import Builder
 
-from vialectrum.util import base_units
-from vialectrum.i18n import languages
-from vialectrum_gui.kivy.i18n import _
-from vialectrum.plugins import run_hook
-from vialectrum import coinchooser
-from vialectrum.util import fee_levels
+from electrum_ltc.util import base_units
+from electrum_ltc.i18n import languages
+from electrum_ltc_gui.kivy.i18n import _
+from electrum_ltc.plugins import run_hook
+from electrum_ltc import coinchooser
 
 from .choice_dialog import ChoiceDialog
 
 Builder.load_string('''
 #:import partial functools.partial
-#:import _ vialectrum_gui.kivy.i18n._
+#:import _ electrum_ltc_gui.kivy.i18n._
 
 <SettingsDialog@Popup>
     id: settings
@@ -46,14 +45,8 @@ Builder.load_string('''
                 SettingsItem:
                     bu: app.base_unit
                     title: _('Denomination') + ': ' + self.bu
-                    description: _("Base unit for Viacoin amounts.")
+                    description: _("Base unit for Litecoin amounts.")
                     action: partial(root.unit_dialog, self)
-                CardSeparator
-                SettingsItem:
-                    status: root.fee_status()
-                    title: _('Fees') + ': ' + self.status
-                    description: _("Fees paid to the Viacoin miners.")
-                    action: partial(root.fee_dialog, self)
                 CardSeparator
                 SettingsItem:
                     status: root.fx_status()
@@ -113,7 +106,6 @@ class SettingsDialog(Factory.Popup):
         layout.bind(minimum_height=layout.setter('height'))
         # cached dialogs
         self._fx_dialog = None
-        self._fee_dialog = None
         self._proxy_dialog = None
         self._language_dialog = None
         self._unit_dialog = None
@@ -204,18 +196,7 @@ class SettingsDialog(Factory.Popup):
         d.open()
 
     def fee_status(self):
-        if self.config.get('dynamic_fees', True):
-            return fee_levels[self.config.get('fee_level', 2)]
-        else:
-            return self.app.format_amount_and_units(self.config.fee_per_kb()) + '/kB'
-
-    def fee_dialog(self, label, dt):
-        if self._fee_dialog is None:
-            from .fee_dialog import FeeDialog
-            def cb():
-                label.status = self.fee_status()
-            self._fee_dialog = FeeDialog(self.app, self.config, cb)
-        self._fee_dialog.open()
+        return self.config.get_fee_status()
 
     def boolean_dialog(self, name, title, message, dt):
         from .checkbox_dialog import CheckBoxDialog

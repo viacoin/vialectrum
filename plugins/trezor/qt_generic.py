@@ -4,14 +4,14 @@ import threading
 from PyQt5.Qt import Qt
 from PyQt5.Qt import QGridLayout, QInputDialog, QPushButton
 from PyQt5.Qt import QVBoxLayout, QLabel
-from vialectrum_gui.qt.util import *
-from .plugin import TIM_NEW, TIM_RECOVER, TIM_MNEMONIC
+from electrum_ltc_gui.qt.util import *
+from .trezor import TIM_NEW, TIM_RECOVER, TIM_MNEMONIC
 from ..hw_wallet.qt import QtHandlerBase, QtPluginBase
 
-from vialectrum.i18n import _
-from vialectrum.plugins import hook, DeviceMgr
-from vialectrum.util import PrintError, UserCancelled, bh2u
-from vialectrum.wallet import Wallet, Standard_Wallet
+from electrum_ltc.i18n import _
+from electrum_ltc.plugins import hook, DeviceMgr
+from electrum_ltc.util import PrintError, UserCancelled, bh2u
+from electrum_ltc.wallet import Wallet, Standard_Wallet
 
 PASSPHRASE_HELP_SHORT =_(
     "Passphrases allow you to access new wallets, each "
@@ -23,10 +23,10 @@ PASSPHRASE_HELP = PASSPHRASE_HELP_SHORT + "  " + _(
     "accessible behind its own passphrase.")
 RECOMMEND_PIN = _(
     "You should enable PIN protection.  Your PIN is the only protection "
-    "for your viacoins if your device is lost or stolen.")
+    "for your litecoins if your device is lost or stolen.")
 PASSPHRASE_NOT_PIN = _(
     "If you forget a passphrase you will be unable to access any "
-    "viacoins in the wallet behind it.  A passphrase is not a PIN. "
+    "litecoins in the wallet behind it.  A passphrase is not a PIN. "
     "Only change this if you are sure you understand it.")
 CHARACTER_RECOVERY = (
     "Use the recovery cipher shown on your device to input your seed words.  "
@@ -188,13 +188,14 @@ class QtPlugin(QtPluginBase):
 
     @hook
     def receive_menu(self, menu, addrs, wallet):
-        if type(wallet) is not Standard_Wallet:
+        if len(addrs) != 1:
             return
-        keystore = wallet.get_keystore()
-        if type(keystore) == self.keystore_class and len(addrs) == 1:
-            def show_address():
-                keystore.thread.add(partial(self.show_address, wallet, addrs[0]))
-            menu.addAction(_("Show on %s") % self.device, show_address)
+        for keystore in wallet.get_keystores():
+            if type(keystore) == self.keystore_class:
+                def show_address():
+                    keystore.thread.add(partial(self.show_address, wallet, keystore, addrs[0]))
+                menu.addAction(_("Show on {}").format(self.device), show_address)
+                break
 
     def show_settings_dialog(self, window, keystore):
         device_id = self.choose_device(window, keystore)
@@ -242,7 +243,7 @@ class QtPlugin(QtPluginBase):
             else:
                 msg = _("Enter the master private key beginning with xprv:")
                 def set_enabled():
-                    from vialectrum.keystore import is_xprv
+                    from electrum_ltc.keystore import is_xprv
                     wizard.next_button.setEnabled(is_xprv(clean_text(text)))
                 text.textChanged.connect(set_enabled)
                 next_enabled = False
@@ -292,7 +293,7 @@ class SettingsDialog(WindowModalDialog):
     their PIN.'''
 
     def __init__(self, window, plugin, keystore, device_id):
-        title = _("%s Settings") % plugin.device
+        title = _("{} Settings").format(plugin.device)
         super(SettingsDialog, self).__init__(window, title)
         self.setMaximumWidth(540)
 
@@ -320,8 +321,11 @@ class SettingsDialog(WindowModalDialog):
         def update(features):
             self.features = features
             set_label_enabled()
-            bl_hash = bh2u(features.bootloader_hash)
-            bl_hash = "\n".join([bl_hash[:32], bl_hash[32:]])
+            if features.bootloader_hash:
+                bl_hash = bh2u(features.bootloader_hash)
+                bl_hash = "\n".join([bl_hash[:32], bl_hash[32:]])
+            else:
+                bl_hash = "N/A"
             noyes = [_("No"), _("Yes")]
             endis = [_("Enable Passphrases"), _("Disable Passphrases")]
             disen = [_("Disabled"), _("Enabled")]
@@ -412,7 +416,7 @@ class SettingsDialog(WindowModalDialog):
             if wallet and sum(wallet.get_balance()):
                 title = _("Confirm Device Wipe")
                 msg = _("Are you SURE you want to wipe the device?\n"
-                        "Your wallet still has viacoins in it!")
+                        "Your wallet still has litecoins in it!")
                 if not self.question(msg, title=title,
                                      icon=QMessageBox.Critical):
                     return
@@ -463,9 +467,9 @@ class SettingsDialog(WindowModalDialog):
         settings_glayout = QGridLayout()
 
         # Settings tab - Label
-        label_msg = QLabel(_("Name this %s.  If you have mutiple devices "
+        label_msg = QLabel(_("Name this {}.  If you have mutiple devices "
                              "their labels help distinguish them.")
-                           % plugin.device)
+                           .format(plugin.device))
         label_msg.setWordWrap(True)
         label_label = QLabel(_("Device Label"))
         label_edit = QLineEdit()
@@ -487,8 +491,8 @@ class SettingsDialog(WindowModalDialog):
         settings_glayout.addWidget(pin_button, 2, 1)
         pin_msg = QLabel(_("PIN protection is strongly recommended.  "
                            "A PIN is your only protection against someone "
-                           "stealing your viacoins if they obtain physical "
-                           "access to your %s.") % plugin.device)
+                           "stealing your litecoins if they obtain physical "
+                           "access to your {}.").format(plugin.device))
         pin_msg.setWordWrap(True)
         pin_msg.setStyleSheet("color: red")
         settings_glayout.addWidget(pin_msg, 3, 1, 1, -1)
@@ -503,8 +507,8 @@ class SettingsDialog(WindowModalDialog):
             homescreen_clear_button.clicked.connect(clear_homescreen)
             homescreen_msg = QLabel(_("You can set the homescreen on your "
                                       "device to personalize it.  You must "
-                                      "choose a %d x %d monochrome black and "
-                                      "white image.") % (hs_rows, hs_cols))
+                                      "choose a {} x {} monochrome black and "
+                                      "white image.").format(hs_rows, hs_cols))
             homescreen_msg.setWordWrap(True)
             settings_glayout.addWidget(homescreen_label, 4, 0)
             settings_glayout.addWidget(homescreen_change_button, 4, 1)
@@ -547,7 +551,7 @@ class SettingsDialog(WindowModalDialog):
         clear_pin_button.clicked.connect(clear_pin)
         clear_pin_warning = QLabel(
             _("If you disable your PIN, anyone with physical access to your "
-              "%s device can spend your viacoins.") % plugin.device)
+              "{} device can spend your litecoins.").format(plugin.device))
         clear_pin_warning.setWordWrap(True)
         clear_pin_warning.setStyleSheet("color: red")
         advanced_glayout.addWidget(clear_pin_button, 0, 2)
@@ -572,7 +576,7 @@ class SettingsDialog(WindowModalDialog):
         wipe_device_msg.setWordWrap(True)
         wipe_device_warning = QLabel(
             _("Only wipe a device if you have the recovery seed written down "
-              "and the device wallet(s) are empty, otherwise the viacoins "
+              "and the device wallet(s) are empty, otherwise the litecoins "
               "will be lost forever."))
         wipe_device_warning.setWordWrap(True)
         wipe_device_warning.setStyleSheet("color: red")

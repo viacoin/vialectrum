@@ -8,31 +8,27 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from vialectrum import Wallet, WalletStorage
-from vialectrum.util import UserCancelled, InvalidPassword
-from vialectrum.base_wizard import BaseWizard
-from vialectrum.i18n import _
+from electrum_ltc import Wallet, WalletStorage
+from electrum_ltc.util import UserCancelled, InvalidPassword
+from electrum_ltc.base_wizard import BaseWizard, HWD_SETUP_DECRYPT_WALLET
+from electrum_ltc.i18n import _
 
 from .seed_dialog import SeedLayout, KeysLayout
 from .network_dialog import NetworkChoiceLayout
 from .util import *
-from .password_dialog import PasswordLayout, PW_NEW
+from .password_dialog import PasswordLayout, PasswordLayoutForHW, PW_NEW
 
 
 class GoBack(Exception):
     pass
 
-MSG_GENERATING_WAIT = _("Vialectrum is generating your addresses, please wait...")
-MSG_ENTER_ANYTHING = _("Please enter a seed phrase, a master key, a list of "
-                       "Viacoin addresses, or a list of private keys")
-MSG_ENTER_SEED_OR_MPK = _("Please enter a seed phrase or a master key (xpub or xprv):")
-MSG_COSIGNER = _("Please enter the master public key of cosigner #%d:")
+
 MSG_ENTER_PASSWORD = _("Choose a password to encrypt your wallet keys.") + '\n'\
                      + _("Leave this field empty if you want to disable encryption.")
-MSG_RESTORE_PASSPHRASE = \
-    _("Please enter your seed derivation passphrase. "
-      "Note: this is NOT your encryption password. "
-      "Leave this field empty if you did not use one or are unsure.")
+MSG_HW_STORAGE_ENCRYPTION = _("Set wallet file encryption.") + '\n'\
+                          + _("Your wallet file does not contain secrets, mostly just metadata. ") \
+                          + _("It also contains your master public key that allows watching your addresses.") + '\n\n'\
+                          + _("Note: If you enable this setting, you will need your hardware device to open your wallet.")
 
 
 class CosignWidget(QWidget):
@@ -102,7 +98,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
     def __init__(self, config, app, plugins, storage):
         BaseWizard.__init__(self, config, storage)
         QDialog.__init__(self, None)
-        self.setWindowTitle('Vialectrum  -  ' + _('Install Wizard'))
+        self.setWindowTitle('Electrum-LTC  -  ' + _('Install Wizard'))
         self.app = app
         self.config = config
         # Set for base base class
@@ -147,7 +143,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         hbox.setStretchFactor(scroll, 1)
         outer_vbox.addLayout(hbox)
         outer_vbox.addLayout(Buttons(self.back_button, self.next_button))
-        self.set_icon(':icons/vialectrum.png')
+        self.set_icon(':icons/electrum-ltc.png')
         self.show()
         self.raise_()
         self.refresh_gui()  # Need for QT on MacOSX.  Lame.
@@ -174,7 +170,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         hbox2.addWidget(self.pw_e)
         hbox2.addStretch()
         vbox.addLayout(hbox2)
-        self.set_layout(vbox, title=_('Vialectrum wallet'))
+        self.set_layout(vbox, title=_('Electrum-LTC wallet'))
 
         wallet_folder = os.path.dirname(self.storage.path)
 
@@ -188,7 +184,8 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
             try:
                 self.storage = WalletStorage(path, manual_upgrades=True)
                 self.next_button.setEnabled(True)
-            except IOError:
+            except BaseException:
+                traceback.print_exc(file=sys.stderr)
                 self.storage = None
                 self.next_button.setEnabled(False)
             if self.storage:
@@ -196,12 +193,18 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
                     msg =_("This file does not exist.") + '\n' \
                           + _("Press 'Next' to create this wallet, or choose another file.")
                     pw = False
-                elif self.storage.file_exists() and self.storage.is_encrypted():
-                    msg = _("This file is encrypted.") + '\n' + _('Enter your password or choose another file.')
-                    pw = True
                 else:
-                    msg = _("Press 'Next' to open this wallet.")
-                    pw = False
+                    if self.storage.is_encrypted_with_user_pw():
+                        msg = _("This file is encrypted with a password.") + '\n' \
+                              + _('Enter your password or choose another file.')
+                        pw = True
+                    elif self.storage.is_encrypted_with_hw_device():
+                        msg = _("This file is encrypted using a hardware device.") + '\n' \
+                              + _("Press 'Next' to choose device to decrypt.")
+                        pw = False
+                    else:
+                        msg = _("Press 'Next' to open this wallet.")
+                        pw = False
             else:
                 msg = _('Cannot read file')
                 pw = False
@@ -227,23 +230,44 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
             if not self.storage.file_exists():
                 break
             if self.storage.file_exists() and self.storage.is_encrypted():
-                password = self.pw_e.text()
-                try:
-                    self.storage.decrypt(password)
-                    break
-                except InvalidPassword as e:
-                    QMessageBox.information(None, _('Error'), str(e))
-                    continue
-                except BaseException as e:
-                    traceback.print_exc(file=sys.stdout)
-                    QMessageBox.information(None, _('Error'), str(e))
-                    return
+                if self.storage.is_encrypted_with_user_pw():
+                    password = self.pw_e.text()
+                    try:
+                        self.storage.decrypt(password)
+                        break
+                    except InvalidPassword as e:
+                        QMessageBox.information(None, _('Error'), str(e))
+                        continue
+                    except BaseException as e:
+                        traceback.print_exc(file=sys.stdout)
+                        QMessageBox.information(None, _('Error'), str(e))
+                        return
+                elif self.storage.is_encrypted_with_hw_device():
+                    try:
+                        self.run('choose_hw_device', HWD_SETUP_DECRYPT_WALLET)
+                    except InvalidPassword as e:
+                        QMessageBox.information(
+                            None, _('Error'),
+                            _('Failed to decrypt using this hardware device.') + '\n' +
+                            _('If you use a passphrase, make sure it is correct.'))
+                        self.stack = []
+                        return self.run_and_get_wallet()
+                    except BaseException as e:
+                        traceback.print_exc(file=sys.stdout)
+                        QMessageBox.information(None, _('Error'), str(e))
+                        return
+                    if self.storage.is_past_initial_decryption():
+                        break
+                    else:
+                        return
+                else:
+                    raise Exception('Unexpected encryption version')
 
         path = self.storage.path
         if self.storage.requires_split():
             self.hide()
-            msg = _("The wallet '%s' contains multiple accounts, which are no longer supported since Electrum 2.7.\n\n"
-                    "Do you want to split your wallet into multiple files?"%path)
+            msg = _("The wallet '{}' contains multiple accounts, which are no longer supported since Electrum 2.7.\n\n"
+                    "Do you want to split your wallet into multiple files?").format(path)
             if not self.question(msg):
                 return
             file_list = '\n'.join(self.storage.split_accounts())
@@ -261,10 +285,10 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         action = self.storage.get_action()
         if action and action != 'new':
             self.hide()
-            msg = _("The file '%s' contains an incompletely created wallet.\n"
-                    "Do you want to complete its creation now?") % path
+            msg = _("The file '{}' contains an incompletely created wallet.\n"
+                    "Do you want to complete its creation now?").format(path)
             if not self.question(msg):
-                if self.question(_("Do you want to delete '%s'?") % path):
+                if self.question(_("Do you want to delete '{}'?").format(path)):
                     os.remove(path)
                     self.show_warning(_('The file was removed'))
                 return
@@ -386,17 +410,25 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         self.exec_layout(slayout)
         return slayout.is_ext
 
-    def pw_layout(self, msg, kind):
-        playout = PasswordLayout(None, msg, kind, self.next_button)
+    def pw_layout(self, msg, kind, force_disable_encrypt_cb):
+        playout = PasswordLayout(None, msg, kind, self.next_button,
+                                 force_disable_encrypt_cb=force_disable_encrypt_cb)
         playout.encrypt_cb.setChecked(True)
         self.exec_layout(playout.layout())
         return playout.new_password(), playout.encrypt_cb.isChecked()
 
     @wizard_dialog
-    def request_password(self, run_next):
+    def request_password(self, run_next, force_disable_encrypt_cb=False):
         """Request the user enter a new password and confirm it.  Return
         the password or None for no password."""
-        return self.pw_layout(MSG_ENTER_PASSWORD, PW_NEW)
+        return self.pw_layout(MSG_ENTER_PASSWORD, PW_NEW, force_disable_encrypt_cb)
+
+    @wizard_dialog
+    def request_storage_encryption(self, run_next):
+        playout = PasswordLayoutForHW(None, MSG_HW_STORAGE_ENCRYPTION, PW_NEW, self.next_button)
+        playout.encrypt_cb.setChecked(True)
+        self.exec_layout(playout.layout())
+        return playout.encrypt_cb.isChecked()
 
     def show_restore(self, wallet, network):
         # FIXME: these messages are shown after the install wizard is
@@ -437,7 +469,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         self.accept_signal.emit()
 
     def waiting_dialog(self, task, msg):
-        self.please_wait.setText(MSG_GENERATING_WAIT)
+        self.please_wait.setText(msg)
         self.refresh_gui()
         t = threading.Thread(target = task)
         t.start()
@@ -499,10 +531,10 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         return None
 
     def init_network(self, network):
-        message = _("Vialectrum communicates with remote servers to get "
+        message = _("Electrum communicates with remote servers to get "
                   "information about your transactions and addresses. The "
                   "servers all fulfill the same purpose only differing in "
-                  "hardware. In most cases you simply want to let Vialectrum "
+                  "hardware. In most cases you simply want to let Electrum "
                   "pick one at random.  However if you prefer feel free to "
                   "select a server manually.")
         choices = [_("Auto connect"), _("Select server manually")]

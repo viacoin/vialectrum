@@ -2,22 +2,16 @@ import threading
 
 from binascii import hexlify, unhexlify
 
-from vialectrum.util import bfh, bh2u
-from vialectrum.bitcoin import (b58_address_to_hash160, xpub_from_pubkey,
-                                  TYPE_ADDRESS, TYPE_SCRIPT, NetworkConstants,
+from electrum_ltc.util import bfh, bh2u
+from electrum_ltc.bitcoin import (b58_address_to_hash160, xpub_from_pubkey,
+                                  TYPE_ADDRESS, TYPE_SCRIPT,
                                   is_segwit_address)
-<<<<<<< HEAD
-from vialectrum.i18n import _
-from vialectrum.plugins import BasePlugin
-from vialectrum.transaction import deserialize
-from vialectrum.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
-=======
+from electrum_ltc import constants
 from electrum_ltc.i18n import _
 from electrum_ltc.plugins import BasePlugin
 from electrum_ltc.transaction import deserialize
 from electrum_ltc.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
 from electrum_ltc.base_wizard import ScriptTypeNotSupported
->>>>>>> upstream/master
 
 from ..hw_wallet import HW_PluginBase
 
@@ -37,7 +31,7 @@ class KeepKeyCompatibleKeyStore(Hardware_KeyStore):
         return self.plugin.get_client(self, force_pair)
 
     def decrypt_message(self, sequence, message, password):
-        raise RuntimeError(_('Encryption and decryption are not implemented by %s') % self.device)
+        raise RuntimeError(_('Encryption and decryption are not implemented by {}').format(self.device))
 
     def sign_message(self, sequence, message, password):
         client = self.get_client()
@@ -126,9 +120,9 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
             return None
 
         if not client.atleast_version(*self.minimum_firmware):
-            msg = (_('Outdated %s firmware for device labelled %s. Please '
-                     'download the updated firmware from %s') %
-                   (self.device, client.label(), self.firmware_URL))
+            msg = (_('Outdated {} firmware for device labelled {}. Please '
+                     'download the updated firmware from {}')
+                   .format(self.device, client.label(), self.firmware_URL))
             self.print_error(msg)
             handler.show_error(msg)
             return None
@@ -146,18 +140,18 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
         return client
 
     def get_coin_name(self):
-        return "Testnet" if NetworkConstants.TESTNET else "Viacoin"
+        return "Testnet" if constants.net.TESTNET else "Litecoin"
 
     def initialize_device(self, device_id, wizard, handler):
         # Initialization method
-        msg = _("Choose how you want to initialize your %s.\n\n"
+        msg = _("Choose how you want to initialize your {}.\n\n"
                 "The first two methods are secure as no secret information "
                 "is entered into your computer.\n\n"
                 "For the last two methods you input secrets on your keyboard "
-                "and upload them to your %s, and so you should "
+                "and upload them to your {}, and so you should "
                 "only do those on a computer you know to be trustworthy "
                 "and free of malware."
-        ) % (self.device, self.device)
+        ).format(self.device, self.device)
         choices = [
             # Must be short as QT doesn't word-wrap radio button text
             (TIM_NEW, _("Let the device generate a completely new seed randomly")),
@@ -201,10 +195,7 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
                                        label, language)
         wizard.loop.exit(0)
 
-    def setup_device(self, device_info, wizard):
-        '''Called when creating a new wallet.  Select the device to use.  If
-        the device is uninitialized, go through the intialization
-        process.'''
+    def setup_device(self, device_info, wizard, purpose):
         devmgr = self.device_manager()
         device_id = device_info.device.id_
         client = devmgr.client_by_id(device_id)
@@ -354,9 +345,9 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
                         txoutputtype.script_type = self.types.PAYTOWITNESS
                     else:
                         addrtype, hash_160 = b58_address_to_hash160(address)
-                        if addrtype == NetworkConstants.ADDRTYPE_P2PKH:
+                        if addrtype == constants.net.ADDRTYPE_P2PKH:
                             txoutputtype.script_type = self.types.PAYTOADDRESS
-                        elif addrtype == NetworkConstants.ADDRTYPE_P2SH:
+                        elif addrtype == constants.net.ADDRTYPE_P2SH:
                             txoutputtype.script_type = self.types.PAYTOSCRIPTHASH
                         else:
                             raise BaseException('addrtype: ' + str(addrtype))

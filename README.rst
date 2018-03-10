@@ -1,13 +1,13 @@
-Vialectrum - Lightweight Viacoin client
+Electrum-LTC - Lightweight Litecoin client
 ==========================================
 
 ::
 
   Licence: MIT Licence
-  Original Author: Thomas Voegtlin & Pooler
-  Port Maintainer: Romano
+  Original Author: Thomas Voegtlin
+  Port Maintainer: Pooler
   Language: Python
-  Homepage: https://viacoin.org/
+  Homepage: https://electrum-ltc.org/
 
 
 
@@ -17,28 +17,28 @@ Vialectrum - Lightweight Viacoin client
 Getting started
 ===============
 
-Vialectrum is a pure python application. If you want to use the
+Electrum is a pure python application. If you want to use the
 Qt interface, install the Qt dependencies::
 
     sudo apt-get install python3-pyqt5
 
 If you downloaded the official package (tar.gz), you can run
-Vialectrum from its root directory, without installing it on your
+Electrum from its root directory, without installing it on your
 system; all the python dependencies are included in the 'packages'
-directory. To run Vialectrum from its root directory, just do::
+directory. To run Electrum from its root directory, just do::
 
-    ./vialectrum
+    ./electrum-ltc
 
-You can also install Vialectrum on your system, by running this command::
+You can also install Electrum on your system, by running this command::
 
     sudo apt-get install python3-setuptools
     python3 setup.py install
 
 This will download and install the Python dependencies used by
-Vialectrum, instead of using the 'packages' directory.
+Electrum, instead of using the 'packages' directory.
 
 If you cloned the git repository, you need to compile extra files
-before you can run Vialectrum. Read the next section, "Development
+before you can run Electrum. Read the next section, "Development
 Version".
 
 
@@ -48,8 +48,8 @@ Development version
 
 Check out the code from Github::
 
-    git clone git://github.com/vialectrum/vialectrum.git
-    cd vialectrum
+    git clone git://github.com/pooler/electrum-ltc.git
+    cd electrum-ltc
 
 Run install (this should install dependencies)::
 
@@ -86,20 +86,12 @@ This directory contains the python dependencies used by Electrum.
 Mac OS X / macOS
 --------
 
-::
-
-    # On MacPorts installs: 
-    sudo python3 setup-release.py py2app
-    
-    # On Homebrew installs: 
-    ARCHFLAGS="-arch i386 -arch x86_64" sudo python3 setup-release.py py2app --includes sip
-    
-    sudo hdiutil create -fs HFS+ -volname "Vialectrum" -srcfolder dist/Vialectrum.app dist/electrum-via-VERSION-macosx.dmg
+See `contrib/build-osx/`.
 
 Windows
 -------
 
-See `contrib/build-wine/README` file.
+See `contrib/build-wine/`.
 
 
 Android
