@@ -22,7 +22,7 @@ git merge agilewalker/master
 ```
 
 ## 2. Install buildozer
-Buildozer is a frontend to p4a. Luckily we don't need to patch it:
+2.1 Buildozer is a frontend to p4a. Luckily we don't need to patch it:
 
 ```sh
 cd /opt
@@ -31,19 +31,33 @@ cd buildozer
 sudo python3 setup.py install
 ```
 
+2.2 Download the [Crystax NDK](https://www.crystax.net/en/download) manually.
+Extract into `/opt/crystax-ndk-10.3.2`
+
 ## 3. Update the Android SDK build tools
-3.1 Start the Android SDK manager:
+
+### Method 1: Using the GUI
+
+  Start the Android SDK manager in GUI mode:
 
       ~/.buildozer/android/platform/android-sdk-20/tools/android
-      
-3.2 Check the latest SDK available and install it.
 
-3.3 Close the SDK manager.
+  Check the latest SDK available and install it.
+  Close the SDK manager.
+  Reopen the SDK manager, scroll to the bottom and install the latest build tools (probably v27)
+  Install "Android Support Library Repository" from the SDK manager.
 
-3.3 Reopen the SDK manager, scroll to the bottom and install the latest build tools (probably v27)
+### Method 2: Using the command line:
 
-## 4. Install the Support Library Repository
-Install "Android Support Library Repository" from the SDK manager.
+  Repeat the following command until there is nothing to install:
+
+      ~/.buildozer/android/platform/android-sdk-20/tools/android update sdk -u -t tools,platform-tools
+
+  Install Build Tools, android API 19 and Android Support Library:
+
+      ~/.buildozer/android/platform/android-sdk-20/tools/android update sdk -u -t build-tools-27.0.3,android-19,extra-android-m2repository
+
+
 
 ## 5. Create the UI Atlas
 In the `gui/kivy` directory of Electrum, run `make theming`.
@@ -60,6 +74,7 @@ Update your Android build tools to version 27 like described above.
 
 ## Why do I get errors like  `(use -source 7 or higher to enable multi-catch statement)` while compiling?
 Make sure that your p4a installation includes commit a3cc78a6d1a107cd3b6bd28db8b80f89e3ecddd2.
+Also make sure you have recent SDK tools and platform-tools
 
 ## I changed something but I don't see any differences on the phone. What did I do wrong?
 You probably need to clear the cache: `rm -rf .buildozer/android/platform/build/{build,dists}`

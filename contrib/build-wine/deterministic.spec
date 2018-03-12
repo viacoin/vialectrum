@@ -18,6 +18,7 @@ hiddenimports = []
 hiddenimports += collect_submodules('trezorlib')
 hiddenimports += collect_submodules('btchip')
 hiddenimports += collect_submodules('keepkeylib')
+hiddenimports += collect_submodules('websocket')
 hiddenimports += ['_scrypt']
 
 # Add libusb binary
@@ -35,6 +36,7 @@ datas = [
     (home+'lib/wordlist/english.txt', 'vialectrum/wordlist'),
     (home+'lib/locale', 'vialectrum/locale'),
     (home+'plugins', 'vialectrum_plugins'),
+    ('C:\\Program Files (x86)\\ZBar\\bin\\', '.')
 ]
 datas += collect_data_files('trezorlib')
 datas += collect_data_files('btchip')

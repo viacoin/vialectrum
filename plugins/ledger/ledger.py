@@ -182,7 +182,7 @@ class Ledger_Client():
                 self.perform_hw1_preflight()
             except BTChipException as e:
                 if (e.sw == 0x6d00):
-                    raise BaseException("Device not in Bitcoin mode")
+                    raise BaseException("Device not in Viacoin mode")
                 raise e
             self.preflightDone = True
 
@@ -517,7 +517,8 @@ class LedgerPlugin(HW_PluginBase):
         return HIDDongleHIDAPI(dev, ledger, BTCHIP_DEBUG)
 
     def create_client(self, device, handler):
-        self.handler = handler
+        if handler:
+            self.handler = handler
 
         client = self.get_btchip_device(device)
         if client is not None:

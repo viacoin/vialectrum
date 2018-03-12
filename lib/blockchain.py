@@ -25,6 +25,7 @@ import threading
 
 from . import util
 from . import bitcoin
+from . import constants
 from .bitcoin import *
 
 try:
@@ -112,7 +113,7 @@ class Blockchain(util.PrintError):
         self.config = config
         self.catch_up = None # interface catching up
         self.checkpoint = checkpoint
-        self.checkpoints = bitcoin.NetworkConstants.CHECKPOINTS
+        self.checkpoints = constants.net.CHECKPOINTS
         self.parent_id = parent_id
         self.lock = threading.Lock()
         with self.lock:
@@ -159,13 +160,14 @@ class Blockchain(util.PrintError):
         self._size = os.path.getsize(p)//80 if os.path.exists(p) else 0
 
     def verify_header(self, header, prev_hash, target):
-        return True # Viacoin: no chain verify
-        _hash = hash_header(header)
-        _powhash = pow_hash_header(header)
         if prev_hash != header.get('prev_block_hash'):
             raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
-        if bitcoin.NetworkConstants.TESTNET:
+        if constants.net.TESTNET:
             return
+        if header.get('version') & 0x100 != 0: # Viacoin auxpow
+            return
+        # _hash = hash_header(header)
+        _powhash = pow_hash_header(header)
         bits = self.target_to_bits(target)
         if bits != header.get('bits'):
             raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
@@ -174,9 +176,6 @@ class Blockchain(util.PrintError):
 
     def verify_chunk(self, index, data):
         num = len(data) // 80
-        # Viacoin: no verify chunks
-        self.save_chunk(index, data)
-        ############################
         prev_hash = self.get_hash(index * 2016 - 1)
         target = self.get_target(index-1)
         for i in range(num):
@@ -196,7 +195,8 @@ class Blockchain(util.PrintError):
         if d < 0:
             chunk = chunk[-d:]
             d = 0
-        self.write(chunk, d, index > len(self.checkpoints))
+        truncate = index >= len(self.checkpoints)
+        self.write(chunk, d, truncate)
         self.swap_with_parent()
 
     def swap_with_parent(self):
@@ -276,7 +276,7 @@ class Blockchain(util.PrintError):
         if height == -1:
             return '0000000000000000000000000000000000000000000000000000000000000000'
         elif height == 0:
-            return bitcoin.NetworkConstants.GENESIS
+            return constants.net.GENESIS
         elif height < len(self.checkpoints) * 2016:
             assert (height+1) % 2016 == 0, height
             index = height // 2016
@@ -294,7 +294,7 @@ class Blockchain(util.PrintError):
 
     def get_target(self, index):
         # compute target from chunk x, used in chunk x+1
-        if bitcoin.NetworkConstants.TESTNET:
+        if constants.net.TESTNET:
             return 0
         if index == -1:
             return 0x00000FFFF0000000000000000000000000000000000000000000000000000000
@@ -302,13 +302,13 @@ class Blockchain(util.PrintError):
             h, t, _ = self.checkpoints[index]
             return t
         # new target
-        # Litecoin: go back the full period unless it's the first retarget
+        # Viacoin: go back the full period unless it's the first retarget
         first_timestamp = self.get_timestamp(index * 2016 - 1 if index > 0 else 0)
         last = self.read_header(index * 2016 + 2015)
         bits = last.get('bits')
         target = self.bits_to_target(bits)
         nActualTimespan = last.get('timestamp') - first_timestamp
-        nTargetTimespan = 336 * 60 * 60
+        nTargetTimespan = 84 * 60 * 60
         nActualTimespan = max(nActualTimespan, nTargetTimespan // 4)
         nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
         new_target = min(MAX_TARGET, (target * nActualTimespan) // nTargetTimespan)
@@ -339,7 +339,7 @@ class Blockchain(util.PrintError):
             #self.print_error("cannot connect at height", height)
             return False
         if height == 0:
-            return hash_header(header) == bitcoin.NetworkConstants.GENESIS
+            return hash_header(header) == constants.net.GENESIS
         try:
             prev_hash = self.get_hash(height - 1)
         except:
@@ -361,7 +361,7 @@ class Blockchain(util.PrintError):
             self.save_chunk(idx, data)
             return True
         except BaseException as e:
-            self.print_error('verify_chunk failed', str(e))
+            self.print_error('verify_chunk %d failed'%idx, str(e))
             return False
 
     def get_checkpoints(self):
@@ -371,7 +371,7 @@ class Blockchain(util.PrintError):
         for index in range(n):
             h = self.get_hash((index+1) * 2016 -1)
             target = self.get_target(index)
-            # Litecoin: also store the timestamp of the last block
+            # Viacoin: also store the timestamp of the last block
             tstamp = self.get_timestamp((index+1) * 2016 - 1)
             cp.append((h, target, tstamp))
         return cp
