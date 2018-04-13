@@ -73,7 +73,13 @@ class GuiMixin(object):
         if passphrase is None:
             return self.proto.Cancel()
         passphrase = bip39_normalize_passphrase(passphrase)
-        return self.proto.PassphraseAck(passphrase=passphrase)
+
+        ack = self.proto.PassphraseAck(passphrase=passphrase)
+        length = len(ack.passphrase)
+        if length > 50:
+            self.handler.show_error(_("Too long passphrase ({} > 50 chars).").format(length))
+            return self.proto.Cancel()
+        return ack
 
     def callback_PassphraseStateRequest(self, msg):
         return self.proto.PassphraseStateAck()
@@ -119,6 +125,14 @@ class TrezorClientBase(GuiMixin, PrintError):
 
     def is_pairable(self):
         return not self.features.bootloader_mode
+
+    def has_usable_connection_with_device(self):
+        try:
+            res = self.ping("electrum pinging device")
+            assert res == "electrum pinging device"
+        except BaseException:
+            return False
+        return True
 
     def used(self):
         self.last_operation = time.time()

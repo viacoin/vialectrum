@@ -87,10 +87,18 @@ class BitcoinTestnet:
     XPUB_HEADERS = {
         'standard':    0x043587cf,  # tpub
         'p2wpkh-p2sh': 0x044a5262,  # upub
-        'p2wsh-p2sh':  0x024285ef,  # Upub
+        'p2wsh-p2sh':  0x024289ef,  # Upub
         'p2wpkh':      0x045f1cf6,  # vpub
         'p2wsh':       0x02575483,  # Vpub
     }
+
+
+class BitcoinRegtest(BitcoinTestnet):
+
+    SEGWIT_HRP = "rltc"
+    GENESIS = "530827f38f93b43ed12af0b3ad25a288dc02ed74d6d7857862df51fc56c416f9"
+    DEFAULT_SERVERS = read_json('servers_regtest.json', {})
+    CHECKPOINTS = []
 
 
 # don't import net directly, import the module instead (so that net is singleton)
@@ -105,3 +113,8 @@ def set_mainnet():
 def set_testnet():
     global net
     net = BitcoinTestnet
+
+
+def set_regtest():
+    global net
+    net = BitcoinRegtest

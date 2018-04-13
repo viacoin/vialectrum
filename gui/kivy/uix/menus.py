@@ -7,7 +7,7 @@ from kivy.uix.bubble import Bubble, BubbleButton
 from kivy.properties import ListProperty
 from kivy.uix.widget import Widget
 
-from vialectrum_gui.i18n import _
+from vialectrum_gui.kivy.i18n import _
 
 class ContextMenuItem(Widget):
     '''abstract class

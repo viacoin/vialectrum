@@ -1,5 +1,3 @@
-import threading
-
 from binascii import hexlify, unhexlify
 
 from vialectrum.util import bfh, bh2u, versiontuple
@@ -8,7 +6,7 @@ from vialectrum.bitcoin import (b58_address_to_hash160, xpub_from_pubkey,
 from vialectrum import constants
 from vialectrum.i18n import _
 from vialectrum.plugins import BasePlugin, Device
-from vialectrum.transaction import deserialize
+from vialectrum.transaction import deserialize, Transaction
 from vialectrum.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
 
 from ..hw_wallet import HW_PluginBase
@@ -65,6 +63,8 @@ class TrezorKeyStore(Hardware_KeyStore):
         for txin in tx.inputs():
             pubkeys, x_pubkeys = tx.get_sorted_pubkeys(txin)
             tx_hash = txin['prevout_hash']
+            if txin.get('prev_tx') is None and not Transaction.is_segwit_input(txin):
+                raise Exception(_('Offline signing with {} is not supported for legacy inputs.').format(self.device))
             prev_tx[tx_hash] = txin['prev_tx']
             for x_pubkey in x_pubkeys:
                 if not is_xpubkey(x_pubkey):
@@ -93,7 +93,6 @@ class TrezorPlugin(HW_PluginBase):
 
     def __init__(self, parent, config, name):
         HW_PluginBase.__init__(self, parent, config, name)
-        self.main_thread = threading.current_thread()
 
         try:
             # Minimal test if python-trezor is installed
@@ -117,6 +116,7 @@ class TrezorPlugin(HW_PluginBase):
             return
 
         from . import client
+        from . import transport
         import trezorlib.ckd_public
         import trezorlib.messages
         self.client_class = client.TrezorClient
@@ -124,88 +124,17 @@ class TrezorPlugin(HW_PluginBase):
         self.types = trezorlib.messages
         self.DEVICE_IDS = ('TREZOR',)
 
+        self.transport_handler = transport.TrezorTransport()
         self.device_manager().register_enumerate_func(self.enumerate)
 
-    @staticmethod
-    def _all_transports():
-        """Reimplemented trezorlib.transport.all_transports for old trezorlib.
-        Remove this when we start to require trezorlib 0.9.2
-        """
-        try:
-            from trezorlib.transport import all_transports
-        except ImportError:
-            # compat for trezorlib < 0.9.2
-            def all_transports():
-                transports = []
-                try:
-                    from trezorlib.transport_bridge import BridgeTransport
-                    transports.append(BridgeTransport)
-                except BaseException:
-                    pass
-                try:
-                    from trezorlib.transport_hid import HidTransport
-                    transports.append(HidTransport)
-                except BaseException:
-                    pass
-                try:
-                    from trezorlib.transport_udp import UdpTransport
-                    transports.append(UdpTransport)
-                except BaseException:
-                    pass
-                try:
-                    from trezorlib.transport_webusb import WebUsbTransport
-                    transports.append(WebUsbTransport)
-                except BaseException:
-                    pass
-                return transports
-        return all_transports()
-
-    def _enumerate_devices(self):
-        """Just like trezorlib.transport.enumerate_devices,
-        but with exception catching, so that transports can fail separately.
-        """
-        devices = []
-        for transport in self._all_transports():
-            try:
-                new_devices = transport.enumerate()
-            except BaseException as e:
-                self.print_error('enumerate failed for {}. error {}'
-                                 .format(transport.__name__, str(e)))
-            else:
-                devices.extend(new_devices)
-        return devices
-
     def enumerate(self):
-        devices = self._enumerate_devices()
+        devices = self.transport_handler.enumerate_devices()
         return [Device(d.get_path(), -1, d.get_path(), 'TREZOR', 0) for d in devices]
-
-    def _get_transport(self, path=None):
-        """Reimplemented trezorlib.transport.get_transport for old trezorlib.
-        Remove this when we start to require trezorlib 0.9.2
-        """
-        try:
-            from trezorlib.transport import get_transport
-        except ImportError:
-            # compat for trezorlib < 0.9.2
-            def get_transport(path=None, prefix_search=False):
-                if path is None:
-                    try:
-                        return self._enumerate_devices()[0]
-                    except IndexError:
-                        raise Exception("No TREZOR device found") from None
-
-                def match_prefix(a, b):
-                    return a.startswith(b) or b.startswith(a)
-                transports = [t for t in self._all_transports() if match_prefix(path, t.PATH_PREFIX)]
-                if transports:
-                    return transports[0].find_by_path(path)
-                raise Exception("Unknown path prefix '%s'" % path)
-        return get_transport(path)
 
     def create_client(self, device, handler):
         try:
             self.print_error("connecting to device at", device.path)
-            transport = self._get_transport(device.path)
+            transport = self.transport_handler.get_transport(device.path)
         except BaseException as e:
             self.print_error("cannot connect at", device.path, str(e))
             return None
@@ -450,56 +379,86 @@ class TrezorPlugin(HW_PluginBase):
         return inputs
 
     def tx_outputs(self, derivation, tx, script_gen=SCRIPT_GEN_LEGACY):
+
+        def create_output_by_derivation(info):
+            index, xpubs, m = info
+            if len(xpubs) == 1:
+                if script_gen == SCRIPT_GEN_NATIVE_SEGWIT:
+                    script_type = self.types.OutputScriptType.PAYTOWITNESS
+                elif script_gen == SCRIPT_GEN_P2SH_SEGWIT:
+                    script_type = self.types.OutputScriptType.PAYTOP2SHWITNESS
+                else:
+                    script_type = self.types.OutputScriptType.PAYTOADDRESS
+                address_n = self.client_class.expand_path(derivation + "/%d/%d" % index)
+                txoutputtype = self.types.TxOutputType(
+                    amount=amount,
+                    script_type=script_type,
+                    address_n=address_n,
+                )
+            else:
+                if script_gen == SCRIPT_GEN_NATIVE_SEGWIT:
+                    script_type = self.types.OutputScriptType.PAYTOWITNESS
+                elif script_gen == SCRIPT_GEN_P2SH_SEGWIT:
+                    script_type = self.types.OutputScriptType.PAYTOP2SHWITNESS
+                else:
+                    script_type = self.types.OutputScriptType.PAYTOMULTISIG
+                address_n = self.client_class.expand_path("/%d/%d" % index)
+                nodes = map(self.ckd_public.deserialize, xpubs)
+                pubkeys = [self.types.HDNodePathType(node=node, address_n=address_n) for node in nodes]
+                multisig = self.types.MultisigRedeemScriptType(
+                    pubkeys=pubkeys,
+                    signatures=[b''] * len(pubkeys),
+                    m=m)
+                txoutputtype = self.types.TxOutputType(
+                    multisig=multisig,
+                    amount=amount,
+                    address_n=self.client_class.expand_path(derivation + "/%d/%d" % index),
+                    script_type=script_type)
+            return txoutputtype
+
+        def create_output_by_address():
+            txoutputtype = self.types.TxOutputType()
+            txoutputtype.amount = amount
+            if _type == TYPE_SCRIPT:
+                txoutputtype.script_type = self.types.OutputScriptType.PAYTOOPRETURN
+                txoutputtype.op_return_data = address[2:]
+            elif _type == TYPE_ADDRESS:
+                txoutputtype.script_type = self.types.OutputScriptType.PAYTOADDRESS
+                txoutputtype.address = address
+            return txoutputtype
+
+        def is_any_output_on_change_branch():
+            for _type, address, amount in tx.outputs():
+                info = tx.output_info.get(address)
+                if info is not None:
+                    index, xpubs, m = info
+                    if index[0] == 1:
+                        return True
+            return False
+
         outputs = []
         has_change = False
+        any_output_on_change_branch = is_any_output_on_change_branch()
 
         for _type, address, amount in tx.outputs():
+            use_create_by_derivation = False
+
             info = tx.output_info.get(address)
             if info is not None and not has_change:
-                has_change = True # no more than one change address
                 index, xpubs, m = info
-                if len(xpubs) == 1:
-                    if script_gen == SCRIPT_GEN_NATIVE_SEGWIT:
-                        script_type = self.types.OutputScriptType.PAYTOWITNESS
-                    elif script_gen == SCRIPT_GEN_P2SH_SEGWIT:
-                        script_type = self.types.OutputScriptType.PAYTOP2SHWITNESS
-                    else:
-                        script_type = self.types.OutputScriptType.PAYTOADDRESS
-                    address_n = self.client_class.expand_path(derivation + "/%d/%d"%index)
-                    txoutputtype = self.types.TxOutputType(
-                        amount = amount,
-                        script_type = script_type,
-                        address_n = address_n,
-                    )
-                else:
-                    if script_gen == SCRIPT_GEN_NATIVE_SEGWIT:
-                        script_type = self.types.OutputScriptType.PAYTOWITNESS
-                    elif script_gen == SCRIPT_GEN_P2SH_SEGWIT:
-                        script_type = self.types.OutputScriptType.PAYTOP2SHWITNESS
-                    else:
-                        script_type = self.types.OutputScriptType.PAYTOMULTISIG
-                    address_n = self.client_class.expand_path("/%d/%d"%index)
-                    nodes = map(self.ckd_public.deserialize, xpubs)
-                    pubkeys = [ self.types.HDNodePathType(node=node, address_n=address_n) for node in nodes]
-                    multisig = self.types.MultisigRedeemScriptType(
-                        pubkeys = pubkeys,
-                        signatures = [b''] * len(pubkeys),
-                        m = m)
-                    txoutputtype = self.types.TxOutputType(
-                        multisig = multisig,
-                        amount = amount,
-                        address_n = self.client_class.expand_path(derivation + "/%d/%d"%index),
-                        script_type = script_type)
-            else:
-                txoutputtype = self.types.TxOutputType()
-                txoutputtype.amount = amount
-                if _type == TYPE_SCRIPT:
-                    txoutputtype.script_type = self.types.OutputScriptType.PAYTOOPRETURN
-                    txoutputtype.op_return_data = address[2:]
-                elif _type == TYPE_ADDRESS:
-                    txoutputtype.script_type = self.types.OutputScriptType.PAYTOADDRESS
-                    txoutputtype.address = address
+                on_change_branch = index[0] == 1
+                # prioritise hiding outputs on the 'change' branch from user
+                # because no more than one change address allowed
+                # note: ^ restriction can be removed once we require fw
+                # that has https://github.com/trezor/trezor-mcu/pull/306
+                if on_change_branch == any_output_on_change_branch:
+                    use_create_by_derivation = True
+                    has_change = True
 
+            if use_create_by_derivation:
+                txoutputtype = create_output_by_derivation(info)
+            else:
+                txoutputtype = create_output_by_address()
             outputs.append(txoutputtype)
 
         return outputs

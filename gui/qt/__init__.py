@@ -41,10 +41,11 @@ import PyQt5.QtCore as QtCore
 from vialectrum.i18n import _, set_language
 from vialectrum.plugins import run_hook
 from vialectrum import WalletStorage
-# from vialectrum.synchronizer import Synchronizer
-# from vialectrum.verifier import SPV
-# from vialectrum.util import DebugMem
-from vialectrum.util import UserCancelled, print_error
+# from electrum_ltc.synchronizer import Synchronizer
+# from electrum_ltc.verifier import SPV
+# from electrum_ltc.util import DebugMem
+from vialectrum.util import (UserCancelled, print_error,
+                               WalletFileException, BitcoinException)
 # from vialectrum.wallet import Abstract_Wallet
 
 from .installwizard import InstallWizard, GoBack
@@ -191,7 +192,7 @@ class ElectrumGui:
         except BaseException as e:
             traceback.print_exc(file=sys.stdout)
             d = QMessageBox(QMessageBox.Warning, _('Error'),
-                            _('Cannot load wallet:') + '\n' + str(e))
+                            _('Cannot load wallet') + ' (1):\n' + str(e))
             d.exec_()
             return
         if not wallet:
@@ -203,7 +204,14 @@ class ElectrumGui:
                 pass
             except GoBack as e:
                 print_error('[start_new_window] Exception caught (GoBack)', e)
-            wizard.terminate()
+            except (WalletFileException, BitcoinException) as e:
+                traceback.print_exc(file=sys.stderr)
+                d = QMessageBox(QMessageBox.Warning, _('Error'),
+                                _('Cannot load wallet') + ' (2):\n' + str(e))
+                d.exec_()
+                return
+            finally:
+                wizard.terminate()
             if not wallet:
                 return
 
@@ -220,7 +228,7 @@ class ElectrumGui:
         except BaseException as e:
             traceback.print_exc(file=sys.stdout)
             d = QMessageBox(QMessageBox.Warning, _('Error'),
-                            _('Cannot create window for wallet:') + '\n' + str(e))
+                            _('Cannot create window for wallet') + ':\n' + str(e))
             d.exec_()
             return
         if uri:
