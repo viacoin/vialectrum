@@ -1,9 +1,9 @@
-# If you want electrum to appear in a linux app launcher ("start menu"), install this by doing:
-# sudo desktop-file-install electrum.desktop
+# If you want Vialectrum to appear in a Linux app launcher ("start menu"), install this by doing:
+# sudo desktop-file-install vialectrum.desktop
 
 [Desktop Entry]
 Comment=Lightweight Viacoin Client
-Exec=vialectrum %u
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" vialectrum %u"
 GenericName[en_US]=Viacoin Wallet
 GenericName=Viacoin Wallet
 Icon=vialectrum
@@ -14,4 +14,3 @@ StartupNotify=false
 Terminal=false
 Type=Application
 MimeType=x-scheme-handler/viacoin;
-
