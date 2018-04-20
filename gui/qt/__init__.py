@@ -41,9 +41,9 @@ import PyQt5.QtCore as QtCore
 from vialectrum.i18n import _, set_language
 from vialectrum.plugins import run_hook
 from vialectrum import WalletStorage
-# from electrum_ltc.synchronizer import Synchronizer
-# from electrum_ltc.verifier import SPV
-# from electrum_ltc.util import DebugMem
+# from vialectrum.synchronizer import Synchronizer
+# from vialectrum.verifier import SPV
+# from vialectrum.util import DebugMem
 from vialectrum.util import (UserCancelled, print_error,
                                WalletFileException, BitcoinException)
 # from vialectrum.wallet import Abstract_Wallet

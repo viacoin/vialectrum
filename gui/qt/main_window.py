@@ -657,7 +657,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def base_unit(self):
         assert self.decimal_point in [2, 5, 8]
         if self.decimal_point == 2:
-            return 'uLTC'
+            return 'uVIA'
         if self.decimal_point == 5:
             return 'mVIA'
         if self.decimal_point == 8:
@@ -2727,7 +2727,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         units = ['VIA', 'mVIA', 'uVIA']
         msg = (_('Base unit of your wallet.')
-               + '\n1 LTC = 1000 mVIA. 1 mVIA = 1000 uVIA.\n'
+               + '\n1 VIA = 1000 mVIA. 1 mVIA = 1000 uVIA.\n'
                + _('This setting affects the Send tab, and all balance related fields.'))
         unit_label = HelpLabel(_('Base unit') + ':', msg)
         unit_combo = QComboBox()
@@ -2743,7 +2743,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.decimal_point = 8
             elif unit_result == 'mVIA':
                 self.decimal_point = 5
-            elif unit_result == 'uLTC':
+            elif unit_result == 'uVIA':
                 self.decimal_point = 2
             else:
                 raise Exception('Unknown base unit')

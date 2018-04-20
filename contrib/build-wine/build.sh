@@ -13,9 +13,9 @@ echo "Clearing $here/build and $here/dist..."
 rm "$here"/build/* -rf
 rm "$here"/dist/* -rf
 
-mkdir -p /tmp/electrum-ltc-build
-mkdir -p /tmp/electrum-ltc-build/pip-cache
-export PIP_CACHE_DIR="/tmp/electrum-ltc-build/pip-cache"
+mkdir -p /tmp/vialectrum-build
+mkdir -p /tmp/vialectrum-build/pip-cache
+export PIP_CACHE_DIR="/tmp/vialectrum-build/pip-cache"
 
 $here/prepare-wine.sh || exit 1
 

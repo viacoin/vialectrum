@@ -86,7 +86,7 @@ class BTCAmountEdit(AmountEdit):
         if p == 5:
             return 'mVIA'
         if p == 2:
-            return 'uLTC'
+            return 'uVIA'
         raise Exception('Unknown base unit')
 
     def get_amount(self):
