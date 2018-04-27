@@ -482,8 +482,6 @@ class SettingsDialog(WindowModalDialog):
         pin_msg = QLabel(_("PIN protection is strongly recommended.  "
                            "A PIN is your only protection against someone "
                            "stealing your viacoins if they obtain physical "
-                           "access to your %s.") % plugin.device)
-                           "stealing your viacoins if they obtain physical "
                            "access to your {}.").format(plugin.device))
         pin_msg.setWordWrap(True)
         pin_msg.setStyleSheet("color: red")
