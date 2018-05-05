@@ -248,6 +248,12 @@ class MercadoBitcoin(ExchangeBase):
         json = self.get_json('www.mercadobitcoin.net', '/api/via/ticker/')
         return {'BRL': Decimal(json['ticker']['last'])}
 
+class TheRockTrading(ExchangeBase):
+
+    def get_rates(self, ccy):
+        json = self.get_json('api.therocktrading.com',
+                             '/v1/funds/LTCEUR/ticker')
+        return {'EUR': Decimal(json['last'])}
 
 class QuadrigaCX(ExchangeBase):
 
@@ -464,6 +470,6 @@ class FxThread(ThreadJob):
         return self.fiat_value(satoshis, self.history_rate(d_t))
 
     def timestamp_rate(self, timestamp):
-        from vialectrum.util import timestamp_to_datetime
+        from .util import timestamp_to_datetime
         date = timestamp_to_datetime(timestamp)
         return self.history_rate(date)

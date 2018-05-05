@@ -1,8 +1,10 @@
 from binascii import hexlify, unhexlify
+import traceback
+import sys
 
-from vialectrum.util import bfh, bh2u, versiontuple
+from vialectrum.util import bfh, bh2u, versiontuple, UserCancelled
 from vialectrum.bitcoin import (b58_address_to_hash160, xpub_from_pubkey,
-                                  TYPE_ADDRESS, TYPE_SCRIPT)
+                                  TYPE_ADDRESS, TYPE_SCRIPT, is_address)
 from vialectrum import constants
 from vialectrum.i18n import _
 from vialectrum.plugins import BasePlugin, Device
@@ -196,24 +198,34 @@ class TrezorPlugin(HW_PluginBase):
         def f(method):
             import threading
             settings = self.request_trezor_init_settings(wizard, method, self.device)
-            t = threading.Thread(target = self._initialize_device, args=(settings, method, device_id, wizard, handler))
+            t = threading.Thread(target=self._initialize_device_safe, args=(settings, method, device_id, wizard, handler))
             t.setDaemon(True)
             t.start()
             wizard.loop.exec_()
         wizard.choice_dialog(title=_('Initialize Device'), message=msg, choices=choices, run_next=f)
 
+    def _initialize_device_safe(self, settings, method, device_id, wizard, handler):
+        try:
+            self._initialize_device(settings, method, device_id, wizard, handler)
+        except UserCancelled:
+            pass
+        except BaseException as e:
+            traceback.print_exc(file=sys.stderr)
+            handler.show_error(str(e))
+        finally:
+            wizard.loop.exit(0)
+
     def _initialize_device(self, settings, method, device_id, wizard, handler):
         item, label, pin_protection, passphrase_protection = settings
 
         if method == TIM_RECOVER:
-            # FIXME the PIN prompt will appear over this message
-            # which makes this unreadable
             handler.show_error(_(
                 "You will be asked to enter 24 words regardless of your "
                 "seed's actual length.  If you enter a word incorrectly or "
                 "misspell it, you cannot change it or go back - you will need "
                 "to start again from the beginning.\n\nSo please enter "
-                "the words carefully!"))
+                "the words carefully!"),
+                blocking=True)
 
         language = 'english'
         devmgr = self.device_manager()
@@ -240,7 +252,6 @@ class TrezorPlugin(HW_PluginBase):
             pin = pin_protection  # It's the pin, not a boolean
             client.load_device_by_xprv(item, pin, passphrase_protection,
                                        label, language)
-        wizard.loop.exit(0)
 
     def setup_device(self, device_info, wizard, purpose):
         devmgr = self.device_manager()
@@ -271,7 +282,11 @@ class TrezorPlugin(HW_PluginBase):
         raw = bh2u(signed_tx)
         tx.update_signatures(raw)
 
-    def show_address(self, wallet, keystore, address):
+    def show_address(self, wallet, address, keystore=None):
+        if keystore is None:
+            keystore = wallet.get_keystore()
+        if not self.show_address_helper(wallet, address, keystore):
+            return
         client = self.get_client(keystore)
         if not client.atleast_version(1, 3):
             keystore.handler.show_error(_("Your device firmware is too old"))

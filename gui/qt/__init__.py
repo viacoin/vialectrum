@@ -41,6 +41,7 @@ import PyQt5.QtCore as QtCore
 from vialectrum.i18n import _, set_language
 from vialectrum.plugins import run_hook
 from vialectrum import WalletStorage
+from vialectrum.base_wizard import GoBack
 # from vialectrum.synchronizer import Synchronizer
 # from vialectrum.verifier import SPV
 # from vialectrum.util import DebugMem
@@ -48,7 +49,7 @@ from vialectrum.util import (UserCancelled, print_error,
                                WalletFileException, BitcoinException)
 # from vialectrum.wallet import Abstract_Wallet
 
-from .installwizard import InstallWizard, GoBack
+from .installwizard import InstallWizard
 
 
 try:

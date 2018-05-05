@@ -10,17 +10,13 @@ from PyQt5.QtWidgets import *
 
 from vialectrum import Wallet, WalletStorage
 from vialectrum.util import UserCancelled, InvalidPassword
-from vialectrum.base_wizard import BaseWizard, HWD_SETUP_DECRYPT_WALLET
+from vialectrum.base_wizard import BaseWizard, HWD_SETUP_DECRYPT_WALLET, GoBack
 from vialectrum.i18n import _
 
 from .seed_dialog import SeedLayout, KeysLayout
 from .network_dialog import NetworkChoiceLayout
 from .util import *
 from .password_dialog import PasswordLayout, PasswordLayoutForHW, PW_NEW
-
-
-class GoBack(Exception):
-    pass
 
 
 MSG_ENTER_PASSWORD = _("Choose a password to encrypt your wallet keys.") + '\n'\
@@ -534,7 +530,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
             _("Please share it with your cosigners.")
         ])
         vbox = QVBoxLayout()
-        layout = SeedLayout(xpub, title=msg, icon=False)
+        layout = SeedLayout(xpub, title=msg, icon=False, for_seed_words=False)
         vbox.addLayout(layout.layout())
         self.exec_layout(vbox, _('Master Public Key'))
         return None
