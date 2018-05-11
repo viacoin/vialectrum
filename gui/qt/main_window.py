@@ -47,7 +47,9 @@ from vialectrum.i18n import _
 from vialectrum.util import (format_time, format_satoshis, format_fee_satoshis,
                                format_satoshis_plain, NotEnoughFunds, PrintError,
                                UserCancelled, NoDynamicFeeEstimates, profiler,
-                               export_meta, import_meta, bh2u, bfh, InvalidPassword)
+                               export_meta, import_meta, bh2u, bfh, InvalidPassword,
+                               base_units, base_units_list, base_unit_name_to_decimal_point,
+                               decimal_point_to_base_unit_name, quantize_feerate)
 from vialectrum import Transaction
 from vialectrum import util, bitcoin, commands, coinchooser
 from vialectrum import paymentrequest
@@ -655,14 +657,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return self.decimal_point
 
     def base_unit(self):
-        assert self.decimal_point in [2, 5, 8]
-        if self.decimal_point == 2:
-            return 'uVIA'
-        if self.decimal_point == 5:
-            return 'mVIA'
-        if self.decimal_point == 8:
-            return 'VIA'
-        raise Exception('Unknown base unit')
+        return decimal_point_to_base_unit_name(self.decimal_point)
 
     def connect_fields(self, window, btc_e, fiat_e, fee_e):
 
@@ -1107,7 +1102,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.config.set_key('fee_per_kb', fee_rate, False)
 
             if fee_rate:
-                self.feerate_e.setAmount(fee_rate // 1000)
+                fee_rate = Decimal(fee_rate)
+                self.feerate_e.setAmount(quantize_feerate(fee_rate / 1000))
             else:
                 self.feerate_e.setAmount(None)
             self.fee_e.setModified(False)
@@ -1339,12 +1335,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if freeze_feerate or self.fee_slider.is_active():
                 displayed_feerate = self.feerate_e.get_amount()
                 if displayed_feerate:
-                    displayed_feerate = displayed_feerate // 1000
+                    displayed_feerate = quantize_feerate(displayed_feerate / 1000)
                 else:
                     # fallback to actual fee
-                    displayed_feerate = fee // size if fee is not None else None
+                    displayed_feerate = quantize_feerate(fee / size) if fee is not None else None
                     self.feerate_e.setAmount(displayed_feerate)
-                displayed_fee = displayed_feerate * size if displayed_feerate is not None else None
+                displayed_fee = round(displayed_feerate * size) if displayed_feerate is not None else None
                 self.fee_e.setAmount(displayed_fee)
             else:
                 if freeze_fee:
@@ -1354,14 +1350,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     displayed_fee = fee
                     self.fee_e.setAmount(displayed_fee)
                 displayed_fee = displayed_fee if displayed_fee else 0
-                displayed_feerate = displayed_fee // size if displayed_fee is not None else None
+                displayed_feerate = quantize_feerate(displayed_fee / size) if displayed_fee is not None else None
                 self.feerate_e.setAmount(displayed_feerate)
 
             # show/hide fee rounding icon
             feerounding = (fee - displayed_fee) if fee else 0
-            self.set_feerounding_text(feerounding)
+            self.set_feerounding_text(int(feerounding))
             self.feerounding_icon.setToolTip(self.feerounding_text)
-            self.feerounding_icon.setVisible(bool(feerounding))
+            self.feerounding_icon.setVisible(abs(feerounding) >= 1)
 
             if self.is_max:
                 amount = tx.output_value()
@@ -2727,9 +2723,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         SSL_id_e.setReadOnly(True)
         id_widgets.append((SSL_id_label, SSL_id_e))
 
-        units = ['VIA', 'mVIA', 'uVIA']
+        units = base_units_list
         msg = (_('Base unit of your wallet.')
-               + '\n1 VIA = 1000 mVIA. 1 mVIA = 1000 uVIA.\n'
+               + '\n1 LTC = 1000 mVIA. 1 mVIA = 1000 uLTC. 1 uVIA = 100 sat.\n'
                + _('This setting affects the Send tab, and all balance related fields.'))
         unit_label = HelpLabel(_('Base unit') + ':', msg)
         unit_combo = QComboBox()
@@ -2741,14 +2737,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 return
             edits = self.amount_e, self.fee_e, self.receive_amount_e
             amounts = [edit.get_amount() for edit in edits]
-            if unit_result == 'VIA':
-                self.decimal_point = 8
-            elif unit_result == 'mVIA':
-                self.decimal_point = 5
-            elif unit_result == 'uVIA':
-                self.decimal_point = 2
-            else:
-                raise Exception('Unknown base unit')
+            self.decimal_point = base_unit_name_to_decimal_point(unit_result)
             self.config.set_key('decimal_point', self.decimal_point, True)
             nz.setMaximum(self.decimal_point)
             self.history_list.update()
