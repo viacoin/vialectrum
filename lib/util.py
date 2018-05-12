@@ -61,7 +61,6 @@ def base_unit_name_to_decimal_point(unit_name: str) -> int:
     except KeyError:
         raise Exception('Unknown base unit')
 
->>>>>>> upstream/master
 
 def normalize_version(v):
     return [int(x) for x in re.sub(r'(\.0+)*$','', v).split(".")]
