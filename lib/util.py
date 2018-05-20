@@ -596,7 +596,7 @@ def parse_URI(uri, on_pr=None):
 
     if ':' not in uri:
         if not bitcoin.is_address(uri):
-            raise Exception("Not a Litecoin address")
+            raise Exception("Not a Viacoin address")
         return {'address': uri}
 
     u = urllib.parse.urlparse(uri)

@@ -19,30 +19,28 @@ set -e
 mkdir -p tmp
 cd tmp
 
-for repo in vialectrum vialectrum-locale vialectrum-icons; do
-    if [ -d $repo ]; then
-	cd $repo
-	git pull
-	git checkout master
-	cd ..
-    else
-	URL=https://github.com/vialectrum/$repo.git
-	git clone -b master $URL $repo
-    fi
-done
+if [ -d ./vialectrum ]; then
+  rm ./vialectrum -rf
+fi
 
-pushd vialectrum-locale
+git clone https://github.com/vialectrum/vialectrum -b master
+
+pushd vialectrum
+if [ ! -z "$1" ]; then
+    git checkout $1
+fi
+
+# Load electrum-icons and electrum-locale for this release
+git submodule init
+git submodule update
+
+pushd ./contrib/deterministic-build/vialectrum-locale
 for i in ./locale/*; do
     dir=$i/LC_MESSAGES
     mkdir -p $dir
     msgfmt --output-file=$dir/electrum.mo $i/electrum.po || true
 done
 popd
-
-pushd vialectrum
-if [ ! -z "$1" ]; then
-    git checkout $1
-fi
 
 VERSION=`git describe --tags --dirty`
 echo "Last commit: $VERSION"
@@ -52,8 +50,8 @@ popd
 rm -rf $WINEPREFIX/drive_c/vialectrum
 cp -r vialectrum $WINEPREFIX/drive_c/vialectrum
 cp vialectrum/LICENCE .
-cp -r vialectrum-locale/locale $WINEPREFIX/drive_c/vialectrum/lib/
-cp vialectrum-icons/icons_rc.py $WINEPREFIX/drive_c/vialectrum/gui/qt/
+cp -r ./vialectrum/contrib/deterministic-build/vialectrum-locale/locale $WINEPREFIX/drive_c/vialectrum/lib/
+cp ./vialectrum/contrib/deterministic-build/vialectrum-icons/icons_rc.py $WINEPREFIX/drive_c/vialectrum/gui/qt/
 
 # Install frozen dependencies
 $PYTHON -m pip install -r ../../deterministic-build/requirements.txt

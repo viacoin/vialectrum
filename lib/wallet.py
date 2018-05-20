@@ -215,10 +215,10 @@ class Abstract_Wallet(PrintError):
         self.load_addresses()
         self.test_addresses_sanity()
         self.load_transactions()
-        self.check_history()
-        self.load_unverified_transactions()
         self.load_local_history()
         self.build_spent_outpoints()
+        self.check_history()
+        self.load_unverified_transactions()
         self.remove_local_transactions_we_dont_have()
 
         # there is a difference between wallet.up_to_date and interface.is_up_to_date()
@@ -1630,7 +1630,7 @@ class Abstract_Wallet(PrintError):
     def add_payment_request(self, req, config):
         addr = req['address']
         if not bitcoin.is_address(addr):
-            raise Exception(_('Invalid Litecoin address.'))
+            raise Exception(_('Invalid Viacoin address.'))
         if not self.is_mine(addr):
             raise Exception(_('Address not in wallet.'))
 
@@ -1792,7 +1792,7 @@ class Abstract_Wallet(PrintError):
         return None
 
     def price_at_timestamp(self, txid, price_func):
-        """Returns fiat price of Litecoin at the time tx got confirmed."""
+        """Returns fiat price of Viacoin at the time tx got confirmed."""
         height, conf, timestamp = self.get_tx_height(txid)
         return price_func(timestamp if timestamp else time.time())
 

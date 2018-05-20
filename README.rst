@@ -1,6 +1,8 @@
 Vialectrum - Lightweight Viacoin client
 ==========================================
 
+Vialectrum is a port of Electrum, the Bitcoin wallet, to Viacoin.
+
 ::
 
   Licence: MIT Licence
@@ -83,7 +85,7 @@ To create binaries, create the 'packages' directory::
 
     ./contrib/make_packages
 
-This directory contains the python dependencies used by Electrum.
+This directory contains the python dependencies used by Vialectrum.
 
 Mac OS X / macOS
 --------
