@@ -202,9 +202,7 @@ class Network(util.DaemonThread):
         self.callbacks = defaultdict(list)
 
         dir_path = os.path.join( self.config.path, 'certs')
-        if not os.path.exists(dir_path):
-            os.mkdir(dir_path)
-            os.chmod(dir_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        util.make_dir(dir_path)
 
         # subscriptions and requests
         self.subscribed_addresses = set()
@@ -309,9 +307,6 @@ class Network(util.DaemonThread):
         # Resend unanswered requests
         requests = self.unanswered_requests.values()
         self.unanswered_requests = {}
-        if self.interface.ping_required():
-            params = [ELECTRUM_VERSION, PROTOCOL_VERSION]
-            self.queue_request('server.version', params, self.interface)
         for request in requests:
             message_id = self.queue_request(request[0], request[1])
             self.unanswered_requests[message_id] = request
@@ -713,7 +708,10 @@ class Network(util.DaemonThread):
         interface.mode = 'default'
         interface.request = None
         self.interfaces[server] = interface
-        self.queue_request('blockchain.headers.subscribe', [], interface)
+        # server.version should be the first message
+        params = [ELECTRUM_VERSION, PROTOCOL_VERSION]
+        self.queue_request('server.version', params, interface)
+        self.queue_request('blockchain.headers.subscribe', [True], interface)
         if server == self.default_server:
             self.switch_to_interface(server)
         #self.notify('interfaces')
@@ -736,8 +734,7 @@ class Network(util.DaemonThread):
             if interface.has_timed_out():
                 self.connection_down(interface.server)
             elif interface.ping_required():
-                params = [ELECTRUM_VERSION, PROTOCOL_VERSION]
-                self.queue_request('server.version', params, interface)
+                self.queue_request('server.ping', [], interface)
 
         now = time.time()
         # nodes
@@ -870,7 +867,7 @@ class Network(util.DaemonThread):
                         next_height = None
                     else:
                         interface.print_error('checkpoint conflicts with existing fork', branch.path())
-                        branch.write('', 0)
+                        branch.write(b'', 0)
                         branch.save_header(interface.bad_header)
                         interface.mode = 'catch_up'
                         interface.blockchain = branch
@@ -985,10 +982,9 @@ class Network(util.DaemonThread):
         self.stop_network()
         self.on_stop()
 
-    def on_notify_header(self, interface, header):
-        height = header.get('block_height')
-        if not height:
-            return
+    def on_notify_header(self, interface, header_dict):
+        header_hex, height = header_dict['hex'], header_dict['height']
+        header = blockchain.deserialize_header(bfh(header_hex), height)
         if height < self.max_checkpoint():
             self.connection_down(interface.server)
             return

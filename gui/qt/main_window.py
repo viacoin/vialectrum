@@ -39,7 +39,7 @@ import PyQt5.QtCore as QtCore
 from .exception_window import Exception_Hook
 from PyQt5.QtWidgets import *
 
-from vialectrum import keystore, simple_config
+from vialectrum import keystore, simple_config, ecc
 from vialectrum.bitcoin import COIN, is_address, TYPE_ADDRESS
 from vialectrum import constants
 from vialectrum.plugins import run_hook
@@ -1338,7 +1338,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if freeze_feerate or self.fee_slider.is_active():
                 displayed_feerate = self.feerate_e.get_amount()
                 if displayed_feerate:
-                    displayed_feerate = quantize_feerate(displayed_feerate / 1000)
+                    displayed_feerate = quantize_feerate(displayed_feerate)
                 else:
                     # fallback to actual fee
                     displayed_feerate = quantize_feerate(fee / size) if fee is not None else None
@@ -1438,8 +1438,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.is_send_fee_frozen():
             fee_estimator = self.fee_e.get_amount()
         elif self.is_send_feerate_frozen():
-            amount = self.feerate_e.get_amount()
-            amount = 0 if amount is None else amount
+            amount = self.feerate_e.get_amount()  # sat/byte feerate
+            amount = 0 if amount is None else amount * 1000  # sat/kilobyte feerate
             fee_estimator = partial(
                 simple_config.SimpleConfig.estimate_fee_for_feerate, amount)
         else:
@@ -1588,8 +1588,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             # can sign directly
             task = partial(Transaction.sign, tx, self.tx_external_keypairs)
         else:
-            # call hook to see if plugin needs gui interaction
-            run_hook('sign_tx', self, tx)
             task = partial(self.wallet.sign_transaction, tx, password)
         WaitingDialog(self, _('Signing transaction...'), task,
                       on_signed, on_failed)
@@ -1778,7 +1776,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return self.create_list_tab(l)
 
     def remove_address(self, addr):
-        if self.question(_("Do you want to remove")+" %s "%addr +_("from your wallet?")):
+        if self.question(_("Do you want to remove {} from your wallet?").format(addr)):
             self.wallet.delete_address(addr)
             self.need_update.set()  # history, addresses, coins
             self.clear_receive_tab()
@@ -2082,7 +2080,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.gui_object.daemon.stop_wallet(wallet_path)
         self.close()
         os.unlink(wallet_path)
-        self.show_error("Wallet removed:" + basename)
+        self.show_error(_("Wallet removed: {}").format(basename))
 
     @protected
     def show_seed_dialog(self, password):
@@ -2179,7 +2177,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         try:
             # This can throw on invalid base64
             sig = base64.b64decode(str(signature.toPlainText()))
-            verified = bitcoin.verify_message(address, sig, message)
+            verified = ecc.verify_message_with_address(address, sig, message)
         except Exception as e:
             verified = False
         if verified:
@@ -2245,7 +2243,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         message = message_e.toPlainText()
         message = message.encode('utf-8')
         try:
-            encrypted = bitcoin.encrypt_message(message, pubkey_e.text())
+            public_key = ecc.ECPubkey(bfh(pubkey_e.text()))
+            encrypted = public_key.encrypt_message(message)
             encrypted_e.setText(encrypted.decode('ascii'))
         except BaseException as e:
             traceback.print_exc(file=sys.stdout)

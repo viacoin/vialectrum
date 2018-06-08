@@ -40,13 +40,18 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         (os.path.join(usr_share, icons_dirname), ['icons/vialectrum.png'])
     ]
 
+extras_require = {
+    'hardware': requirements_hw,
+    'fast': ['pycryptodomex', 'scrypt>=0.6.0'],
+}
+extras_require['full'] = extras_require['hardware'] + extras_require['fast']
+
+
 setup(
     name="Vialectrum",
     version=version.ELECTRUM_VERSION,
     install_requires=requirements,
-    extras_require={
-        'full': requirements_hw + ['pycryptodomex', 'scrypt>=0.6.0'],
-    },
+    extras_require=extras_require,
     packages=[
         'vialectrum',
         'vialectrum_gui',
