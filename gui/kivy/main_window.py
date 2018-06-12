@@ -67,7 +67,7 @@ Label.register('Roboto',
                'gui/kivy/data/fonts/Roboto-Bold.ttf')
 
 
-from vialectrum.util import base_units
+from vialectrum.util import base_units, NoDynamicFeeEstimates
 
 
 class ElectrumWindow(App):
@@ -511,6 +511,8 @@ class ElectrumWindow(App):
 
     def on_stop(self):
         Logger.info('on_stop')
+        if self.wallet:
+            self.electrum_config.save_last_wallet(self.wallet)
         self.stop_wallet()
 
     def stop_wallet(self):
@@ -666,7 +668,11 @@ class ElectrumWindow(App):
             return ''
         addr = str(self.send_screen.screen.address) or self.wallet.dummy_address()
         outputs = [(TYPE_ADDRESS, addr, '!')]
-        tx = self.wallet.make_unsigned_transaction(inputs, outputs, self.electrum_config)
+        try:
+            tx = self.wallet.make_unsigned_transaction(inputs, outputs, self.electrum_config)
+        except NoDynamicFeeEstimates as e:
+            Clock.schedule_once(lambda dt, bound_e=e: self.show_error(str(bound_e)))
+            return ''
         amount = tx.output_value()
         return format_satoshis_plain(amount, self.decimal_point())
 
@@ -703,7 +709,7 @@ class ElectrumWindow(App):
 
     def on_resume(self):
         now = time.time()
-        if self.wallet.has_password and now - self.pause_time > 60:
+        if self.wallet and self.wallet.has_password() and now - self.pause_time > 60:
             self.password_dialog(self.wallet, _('Enter PIN'), None, self.stop)
         if self.nfcscanner:
             self.nfcscanner.nfc_enable()
@@ -809,7 +815,7 @@ class ElectrumWindow(App):
         Clock.schedule_once(lambda dt: on_success(tx))
 
     def _broadcast_thread(self, tx, on_complete):
-        ok, txid = self.network.broadcast(tx)
+        ok, txid = self.network.broadcast_transaction(tx)
         Clock.schedule_once(lambda dt: on_complete(ok, txid))
 
     def broadcast(self, tx, pr=None):
@@ -919,9 +925,7 @@ class ElectrumWindow(App):
         self.stop_wallet()
         os.unlink(wallet_path)
         self.show_error(_("Wallet removed: {}").format(basename))
-        d = os.listdir(dirname)
-        name = 'default_wallet'
-        new_path = os.path.join(dirname, name)
+        new_path = self.electrum_config.get_wallet_path()
         self.load_wallet_by_name(new_path)
 
     def show_seed(self, label):
