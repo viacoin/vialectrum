@@ -1,7 +1,7 @@
 Vialectrum - Lightweight Viacoin client
 ==========================================
 
-Vialectrum is a port of Electrum, the Bitcoin wallet, to Viacoin.
+Vialectrum is a port of Electrum, the Viacoin.
 
 ::
 
