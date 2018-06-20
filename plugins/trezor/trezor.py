@@ -13,6 +13,7 @@ from vialectrum.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey, xt
 from vialectrum.base_wizard import ScriptTypeNotSupported
 
 from ..hw_wallet import HW_PluginBase
+from ..hw_wallet.plugin import is_any_tx_output_on_change_branch
 
 
 # TREZOR initialization methods
@@ -318,9 +319,9 @@ class TrezorPlugin(HW_PluginBase):
         client = self.get_client(keystore)
         inputs = self.tx_inputs(tx, True, keystore.get_script_gen())
         outputs = self.tx_outputs(keystore.get_derivation(), tx, keystore.get_script_gen())
-        signed_tx = client.sign_tx(self.get_coin_name(), inputs, outputs, lock_time=tx.locktime)[1]
-        raw = bh2u(signed_tx)
-        tx.update_signatures(raw)
+        signatures = client.sign_tx(self.get_coin_name(), inputs, outputs, lock_time=tx.locktime)[0]
+        signatures = [(bh2u(x) + '01') for x in signatures]
+        tx.update_signatures(signatures)
 
     def show_address(self, wallet, address, keystore=None):
         if keystore is None:
@@ -466,18 +467,9 @@ class TrezorPlugin(HW_PluginBase):
                 txoutputtype.address = address
             return txoutputtype
 
-        def is_any_output_on_change_branch():
-            for _type, address, amount in tx.outputs():
-                info = tx.output_info.get(address)
-                if info is not None:
-                    index, xpubs, m = info
-                    if index[0] == 1:
-                        return True
-            return False
-
         outputs = []
         has_change = False
-        any_output_on_change_branch = is_any_output_on_change_branch()
+        any_output_on_change_branch = is_any_tx_output_on_change_branch(tx)
 
         for _type, address, amount in tx.outputs():
             use_create_by_derivation = False

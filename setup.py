@@ -43,6 +43,7 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
 extras_require = {
     'hardware': requirements_hw,
     'fast': ['pycryptodomex', 'scrypt>=0.6.0'],
+    ':python_version < "3.5"': ['typing>=3.0.0'],
 }
 extras_require['full'] = extras_require['hardware'] + extras_require['fast']
 
@@ -64,6 +65,7 @@ setup(
         'vialectrum_plugins.keepkey',
         'vialectrum_plugins.labels',
         'vialectrum_plugins.ledger',
+        'vialectrum_plugins.revealer',
         'vialectrum_plugins.trezor',
         'vialectrum_plugins.digitalbitbox',
         'vialectrum_plugins.virtualkeyboard',
@@ -74,17 +76,10 @@ setup(
         'vialectrum_plugins': 'plugins',
     },
     package_data={
+        '': ['*.txt', '*.json', '*.ttf', '*.otf'],
         'vialectrum': [
-            'servers.json',
-            'servers_testnet.json',
-            'servers_regtest.json',
-            'currencies.json',
-            'checkpoints.json',
-            'checkpoints_testnet.json',
-            'www/index.html',
-            'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
-        ]
+        ],
     },
     scripts=['vialectrum'],
     data_files=data_files,
