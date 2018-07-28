@@ -25,6 +25,12 @@ MSG_HW_STORAGE_ENCRYPTION = _("Set wallet file encryption.") + '\n'\
                           + _("Your wallet file does not contain secrets, mostly just metadata. ") \
                           + _("It also contains your master public key that allows watching your addresses.") + '\n\n'\
                           + _("Note: If you enable this setting, you will need your hardware device to open your wallet.")
+WIF_HELP_TEXT = (_('WIF keys are typed in Electrum, based on script type.') + '\n\n' +
+                 _('A few examples') + ':\n' +
+                 'p2pkh:T4PsyoR5gC8B...       \t-> LXqi2tzER...\n' +
+                 'p2wpkh-p2sh:T4PsyoR5gC8B... \t-> MUuWxSpVC...\n' +
+                 'p2wpkh:T4PsyoR5gC8B...      \t-> ltc1q3fjf...')
+# note: full key is T4PsyoR5gC8BGEoTe8So7YQWPnvdkqTJqRVpLoMmZVqBsunDdeuJ
 
 
 class CosignWidget(QWidget):
@@ -356,7 +362,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         self.config.remove_from_recently_open(filename)
 
     def text_input(self, title, message, is_valid, allow_multi=False):
-        slayout = KeysLayout(parent=self, title=message, is_valid=is_valid,
+        slayout = KeysLayout(parent=self, header_layout=message, is_valid=is_valid,
                              allow_multi=allow_multi)
         self.exec_layout(slayout, title, next_enabled=False)
         return slayout.get_text()
@@ -367,8 +373,14 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         return slayout.get_seed(), slayout.is_bip39, slayout.is_ext
 
     @wizard_dialog
-    def add_xpub_dialog(self, title, message, is_valid, run_next, allow_multi=False):
-        return self.text_input(title, message, is_valid, allow_multi)
+    def add_xpub_dialog(self, title, message, is_valid, run_next, allow_multi=False, show_wif_help=False):
+        header_layout = QHBoxLayout()
+        label = WWLabel(message)
+        label.setMinimumWidth(400)
+        header_layout.addWidget(label)
+        if show_wif_help:
+            header_layout.addWidget(InfoButton(WIF_HELP_TEXT), alignment=Qt.AlignRight)
+        return self.text_input(title, header_layout, is_valid, allow_multi)
 
     @wizard_dialog
     def add_cosigner_dialog(self, run_next, index, is_valid):
@@ -508,6 +520,34 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         return clayout.selected_index()
 
     @wizard_dialog
+    def choice_and_line_dialog(self, title, message1, choices, message2,
+                               test_text, run_next) -> (str, str):
+        vbox = QVBoxLayout()
+
+        c_values = [x[0] for x in choices]
+        c_titles = [x[1] for x in choices]
+        c_default_text = [x[2] for x in choices]
+        def on_choice_click(clayout):
+            idx = clayout.selected_index()
+            line.setText(c_default_text[idx])
+        clayout = ChoicesLayout(message1, c_titles, on_choice_click)
+        vbox.addLayout(clayout.layout())
+
+        vbox.addSpacing(50)
+        vbox.addWidget(WWLabel(message2))
+
+        line = QLineEdit()
+        def on_text_change(text):
+            self.next_button.setEnabled(test_text(text))
+        line.textEdited.connect(on_text_change)
+        on_choice_click(clayout)  # set default text for "line"
+        vbox.addWidget(line)
+
+        self.exec_layout(vbox, title)
+        choice = c_values[clayout.selected_index()]
+        return str(line.text()), choice
+
+    @wizard_dialog
     def line_dialog(self, run_next, title, message, default, test, warning='',
                     presets=()):
         vbox = QVBoxLayout()
@@ -523,9 +563,9 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         for preset in presets:
             button = QPushButton(preset[0])
             button.clicked.connect(lambda __, text=preset[1]: line.setText(text))
-            button.setMaximumWidth(150)
+            button.setMinimumWidth(150)
             hbox = QHBoxLayout()
-            hbox.addWidget(button, Qt.AlignCenter)
+            hbox.addWidget(button, alignment=Qt.AlignCenter)
             vbox.addLayout(hbox)
 
         self.exec_layout(vbox, title, next_enabled=test(default))

@@ -78,6 +78,7 @@ setup(
     package_data={
         '': ['*.txt', '*.json', '*.ttf', '*.otf'],
         'vialectrum': [
+            'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
         ],
     },

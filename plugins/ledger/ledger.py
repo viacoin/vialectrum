@@ -3,7 +3,7 @@ import hashlib
 import sys
 import traceback
 
-from vialectrum import bitcoin
+from vialectrum import bitcoin, constants
 from vialectrum.bitcoin import TYPE_ADDRESS, int_to_hex, var_int
 from vialectrum.i18n import _
 from vialectrum.plugins import BasePlugin
@@ -175,7 +175,7 @@ class Ledger_Client():
                     raise Exception('Aborted by user - please unplug the dongle and plug it again before retrying')
                 pin = pin.encode()
                 self.dongleObject.verifyPin(pin)
-                self.dongleObject.setAlternateCoinVersions(ADDRTYPE_P2PKH, ADDRTYPE_P2SH)
+                self.dongleObject.setAlternateCoinVersion(constants.net.ADDRTYPE_P2PKH, constants.net.ADDRTYPE_P2SH)
         except BTChipException as e:
             if (e.sw == 0x6faa):
                 raise Exception("Dongle is temporarily locked - please unplug it and replug it again")
@@ -515,7 +515,7 @@ class Ledger_KeyStore(Hardware_KeyStore):
 
         for i, txin in enumerate(tx.inputs()):
             signingPos = inputs[i][4]
-            Transaction.add_signature_to_txin(txin, signingPos, bh2u(signatures[i]))
+            tx.add_signature_to_txin(i, signingPos, bh2u(signatures[i]))
         tx.raw = tx.serialize()
 
     @test_pin_unlocked

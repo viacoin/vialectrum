@@ -33,7 +33,7 @@ from vialectrum.i18n import _
 
 
 class BaseCrashReporter(object):
-    report_server = "https://crashhub.electrum-ltc.org"
+    report_server = "https://crashhub.vialectrum.org"
     config_key = "show_crash_reporter"
     issue_template = """<h2>Traceback</h2>
 <pre>
@@ -43,6 +43,7 @@ class BaseCrashReporter(object):
 <h2>Additional information</h2>
 <ul>
   <li>Electrum version: {app_version}</li>
+  <li>Python version: {python_version}</li>
   <li>Operating system: {os}</li>
   <li>Wallet type: {wallet_type}</li>
   <li>Locale: {locale}</li>
@@ -59,9 +60,9 @@ class BaseCrashReporter(object):
         self.exc_args = (exctype, value, tb)
 
     def send_report(self, endpoint="/crash"):
-        if constants.net.GENESIS[-4:] not in ["29a0", "bfe2"] and ".electrum-ltc.org" in BaseCrashReporter.report_server:
+        if constants.net.GENESIS[-4:] not in ["29a0", "bfe2"] and ".vialectrum.org" in BaseCrashReporter.report_server:
             # Gah! Some kind of altcoin wants to send us crash reports.
-            raise BaseException(_("Missing report URL."))
+            raise Exception(_("Missing report URL."))
         report = self.get_traceback_info()
         report.update(self.get_additional_info())
         report = json.dumps(report)
@@ -86,6 +87,7 @@ class BaseCrashReporter(object):
     def get_additional_info(self):
         args = {
             "app_version": ELECTRUM_VERSION,
+            "python_version": sys.version,
             "os": self.get_os_version(),
             "wallet_type": "unknown",
             "locale": locale.getdefaultlocale()[0] or "?",

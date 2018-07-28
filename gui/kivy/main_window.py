@@ -68,7 +68,8 @@ Label.register('Roboto',
                'gui/kivy/data/fonts/Roboto-Bold.ttf')
 
 
-from vialectrum.util import base_units, NoDynamicFeeEstimates
+from vialectrum.util import (base_units, NoDynamicFeeEstimates, decimal_point_to_base_unit_name,
+                               base_unit_name_to_decimal_point, NotEnoughFunds)
 
 
 class ElectrumWindow(App):
@@ -113,12 +114,12 @@ class ElectrumWindow(App):
         chains = self.network.get_blockchains()
         def cb(name):
             for index, b in self.network.blockchains.items():
-                if name == self.network.get_blockchain_name(b):
+                if name == b.get_name():
                     self.network.follow_chain(index)
-                    #self.block
         names = [self.network.blockchains[b].get_name() for b in chains]
-        if len(names) >1:
-            ChoiceDialog(_('Choose your chain'), names, '', cb).open()
+        if len(names) > 1:
+            cur_chain = self.network.blockchain().get_name()
+            ChoiceDialog(_('Choose your chain'), names, cur_chain, cb).open()
 
     use_rbf = BooleanProperty(False)
     def on_use_rbf(self, instance, x):
@@ -159,11 +160,13 @@ class ElectrumWindow(App):
         self._trigger_update_history()
 
     def _get_bu(self):
-        return self.electrum_config.get('base_unit', 'VIA')
+        decimal_point = self.electrum_config.get('decimal_point', 8)
+        return decimal_point_to_base_unit_name(decimal_point)
 
     def _set_bu(self, value):
         assert value in base_units.keys()
-        self.electrum_config.set_key('base_unit', value, True)
+        decimal_point = base_unit_name_to_decimal_point(value)
+        self.electrum_config.set_key('decimal_point', decimal_point, True)
         self._trigger_update_status()
         self._trigger_update_history()
 
@@ -285,6 +288,9 @@ class ElectrumWindow(App):
         return os.path.basename(self.wallet.storage.path) if self.wallet else ' '
 
     def on_pr(self, pr):
+        if not self.wallet:
+            self.show_error(_('No wallet loaded.'))
+            return
         if pr.verify(self.wallet.contacts):
             key = self.wallet.invoices.add(pr)
             if self.invoices_screen:
@@ -639,8 +645,9 @@ class ElectrumWindow(App):
         chain = self.network.blockchain()
         self.blockchain_checkpoint = chain.get_checkpoint()
         self.blockchain_name = chain.get_name()
-        if self.network.interface:
-            self.server_host = self.network.interface.host
+        interface = self.network.interface
+        if interface:
+            self.server_host = interface.host
 
     def on_network_event(self, event, *args):
         Logger.info('network event: '+ event)
@@ -706,6 +713,8 @@ class ElectrumWindow(App):
             tx = self.wallet.make_unsigned_transaction(inputs, outputs, self.electrum_config)
         except NoDynamicFeeEstimates as e:
             Clock.schedule_once(lambda dt, bound_e=e: self.show_error(str(bound_e)))
+            return ''
+        except NotEnoughFunds:
             return ''
         amount = tx.output_value()
         __, x_fee_amount = run_hook('get_tx_extra_fee', self.wallet, tx) or (None, 0)
