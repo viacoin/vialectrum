@@ -79,13 +79,8 @@ class BitcoinTestnet(AbstractNet):
     WIF_PREFIX = 0xbf
     ADDRTYPE_P2PKH = 111
     ADDRTYPE_P2SH = 58
-<<<<<<< HEAD:electrum_ltc/constants.py
-    SEGWIT_HRP = "tltc"
-    GENESIS = "4966625a4b2851d9fdee139e56211a0d88575f59ed816ff5e6a63deb4e3e29a0"
-=======
     SEGWIT_HRP = "tvia"
     GENESIS = "770aa712aa08fdcbdecc1c8df1b3e2d4e17a7cf6e63a28b785b32e74c96cb27d"
->>>>>>> f36b2962f... Viacoin: Network:vialectrum/constants.py
     DEFAULT_PORTS = {'t': '51001', 's': '51002'}
     DEFAULT_SERVERS = read_json('servers_testnet.json', {})
     CHECKPOINTS = read_json('checkpoints_testnet.json', [])
