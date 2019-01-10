@@ -1,112 +1,80 @@
 {
-    "2y27fkedpau73lbw.onion": {
-        "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.2"
-    },
-    "agapc7dhcqfjqpjb.onion": {
-        "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.2"
-    },
-    "backup.electrum-ltc.org": {
-        "pruning": "-",
-        "s": "443",
-        "t": "50001",
-        "version": "1.4"
-    },
-    "e-1.claudioboxx.com": {
-        "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.4"
-    },
-    "e-3.claudioboxx.com": {
-        "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.4"
-    },
-    "elec.luggs.co": {
-        "pruning": "-",
-        "s": "444",
-        "version": "1.4"
-    },
-    "electrum-ltc.bysh.me": {
+    "server.vialectrum.org": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.4"
+        "version": "1.1"
     },
-    "electrum-ltc.klippb.org": {
-        "pruning": "-",
-        "s": "50002",
-        "version": "1.4"
-    },
-    "electrum-ltc.villocq.com": {
-        "pruning": "-",
-        "s": "60002",
-        "t": "60001",
-        "version": "1.4"
-    },
-    "electrum-ltc.wilv.in": {
+    "server2.vialectrum.org": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.4"
+        "version": "1.1"
     },
-    "electrum.leblancnet.us": {
-        "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.4"
-    },
-    "electrum.ltc.xurious.com": {
+    "server3.vialectrum.org": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.4"
+        "version": "1.1"
     },
-    "electrumx.nmdps.net": {
+    "server4.vialectrum.org": {
         "pruning": "-",
-        "s": "9434",
-        "t": "9433",
-        "version": "1.4"
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
     },
-    "gttvzmfh23pxqiw4.onion": {
+    "vialectrum.viacoin.net": {
         "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.2"
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
     },
-    "ltc01.knas.systems": {
+    "4ws35lg5lkekpjjp.onion": {
         "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.4"
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
     },
-    "luggscoqbymhvnkp.onion": {
+    "tghi24vuhwm5rcqy.onion": {
         "pruning": "-",
-        "t": "81",
-        "version": "1.4"
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
     },
-    "node.ispol.sk": {
+    "viax1.bitops.me": {
         "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.2"
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
     },
-    "oje4q5v6hlkxbscv.onion": {
+    "viax2.bitops.me": {
         "pruning": "-",
-        "s": "50004",
-        "t": "50003",
-        "version": "1.2"
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
     },
-    "technetium.network": {
+    "viax3.bitops.me": {
         "pruning": "-",
-        "s": "50003",
-        "version": "1.4"
-    }
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
+    "viax4.bitops.me": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
+    "vialectrum.bitops.me": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
+    "vialectrum.barbatos.fr": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
 }
