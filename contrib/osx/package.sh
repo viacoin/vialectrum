@@ -17,7 +17,7 @@ export PATH=$PATH:~/bin
 . $(dirname "$0")/base.sh
 
 if [ -z "$1" ]; then
-    echo "Usage: $0 Electrum-LTC.app"
+    echo "Usage: $0 Vialectrum.app"
     exit -127
 fi
 
@@ -73,16 +73,16 @@ ${genisoimage} \
     -D \
     -l \
     -probe \
-    -V "Electrum-LTC" \
+    -V "Vialectrum" \
     -no-pad \
     -r \
     -dir-mode 0755 \
     -apple \
-    -o Electrum-LTC_uncompressed.dmg \
+    -o Vialectrum_uncompressed.dmg \
     /tmp/electrum-ltc-macos/image || fail "Unable to create uncompressed dmg"
 
-dmg dmg Electrum-LTC_uncompressed.dmg electrum-ltc-$VERSION.dmg || fail "Unable to create compressed dmg"
-rm Electrum-LTC_uncompressed.dmg
+dmg dmg Vialectrum_uncompressed.dmg electrum-ltc-$VERSION.dmg || fail "Unable to create compressed dmg"
+rm Vialectrum_uncompressed.dmg
 
 echo "Done."
 md5sum electrum-ltc-$VERSION.dmg

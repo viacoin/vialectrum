@@ -76,7 +76,7 @@ class CustomInstallCommand(install):
 
 
 setup(
-    name="Electrum-LTC",
+    name="Vialectrum",
     version=version.ELECTRUM_VERSION,
     python_requires='>={}'.format(MIN_PYTHON_VERSION),
     install_requires=requirements,

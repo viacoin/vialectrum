@@ -1,7 +1,7 @@
 Windows Binary Builds
 =====================
 
-These scripts can be used for cross-compilation of Windows Electrum-LTC executables from Linux/Wine.
+These scripts can be used for cross-compilation of Windows Vialectrum executables from Linux/Wine.
 
 For reproducible builds, see the `docker` folder.
 

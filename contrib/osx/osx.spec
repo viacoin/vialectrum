@@ -5,7 +5,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules, coll
 import sys
 import os
 
-PACKAGE='Electrum-LTC'
+PACKAGE='Vialectrum'
 PYPKG='electrum_ltc'
 MAIN_SCRIPT='run_electrum'
 ICONS_FILE='electrum.icns'

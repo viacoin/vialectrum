@@ -3,7 +3,7 @@
 # Parameterize
 PYTHON_VERSION=3.6.4
 BUILDDIR=/tmp/electrum-ltc-build
-PACKAGE=Electrum-LTC
+PACKAGE=Vialectrum
 GIT_REPO=https://github.com/pooler/electrum-ltc
 LIBSECP_VERSION=452d8e4d2a2f9f1b5be6b02e18f1ba102e5ca0b4
 
