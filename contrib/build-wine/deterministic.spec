@@ -12,7 +12,7 @@ else:
 
 PYHOME = 'c:/python3'
 
-home = 'C:\\electrum-ltc\\'
+home = 'C:\\vialectrum\\'
 
 # see https://github.com/pyinstaller/pyinstaller/issues/2005
 hiddenimports = []
@@ -111,7 +111,7 @@ exe_standalone = EXE(
     a.scripts,
     a.binaries,
     a.datas,
-    name=os.path.join('build\\pyi.win32\\electrum-ltc', cmdline_name + ".exe"),
+    name=os.path.join('build\\pyi.win32\\vialectrum', cmdline_name + ".exe"),
     debug=False,
     strip=None,
     upx=False,
@@ -124,7 +124,7 @@ exe_portable = EXE(
     a.scripts,
     a.binaries,
     a.datas + [ ('is_portable', 'README.md', 'DATA' ) ],
-    name=os.path.join('build\\pyi.win32\\electrum-ltc', cmdline_name + "-portable.exe"),
+    name=os.path.join('build\\pyi.win32\\vialectrum', cmdline_name + "-portable.exe"),
     debug=False,
     strip=None,
     upx=False,
@@ -138,7 +138,7 @@ exe_dependent = EXE(
     pyz,
     a.scripts,
     exclude_binaries=True,
-    name=os.path.join('build\\pyi.win32\\electrum-ltc', cmdline_name),
+    name=os.path.join('build\\pyi.win32\\vialectrum', cmdline_name),
     debug=False,
     strip=None,
     upx=False,
@@ -155,4 +155,4 @@ coll = COLLECT(
     debug=False,
     icon=home+'icons/electrum.ico',
     console=False,
-    name=os.path.join('dist', 'electrum-ltc'))
+    name=os.path.join('dist', 'vialectrum'))

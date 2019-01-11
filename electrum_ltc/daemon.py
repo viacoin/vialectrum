@@ -281,7 +281,7 @@ class Daemon(DaemonThread):
             path = config.get_wallet_path()
             wallet = self.wallets.get(path)
             if wallet is None:
-                return {'error': 'Wallet "%s" is not loaded. Use "electrum-ltc daemon load_wallet"'%os.path.basename(path) }
+                return {'error': 'Wallet "%s" is not loaded. Use "vialectrum daemon load_wallet"'%os.path.basename(path) }
         else:
             wallet = None
         # arguments passed to function

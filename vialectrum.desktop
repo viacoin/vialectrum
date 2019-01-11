@@ -1,12 +1,12 @@
 # If you want Electrum to appear in a Linux app launcher ("start menu"), install this by doing:
-# sudo desktop-file-install electrum-ltc.desktop
+# sudo desktop-file-install vialectrum.desktop
 
 [Desktop Entry]
 Comment=Lightweight Litecoin Client
-Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\"; electrum-ltc %u"
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\"; vialectrum %u"
 GenericName[en_US]=Litecoin Wallet
 GenericName=Litecoin Wallet
-Icon=electrum-ltc
+Icon=vialectrum
 Name[en_US]=Electrum Litecoin Wallet
 Name=Electrum Litecoin Wallet
 Categories=Finance;Network;
@@ -17,5 +17,5 @@ MimeType=x-scheme-handler/viacoin;
 Actions=Testnet;
 
 [Desktop Action Testnet]
-Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\"; electrum-ltc --testnet %u"
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\"; vialectrum --testnet %u"
 Name=Testnet mode

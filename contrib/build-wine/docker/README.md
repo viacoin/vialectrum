@@ -20,7 +20,7 @@ folder.
 2. Build image
 
     ```
-    $ sudo docker build --no-cache -t electrum-ltc-wine-builder-img contrib/build-wine/docker
+    $ sudo docker build --no-cache -t vialectrum-wine-builder-img contrib/build-wine/docker
     ```
 
     Note: see [this](https://stackoverflow.com/a/40516974/7499128) if having dns problems
@@ -35,19 +35,19 @@ folder.
         rm -rf $FRESH_CLONE && \
         mkdir -p $FRESH_CLONE && \
         cd $FRESH_CLONE  && \
-        git clone https://github.com/pooler/electrum-ltc.git && \
-        cd electrum-ltc
+        git clone https://github.com/pooler/vialectrum.git && \
+        cd vialectrum
     ```
 
     And then build from this directory:
     ```
     $ git checkout $REV
     $ sudo docker run -it \
-        --name electrum-ltc-wine-builder-cont \
-        -v $PWD:/opt/wine64/drive_c/electrum-ltc \
+        --name vialectrum-wine-builder-cont \
+        -v $PWD:/opt/wine64/drive_c/vialectrum \
         --rm \
-        --workdir /opt/wine64/drive_c/electrum-ltc/contrib/build-wine \
-        electrum-ltc-wine-builder-img \
+        --workdir /opt/wine64/drive_c/vialectrum/contrib/build-wine \
+        vialectrum-wine-builder-img \
         ./build.sh
     ```
 4. The generated binaries are in `./contrib/build-wine/dist`.
@@ -81,7 +81,7 @@ certificate/key) and one or multiple trusted verifiers:
 
 | Signer and verifiers:                                                                         |
 |-----------------------------------------------------------------------------------------------|
-| Upload signatures to 'electrum-ltc-signatures' repo, as `$version/$filename.$builder.asc`         |
+| Upload signatures to 'vialectrum-signatures' repo, as `$version/$filename.$builder.asc`         |
 
 
 

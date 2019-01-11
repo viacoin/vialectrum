@@ -34,7 +34,7 @@ from .util import make_aiohttp_session
 
 
 class BaseCrashReporter:
-    report_server = "https://crashhub.electrum-ltc.org"
+    report_server = "https://crashhub.vialectrum.org"
     config_key = "show_crash_reporter"
     issue_template = """<h2>Traceback</h2>
 <pre>
@@ -61,7 +61,7 @@ class BaseCrashReporter:
         self.exc_args = (exctype, value, tb)
 
     def send_report(self, asyncio_loop, proxy, endpoint="/crash"):
-        if constants.net.GENESIS[-4:] not in ["29a0", "bfe2"] and ".electrum-ltc.org" in BaseCrashReporter.report_server:
+        if constants.net.GENESIS[-4:] not in ["29a0", "bfe2"] and ".vialectrum.org" in BaseCrashReporter.report_server:
             # Gah! Some kind of altcoin wants to send us crash reports.
             raise Exception(_("Missing report URL."))
         report = self.get_traceback_info()

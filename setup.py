@@ -46,8 +46,8 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         else:
             usr_share = os.path.expanduser('~/.local/share')
     data_files += [
-        (os.path.join(usr_share, 'applications/'), ['electrum-ltc.desktop']),
-        (os.path.join(usr_share, icons_dirname), ['icons/electrum-ltc.png'])
+        (os.path.join(usr_share, 'applications/'), ['vialectrum.desktop']),
+        (os.path.join(usr_share, icons_dirname), ['icons/vialectrum.png'])
     ]
 
 extras_require = {
@@ -97,13 +97,13 @@ setup(
             'locale/*/LC_MESSAGES/electrum.mo',
         ],
     },
-    scripts=['electrum_ltc/electrum-ltc'],
+    scripts=['electrum_ltc/vialectrum'],
     data_files=data_files,
     description="Lightweight Litecoin Wallet",
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
     license="MIT Licence",
-    url="https://electrum-ltc.org",
+    url="https://vialectrum.org",
     long_description="""Lightweight Litecoin Wallet""",
     cmdclass={
         'install': CustomInstallCommand,

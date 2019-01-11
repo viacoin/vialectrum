@@ -24,8 +24,8 @@ fi
 mkdir -p ~/bin
 
 if ! which ${genisoimage} > /dev/null 2>&1; then
-	mkdir -p /tmp/electrum-ltc-macos
-	cd /tmp/electrum-ltc-macos
+	mkdir -p /tmp/vialectrum-macos
+	cd /tmp/vialectrum-macos
 	info "Downloading cdrkit $cdrkit_version"
 	wget -nc ${cdrkit_download_path}/${cdrkit_file_name}
 	tar xvf ${cdrkit_file_name}
@@ -41,8 +41,8 @@ if ! which ${genisoimage} > /dev/null 2>&1; then
 fi
 
 if ! which dmg > /dev/null 2>&1; then
-    mkdir -p /tmp/electrum-ltc-macos
-	cd /tmp/electrum-ltc-macos
+    mkdir -p /tmp/vialectrum-macos
+	cd /tmp/vialectrum-macos
 	info "Downloading libdmg"
     LD_PRELOAD= git clone ${libdmg_url}
     cd libdmg-hfsplus
@@ -60,9 +60,9 @@ test -f "$plist" || fail "Info.plist not found"
 VERSION=$(grep -1 ShortVersionString $plist |tail -1|gawk 'match($0, /<string>(.*)<\/string>/, a) {print a[1]}')
 echo $VERSION
 
-rm -rf /tmp/electrum-ltc-macos/image > /dev/null 2>&1
-mkdir /tmp/electrum-ltc-macos/image/
-cp -r $1 /tmp/electrum-ltc-macos/image/
+rm -rf /tmp/vialectrum-macos/image > /dev/null 2>&1
+mkdir /tmp/vialectrum-macos/image/
+cp -r $1 /tmp/vialectrum-macos/image/
 
 build_dir=$(dirname "$1")
 test -n "$build_dir" -a -d "$build_dir" || exit
@@ -79,10 +79,10 @@ ${genisoimage} \
     -dir-mode 0755 \
     -apple \
     -o Vialectrum_uncompressed.dmg \
-    /tmp/electrum-ltc-macos/image || fail "Unable to create uncompressed dmg"
+    /tmp/vialectrum-macos/image || fail "Unable to create uncompressed dmg"
 
-dmg dmg Vialectrum_uncompressed.dmg electrum-ltc-$VERSION.dmg || fail "Unable to create compressed dmg"
+dmg dmg Vialectrum_uncompressed.dmg vialectrum-$VERSION.dmg || fail "Unable to create compressed dmg"
 rm Vialectrum_uncompressed.dmg
 
 echo "Done."
-md5sum electrum-ltc-$VERSION.dmg
+md5sum vialectrum-$VERSION.dmg

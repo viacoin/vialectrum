@@ -9,7 +9,7 @@ Vialectrum is a port of Electrum, the Bitcoin wallet, to Litecoin.
   Original Author: Thomas Voegtlin
   Port Maintainer: Pooler
   Language: Python (>= 3.6)
-  Homepage: https://electrum-ltc.org/
+  Homepage: https://vialectrum.org/
 
 
 
@@ -52,8 +52,8 @@ Development version
 
 Check out the code from GitHub::
 
-    git clone git://github.com/pooler/electrum-ltc.git
-    cd electrum-ltc
+    git clone git://github.com/pooler/vialectrum.git
+    cd vialectrum
 
 Run install (this should install dependencies)::
 
