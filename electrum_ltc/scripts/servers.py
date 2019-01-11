@@ -2,10 +2,10 @@
 import json
 import asyncio
 
-from electrum_ltc.simple_config import SimpleConfig
-from electrum_ltc.network import filter_version, Network
-from electrum_ltc.util import create_and_start_event_loop, log_exceptions
-from electrum_ltc import constants
+from vialectrum.simple_config import SimpleConfig
+from vialectrum.network import filter_version, Network
+from vialectrum.util import create_and_start_event_loop, log_exceptions
+from vialectrum import constants
 
 import util
 

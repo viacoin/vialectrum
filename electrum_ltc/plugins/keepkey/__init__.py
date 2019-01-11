@@ -1,4 +1,4 @@
-from electrum_ltc.i18n import _
+from vialectrum.i18n import _
 
 fullname = 'KeepKey'
 description = _('Provides support for KeepKey hardware wallet')

@@ -18,18 +18,18 @@ from kivy.lang import Builder
 from kivy.factory import Factory
 from kivy.utils import platform
 
-from electrum_ltc.util import profiler, parse_URI, format_time, InvalidPassword, NotEnoughFunds, Fiat
-from electrum_ltc import bitcoin
-from electrum_ltc.transaction import TxOutput
-from electrum_ltc.util import send_exception_to_crash_reporter
-from electrum_ltc.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
-from electrum_ltc.plugin import run_hook
-from electrum_ltc.wallet import InternalAddressCorruption
+from vialectrum.util import profiler, parse_URI, format_time, InvalidPassword, NotEnoughFunds, Fiat
+from vialectrum import bitcoin
+from vialectrum.transaction import TxOutput
+from vialectrum.util import send_exception_to_crash_reporter
+from vialectrum.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+from vialectrum.plugin import run_hook
+from vialectrum.wallet import InternalAddressCorruption
 
 from .context_menu import ContextMenu
 
 
-from electrum_ltc.gui.kivy.i18n import _
+from vialectrum.gui.kivy.i18n import _
 
 class HistoryRecycleView(RecycleView):
     pass
@@ -63,7 +63,7 @@ class CScreen(Factory.Screen):
 
     @profiler
     def load_screen(self):
-        self.screen = Builder.load_file('electrum_ltc/gui/kivy/uix/ui_screens/' + self.kvname + '.kv')
+        self.screen = Builder.load_file('vialectrum/gui/kivy/uix/ui_screens/' + self.kvname + '.kv')
         self.add_widget(self.screen)
         self.loaded = True
         self.update()
@@ -135,7 +135,7 @@ class HistoryScreen(CScreen):
 
     def get_card(self, tx_hash, tx_mined_status, value, balance):
         status, status_str = self.app.wallet.get_tx_status(tx_hash, tx_mined_status)
-        icon = "atlas://electrum_ltc/gui/kivy/theming/light/" + TX_ICONS[status]
+        icon = "atlas://vialectrum/gui/kivy/theming/light/" + TX_ICONS[status]
         label = self.app.wallet.get_label(tx_hash) if tx_hash else _('Pruned transaction outputs')
         ri = {}
         ri['screen'] = self
@@ -173,7 +173,7 @@ class SendScreen(CScreen):
         if not self.app.wallet:
             self.payment_request_queued = text
             return
-        import electrum_ltc as electrum
+        import vialectrum as electrum
         try:
             uri = electrum.util.parse_URI(text, self.app.on_pr)
         except:
@@ -217,7 +217,7 @@ class SendScreen(CScreen):
             # it should be already saved
             return
         # save address as invoice
-        from electrum_ltc.paymentrequest import make_unsigned_request, PaymentRequest
+        from vialectrum.paymentrequest import make_unsigned_request, PaymentRequest
         req = {'address':self.screen.address, 'memo':self.screen.message}
         amount = self.app.get_amount(self.screen.amount) if self.screen.amount else 0
         req['amount'] = amount
@@ -363,7 +363,7 @@ class ReceiveScreen(CScreen):
         Clock.schedule_once(lambda dt: self.update_qr())
 
     def get_URI(self):
-        from electrum_ltc.util import create_URI
+        from vialectrum.util import create_URI
         amount = self.screen.amount
         if amount:
             a, u = self.screen.amount.split()

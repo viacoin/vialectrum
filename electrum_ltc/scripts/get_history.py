@@ -3,9 +3,9 @@
 import sys
 import asyncio
 
-from electrum_ltc import bitcoin
-from electrum_ltc.network import Network
-from electrum_ltc.util import json_encode, print_msg, create_and_start_event_loop, log_exceptions
+from vialectrum import bitcoin
+from vialectrum.network import Network
+from vialectrum.util import json_encode, print_msg, create_and_start_event_loop, log_exceptions
 
 
 try:

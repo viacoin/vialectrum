@@ -30,20 +30,20 @@ from typing import TYPE_CHECKING, Tuple, Dict
 import threading
 from enum import IntEnum
 
-from electrum_ltc.address_synchronizer import TX_HEIGHT_LOCAL
-from electrum_ltc.i18n import _
-from electrum_ltc.util import (block_explorer_URL, profiler, print_error, TxMinedInfo,
+from vialectrum.address_synchronizer import TX_HEIGHT_LOCAL
+from vialectrum.i18n import _
+from vialectrum.util import (block_explorer_URL, profiler, print_error, TxMinedInfo,
                                OrderedDictWithIndex, PrintError)
 
 from .util import *
 
 if TYPE_CHECKING:
-    from electrum_ltc.wallet import Abstract_Wallet
+    from vialectrum.wallet import Abstract_Wallet
 
 try:
-    from electrum_ltc.plot import plot_history, NothingToPlotException
+    from vialectrum.plot import plot_history, NothingToPlotException
 except:
-    print_error("qt/history_list: could not import electrum_ltc.plot. This feature needs matplotlib to be installed.")
+    print_error("qt/history_list: could not import vialectrum.plot. This feature needs matplotlib to be installed.")
     plot_history = None
 
 # note: this list needs to be kept in sync with another in kivy
@@ -667,7 +667,7 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
                 for line in lines:
                     transaction.writerow(line)
             else:
-                from electrum_ltc.util import json_encode
+                from vialectrum.util import json_encode
                 f.write(json_encode(txns))
 
     def text_txid_from_coordinate(self, row, col):

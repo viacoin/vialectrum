@@ -10,9 +10,9 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
-from electrum_ltc.i18n import _, languages
-from electrum_ltc.util import FileImportFailed, FileExportFailed
-from electrum_ltc.paymentrequest import PR_UNPAID, PR_PAID, PR_EXPIRED
+from vialectrum.i18n import _, languages
+from vialectrum.util import FileImportFailed, FileExportFailed
+from vialectrum.paymentrequest import PR_UNPAID, PR_PAID, PR_EXPIRED
 
 if TYPE_CHECKING:
     from .main_window import ElectrumWindow

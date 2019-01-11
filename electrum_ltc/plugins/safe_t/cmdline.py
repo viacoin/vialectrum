@@ -1,4 +1,4 @@
-from electrum_ltc.plugin import hook
+from vialectrum.plugin import hook
 from .safe_t import SafeTPlugin
 from ..hw_wallet import CmdLineHandler
 

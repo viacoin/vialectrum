@@ -6,15 +6,15 @@ from struct import pack, unpack
 import os, sys, time, io
 import traceback
 
-from electrum_ltc.bip32 import serialize_xpub, deserialize_xpub, InvalidMasterKeyVersionBytes
-from electrum_ltc.i18n import _
-from electrum_ltc.plugin import Device
-from electrum_ltc.keystore import Hardware_KeyStore, xpubkey_to_pubkey, Xpub
-from electrum_ltc.transaction import Transaction
-from electrum_ltc.wallet import Standard_Wallet
-from electrum_ltc.crypto import hash_160
-from electrum_ltc.util import print_error, bfh, bh2u, versiontuple, UserFacingException
-from electrum_ltc.base_wizard import ScriptTypeNotSupported
+from vialectrum.bip32 import serialize_xpub, deserialize_xpub, InvalidMasterKeyVersionBytes
+from vialectrum.i18n import _
+from vialectrum.plugin import Device
+from vialectrum.keystore import Hardware_KeyStore, xpubkey_to_pubkey, Xpub
+from vialectrum.transaction import Transaction
+from vialectrum.wallet import Standard_Wallet
+from vialectrum.crypto import hash_160
+from vialectrum.util import print_error, bfh, bh2u, versiontuple, UserFacingException
+from vialectrum.base_wizard import ScriptTypeNotSupported
 
 from ..hw_wallet import HW_PluginBase
 from ..hw_wallet.plugin import LibraryFoundButUnusable
@@ -40,7 +40,7 @@ try:
         def mitm_verify(self, sig, expect_xpub):
             # verify a signature (65 bytes) over the session key, using the master bip32 node
             # - customized to use specific EC library of Electrum.
-            from electrum_ltc.ecc import ECPubkey
+            from vialectrum.ecc import ECPubkey
 
             xtype, depth, parent_fingerprint, child_number, chain_code, K_or_k \
                 = deserialize_xpub(expect_xpub)

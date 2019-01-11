@@ -5,10 +5,10 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QGridLayout, QInputDialog, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QLabel
 
-from electrum_ltc.gui.qt.util import *
-from electrum_ltc.i18n import _
-from electrum_ltc.plugin import hook
-from electrum_ltc.util import bh2u
+from vialectrum.gui.qt.util import *
+from vialectrum.i18n import _
+from vialectrum.plugin import hook
+from vialectrum.util import bh2u
 
 from ..hw_wallet.qt import QtHandlerBase, QtPluginBase
 from ..hw_wallet.plugin import only_hook_if_libraries_available

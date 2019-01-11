@@ -6,14 +6,14 @@ import locale
 from decimal import Decimal
 import getpass
 
-import electrum_ltc as electrum
-from electrum_ltc.util import format_satoshis, set_verbosity
-from electrum_ltc.bitcoin import is_address, COIN, TYPE_ADDRESS
-from electrum_ltc.transaction import TxOutput
-from electrum_ltc.wallet import Wallet
-from electrum_ltc.storage import WalletStorage
-from electrum_ltc.network import NetworkParameters
-from electrum_ltc.interface import deserialize_server
+import vialectrum as electrum
+from vialectrum.util import format_satoshis, set_verbosity
+from vialectrum.bitcoin import is_address, COIN, TYPE_ADDRESS
+from vialectrum.transaction import TxOutput
+from vialectrum.wallet import Wallet
+from vialectrum.storage import WalletStorage
+from vialectrum.network import NetworkParameters
+from vialectrum.interface import deserialize_server
 
 _ = lambda x:x  # i18n
 

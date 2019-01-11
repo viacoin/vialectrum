@@ -33,7 +33,7 @@ if ! which msgfmt > /dev/null 2>&1; then
     exit 1
 fi
 for i in ./locale/*; do
-    dir=$WINEPREFIX/drive_c/vialectrum/electrum_ltc/$i/LC_MESSAGES
+    dir=$WINEPREFIX/drive_c/vialectrum/vialectrum/$i/LC_MESSAGES
     mkdir -p $dir
     msgfmt --output-file=$dir/electrum.mo $i/electrum.po || true
 done
@@ -43,7 +43,7 @@ find -exec touch -d '2000-11-11T11:11:11+00:00' {} +
 popd
 
 cp $WINEPREFIX/drive_c/vialectrum/LICENCE .
-cp $WINEPREFIX/drive_c/vialectrum/contrib/deterministic-build/vialectrum-icons/icons_rc.py $WINEPREFIX/drive_c/vialectrum/electrum_ltc/gui/qt/
+cp $WINEPREFIX/drive_c/vialectrum/contrib/deterministic-build/vialectrum-icons/icons_rc.py $WINEPREFIX/drive_c/vialectrum/vialectrum/gui/qt/
 
 # Install frozen dependencies
 $PYTHON -m pip install -r ../../deterministic-build/requirements.txt

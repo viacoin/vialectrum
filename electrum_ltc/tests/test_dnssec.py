@@ -1,6 +1,6 @@
 import dns
 
-from electrum_ltc import dnssec
+from vialectrum import dnssec
 
 from . import SequentialTestCase
 from .test_bitcoin import needs_test_with_all_ecc_implementations

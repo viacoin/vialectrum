@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from electrum_ltc.util import format_satoshis, format_fee_satoshis, parse_URI
+from vialectrum.util import format_satoshis, format_fee_satoshis, parse_URI
 
 from . import SequentialTestCase
 

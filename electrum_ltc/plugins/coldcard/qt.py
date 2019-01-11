@@ -1,9 +1,9 @@
 import time
 
-from electrum_ltc.i18n import _
-from electrum_ltc.plugin import hook
-from electrum_ltc.wallet import Standard_Wallet
-from electrum_ltc.gui.qt.util import *
+from vialectrum.i18n import _
+from vialectrum.plugin import hook
+from vialectrum.wallet import Standard_Wallet
+from vialectrum.gui.qt.util import *
 
 from .coldcard import ColdcardPlugin
 from ..hw_wallet.qt import QtHandlerBase, QtPluginBase

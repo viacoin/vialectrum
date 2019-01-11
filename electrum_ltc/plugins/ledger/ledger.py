@@ -3,14 +3,14 @@ import hashlib
 import sys
 import traceback
 
-from electrum_ltc.bitcoin import TYPE_ADDRESS, int_to_hex, var_int
-from electrum_ltc.bip32 import serialize_xpub
-from electrum_ltc.i18n import _
-from electrum_ltc.keystore import Hardware_KeyStore
-from electrum_ltc.transaction import Transaction
-from electrum_ltc.wallet import Standard_Wallet
-from electrum_ltc.util import print_error, bfh, bh2u, versiontuple, UserFacingException
-from electrum_ltc.base_wizard import ScriptTypeNotSupported
+from vialectrum.bitcoin import TYPE_ADDRESS, int_to_hex, var_int
+from vialectrum.bip32 import serialize_xpub
+from vialectrum.i18n import _
+from vialectrum.keystore import Hardware_KeyStore
+from vialectrum.transaction import Transaction
+from vialectrum.wallet import Standard_Wallet
+from vialectrum.util import print_error, bfh, bh2u, versiontuple, UserFacingException
+from vialectrum.base_wizard import ScriptTypeNotSupported
 
 from ..hw_wallet import HW_PluginBase
 from ..hw_wallet.plugin import is_any_tx_output_on_change_branch

@@ -25,7 +25,7 @@
 
 from typing import Optional, List
 
-from electrum_ltc.i18n import _
+from vialectrum.i18n import _
 
 from .util import *
 

@@ -27,11 +27,11 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QMenu
 from PyQt5.QtCore import Qt
 
-from electrum_ltc.i18n import _
-from electrum_ltc.util import format_time, age
-from electrum_ltc.plugin import run_hook
-from electrum_ltc.paymentrequest import PR_UNKNOWN
-from electrum_ltc.wallet import InternalAddressCorruption
+from vialectrum.i18n import _
+from vialectrum.util import format_time, age
+from vialectrum.plugin import run_hook
+from vialectrum.paymentrequest import PR_UNKNOWN
+from vialectrum.wallet import InternalAddressCorruption
 
 from .util import MyTreeView, pr_tooltips, pr_icons
 

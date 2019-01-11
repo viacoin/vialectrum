@@ -39,11 +39,11 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 import PyQt5.QtCore as QtCore
 
-from electrum_ltc.i18n import _, set_language
-from electrum_ltc.plugin import run_hook
-from electrum_ltc.storage import WalletStorage
-from electrum_ltc.base_wizard import GoBack
-from electrum_ltc.util import (UserCancelled, PrintError, profiler,
+from vialectrum.i18n import _, set_language
+from vialectrum.plugin import run_hook
+from vialectrum.storage import WalletStorage
+from vialectrum.base_wizard import GoBack
+from vialectrum.util import (UserCancelled, PrintError, profiler,
                                WalletFileException, BitcoinException, get_new_wallet_name)
 
 from .installwizard import InstallWizard
@@ -54,7 +54,7 @@ try:
 except Exception as e:
     print(e)
     print("Error: Could not find icons file.")
-    print("Please run 'pyrcc5 icons.qrc -o electrum_ltc/gui/qt/icons_rc.py'")
+    print("Please run 'pyrcc5 icons.qrc -o vialectrum/gui/qt/icons_rc.py'")
     sys.exit(1)
 
 from .util import *   # * needed for plugins

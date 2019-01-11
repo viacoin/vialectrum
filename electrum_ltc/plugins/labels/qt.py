@@ -6,11 +6,11 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QVBoxLayout)
 
-from electrum_ltc.plugin import hook
-from electrum_ltc.i18n import _
-from electrum_ltc.gui.qt import EnterButton
-from electrum_ltc.gui.qt.util import ThreadedButton, Buttons
-from electrum_ltc.gui.qt.util import WindowModalDialog, OkButton
+from vialectrum.plugin import hook
+from vialectrum.i18n import _
+from vialectrum.gui.qt import EnterButton
+from vialectrum.gui.qt.util import ThreadedButton, Buttons
+from vialectrum.gui.qt.util import WindowModalDialog, OkButton
 
 from .labels import LabelsPlugin
 

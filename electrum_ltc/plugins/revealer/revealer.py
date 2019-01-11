@@ -3,8 +3,8 @@ import os
 from hashlib import sha256
 from typing import NamedTuple, Optional, Dict, Tuple
 
-from electrum_ltc.plugin import BasePlugin
-from electrum_ltc.util import to_bytes, bh2u, bfh
+from vialectrum.plugin import BasePlugin
+from vialectrum.util import to_bytes, bh2u, bfh
 
 from .hmac_drbg import DRBG
 

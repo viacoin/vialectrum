@@ -1,7 +1,7 @@
 import unittest
 import threading
 
-from electrum_ltc import constants
+from vialectrum import constants
 
 
 # Set this locally to make the test suite run faster.

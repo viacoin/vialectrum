@@ -2,10 +2,10 @@ from decimal import Decimal
 import getpass
 import datetime
 
-from electrum_ltc import WalletStorage, Wallet
-from electrum_ltc.util import format_satoshis, set_verbosity
-from electrum_ltc.bitcoin import is_address, COIN, TYPE_ADDRESS
-from electrum_ltc.transaction import TxOutput
+from vialectrum import WalletStorage, Wallet
+from vialectrum.util import format_satoshis, set_verbosity
+from vialectrum.bitcoin import is_address, COIN, TYPE_ADDRESS
+from vialectrum.transaction import TxOutput
 
 _ = lambda x:x  # i18n
 

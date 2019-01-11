@@ -12,11 +12,11 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from electrum_ltc.wallet import Wallet
-from electrum_ltc.storage import WalletStorage
-from electrum_ltc.util import UserCancelled, InvalidPassword
-from electrum_ltc.base_wizard import BaseWizard, HWD_SETUP_DECRYPT_WALLET, GoBack
-from electrum_ltc.i18n import _
+from vialectrum.wallet import Wallet
+from vialectrum.storage import WalletStorage
+from vialectrum.util import UserCancelled, InvalidPassword
+from vialectrum.base_wizard import BaseWizard, HWD_SETUP_DECRYPT_WALLET, GoBack
+from vialectrum.i18n import _
 
 from .seed_dialog import SeedLayout, KeysLayout
 from .network_dialog import NetworkChoiceLayout

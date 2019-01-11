@@ -3,9 +3,9 @@
 import sys
 import asyncio
 
-from electrum_ltc.network import Network
-from electrum_ltc.util import print_msg, create_and_start_event_loop
-from electrum_ltc.synchronizer import SynchronizerBase
+from vialectrum.network import Network
+from vialectrum.util import print_msg, create_and_start_event_loop
+from vialectrum.synchronizer import SynchronizerBase
 
 
 try:

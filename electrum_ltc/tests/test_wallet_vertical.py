@@ -4,13 +4,13 @@ import tempfile
 from typing import Sequence
 import asyncio
 
-from electrum_ltc import storage, bitcoin, keystore, bip32
-from electrum_ltc import Transaction
-from electrum_ltc import SimpleConfig
-from electrum_ltc.address_synchronizer import TX_HEIGHT_UNCONFIRMED, TX_HEIGHT_UNCONF_PARENT
-from electrum_ltc.wallet import sweep, Multisig_Wallet, Standard_Wallet, Imported_Wallet
-from electrum_ltc.util import bfh, bh2u
-from electrum_ltc.transaction import TxOutput
+from vialectrum import storage, bitcoin, keystore, bip32
+from vialectrum import Transaction
+from vialectrum import SimpleConfig
+from vialectrum.address_synchronizer import TX_HEIGHT_UNCONFIRMED, TX_HEIGHT_UNCONF_PARENT
+from vialectrum.wallet import sweep, Multisig_Wallet, Standard_Wallet, Imported_Wallet
+from vialectrum.util import bfh, bh2u
+from vialectrum.transaction import TxOutput
 
 from . import TestCaseForTestnet
 from . import SequentialTestCase

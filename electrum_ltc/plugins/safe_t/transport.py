@@ -1,4 +1,4 @@
-from electrum_ltc.util import PrintError
+from vialectrum.util import PrintError
 
 
 class SafeTTransport(PrintError):

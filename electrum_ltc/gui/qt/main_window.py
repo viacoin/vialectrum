@@ -43,13 +43,13 @@ from PyQt5.QtCore import *
 import PyQt5.QtCore as QtCore
 from PyQt5.QtWidgets import *
 
-import electrum_ltc as electrum
-from electrum_ltc import (keystore, simple_config, ecc, constants, util, bitcoin, commands,
+import vialectrum as electrum
+from vialectrum import (keystore, simple_config, ecc, constants, util, bitcoin, commands,
                           coinchooser, paymentrequest)
-from electrum_ltc.bitcoin import COIN, is_address, TYPE_ADDRESS
-from electrum_ltc.plugin import run_hook
-from electrum_ltc.i18n import _
-from electrum_ltc.util import (format_time, format_satoshis, format_fee_satoshis,
+from vialectrum.bitcoin import COIN, is_address, TYPE_ADDRESS
+from vialectrum.plugin import run_hook
+from vialectrum.i18n import _
+from vialectrum.util import (format_time, format_satoshis, format_fee_satoshis,
                                format_satoshis_plain, NotEnoughFunds, PrintError,
                                UserCancelled, NoDynamicFeeEstimates, profiler,
                                export_meta, import_meta, bh2u, bfh, InvalidPassword,
@@ -57,14 +57,14 @@ from electrum_ltc.util import (format_time, format_satoshis, format_fee_satoshis
                                decimal_point_to_base_unit_name, quantize_feerate,
                                UnknownBaseUnit, DECIMAL_POINT_DEFAULT, UserFacingException,
                                get_new_wallet_name, send_exception_to_crash_reporter)
-from electrum_ltc.transaction import Transaction, TxOutput
-from electrum_ltc.address_synchronizer import AddTransactionException
-from electrum_ltc.wallet import (Multisig_Wallet, CannotBumpFee, Abstract_Wallet,
+from vialectrum.transaction import Transaction, TxOutput
+from vialectrum.address_synchronizer import AddTransactionException
+from vialectrum.wallet import (Multisig_Wallet, CannotBumpFee, Abstract_Wallet,
                                  sweep_preparations, InternalAddressCorruption)
-from electrum_ltc.version import ELECTRUM_VERSION
-from electrum_ltc.network import Network
-from electrum_ltc.exchange_rate import FxThread
-from electrum_ltc.simple_config import SimpleConfig
+from vialectrum.version import ELECTRUM_VERSION
+from vialectrum.network import Network
+from vialectrum.exchange_rate import FxThread
+from vialectrum.simple_config import SimpleConfig
 
 from .exception_window import Exception_Hook
 from .amountedit import AmountEdit, BTCAmountEdit, MyLineEdit, FeerateEdit
@@ -97,7 +97,7 @@ class StatusBarButton(QPushButton):
             self.func()
 
 
-from electrum_ltc.paymentrequest import PR_PAID
+from vialectrum.paymentrequest import PR_PAID
 
 
 class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
@@ -2031,7 +2031,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.send_button.setVisible(not self.wallet.is_watching_only())
 
     def change_password_dialog(self):
-        from electrum_ltc.storage import STO_EV_XPUB_PW
+        from vialectrum.storage import STO_EV_XPUB_PW
         if self.wallet.get_available_storage_encryption_version() == STO_EV_XPUB_PW:
             from .password_dialog import ChangePasswordDialogForHW
             d = ChangePasswordDialogForHW(self, self.wallet)
@@ -2384,7 +2384,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return d.run()
 
     def tx_from_text(self, txt):
-        from electrum_ltc.transaction import tx_from_str
+        from vialectrum.transaction import tx_from_str
         try:
             tx = tx_from_str(txt)
             return Transaction(tx)
@@ -2393,7 +2393,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return
 
     def read_tx_from_qrcode(self):
-        from electrum_ltc import qrscanner
+        from vialectrum import qrscanner
         try:
             data = qrscanner.scan_barcode(self.config.get_video_device())
         except BaseException as e:
@@ -2442,7 +2442,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.show_transaction(tx)
 
     def do_process_from_txid(self):
-        from electrum_ltc import transaction
+        from vialectrum import transaction
         txid, ok = QInputDialog.getText(self, _('Lookup transaction'), _('Transaction ID') + ':')
         if ok and txid:
             txid = str(txid).strip()
@@ -2702,7 +2702,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         lang_help = _('Select which language is used in the GUI (after restart).')
         lang_label = HelpLabel(_('Language') + ':', lang_help)
         lang_combo = QComboBox()
-        from electrum_ltc.i18n import languages
+        from vialectrum.i18n import languages
         lang_combo.addItems(list(languages.values()))
         lang_keys = list(languages.keys())
         lang_cur_setting = self.config.get("language", '')
@@ -2876,7 +2876,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         block_ex_combo.currentIndexChanged.connect(on_be)
         gui_widgets.append((block_ex_label, block_ex_combo))
 
-        from electrum_ltc import qrscanner
+        from vialectrum import qrscanner
         system_cameras = qrscanner._find_system_cameras()
         qr_combo = QComboBox()
         qr_combo.addItem("Default","default")

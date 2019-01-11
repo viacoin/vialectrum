@@ -2,12 +2,12 @@ import asyncio
 import tempfile
 import unittest
 
-from electrum_ltc import constants
-from electrum_ltc.simple_config import SimpleConfig
-from electrum_ltc import blockchain
-from electrum_ltc.interface import Interface
-from electrum_ltc.crypto import sha256
-from electrum_ltc.util import bh2u
+from vialectrum import constants
+from vialectrum.simple_config import SimpleConfig
+from vialectrum import blockchain
+from vialectrum.interface import Interface
+from vialectrum.crypto import sha256
+from vialectrum.util import bh2u
 
 
 class MockTaskGroup:

@@ -30,11 +30,11 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 import PyQt5.QtCore as QtCore
 
-from electrum_ltc.i18n import _
-from electrum_ltc import constants, blockchain
-from electrum_ltc.util import print_error
-from electrum_ltc.interface import serialize_server, deserialize_server
-from electrum_ltc.network import Network
+from vialectrum.i18n import _
+from vialectrum import constants, blockchain
+from vialectrum.util import print_error
+from vialectrum.interface import serialize_server, deserialize_server
+from vialectrum.network import Network
 
 from .util import *
 

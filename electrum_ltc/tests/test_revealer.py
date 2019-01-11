@@ -1,4 +1,4 @@
-from electrum_ltc.plugins.revealer.revealer import RevealerPlugin
+from vialectrum.plugins.revealer.revealer import RevealerPlugin
 
 from . import SequentialTestCase
 

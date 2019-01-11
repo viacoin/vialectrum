@@ -17,12 +17,12 @@ from decimal import Decimal
 
 from PyQt5.QtPrintSupport import QPrinter
 
-from electrum_ltc.plugin import hook
-from electrum_ltc.i18n import _
-from electrum_ltc.util import make_dir, InvalidPassword, UserCancelled, bh2u, bfh
-from electrum_ltc.gui.qt.util import *
-from electrum_ltc.gui.qt.qrtextedit import ScanQRTextEdit
-from electrum_ltc.gui.qt.main_window import StatusBarButton
+from vialectrum.plugin import hook
+from vialectrum.i18n import _
+from vialectrum.util import make_dir, InvalidPassword, UserCancelled, bh2u, bfh
+from vialectrum.gui.qt.util import *
+from vialectrum.gui.qt.qrtextedit import ScanQRTextEdit
+from vialectrum.gui.qt.main_window import StatusBarButton
 
 from .revealer import RevealerPlugin, VersionedSeed
 
@@ -65,7 +65,7 @@ class Plugin(RevealerPlugin):
         return EnterButton(_('Printer Calibration'), partial(self.calibration_dialog, window))
 
     def password_dialog(self, msg=None, parent=None):
-        from electrum_ltc.gui.qt.password_dialog import PasswordDialog
+        from vialectrum.gui.qt.password_dialog import PasswordDialog
         parent = parent or self
         d = PasswordDialog(parent, msg)
         return d.run()

@@ -4,8 +4,8 @@ import asyncio
 from statistics import median
 from numbers import Number
 
-from electrum_ltc.network import filter_protocol, Network
-from electrum_ltc.util import create_and_start_event_loop, log_exceptions
+from vialectrum.network import filter_protocol, Network
+from vialectrum.util import create_and_start_event_loop, log_exceptions
 
 import util
 

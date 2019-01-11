@@ -15,21 +15,21 @@ import struct
 import sys
 import time
 
-from electrum_ltc.crypto import sha256d, EncodeAES_base64, EncodeAES_bytes, DecodeAES_bytes, hmac_oneshot
-from electrum_ltc.bitcoin import (TYPE_ADDRESS, push_script, var_int, public_key_to_p2pkh,
+from vialectrum.crypto import sha256d, EncodeAES_base64, EncodeAES_bytes, DecodeAES_bytes, hmac_oneshot
+from vialectrum.bitcoin import (TYPE_ADDRESS, push_script, var_int, public_key_to_p2pkh,
                                   is_address)
-from electrum_ltc.bip32 import serialize_xpub, deserialize_xpub
-from electrum_ltc import ecc
-from electrum_ltc.ecc import msg_magic
-from electrum_ltc.wallet import Standard_Wallet
-from electrum_ltc import constants
-from electrum_ltc.transaction import Transaction
-from electrum_ltc.i18n import _
-from electrum_ltc.keystore import Hardware_KeyStore
+from vialectrum.bip32 import serialize_xpub, deserialize_xpub
+from vialectrum import ecc
+from vialectrum.ecc import msg_magic
+from vialectrum.wallet import Standard_Wallet
+from vialectrum import constants
+from vialectrum.transaction import Transaction
+from vialectrum.i18n import _
+from vialectrum.keystore import Hardware_KeyStore
 from ..hw_wallet import HW_PluginBase
-from electrum_ltc.util import print_error, to_string, UserCancelled, UserFacingException
-from electrum_ltc.base_wizard import ScriptTypeNotSupported, HWD_SETUP_NEW_WALLET
-from electrum_ltc.network import Network
+from vialectrum.util import print_error, to_string, UserCancelled, UserFacingException
+from vialectrum.base_wizard import ScriptTypeNotSupported, HWD_SETUP_NEW_WALLET
+from vialectrum.network import Network
 
 try:
     import hid

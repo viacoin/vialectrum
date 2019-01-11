@@ -26,7 +26,7 @@ with open('contrib/requirements/requirements-hw.txt') as f:
     requirements_hw = f.read().splitlines()
 
 # load version.py; needlessly complicated alternative to "imp.load_source":
-version_spec = importlib.util.spec_from_file_location('version', 'electrum_ltc/version.py')
+version_spec = importlib.util.spec_from_file_location('version', 'vialectrum/version.py')
 version_module = version = importlib.util.module_from_spec(version_spec)
 version_spec.loader.exec_module(version_module)
 
@@ -68,7 +68,7 @@ class CustomInstallCommand(install):
             pass
         else:
             try:
-                path = os.path.join(self.install_lib, "electrum_ltc/gui/qt/icons_rc.py")
+                path = os.path.join(self.install_lib, "vialectrum/gui/qt/icons_rc.py")
                 if not os.path.exists(path):
                     subprocess.call(["pyrcc5", "icons.qrc", "-o", path])
             except Exception as e:
@@ -82,22 +82,22 @@ setup(
     install_requires=requirements,
     extras_require=extras_require,
     packages=[
-        'electrum_ltc',
-        'electrum_ltc.gui',
-        'electrum_ltc.gui.qt',
-        'electrum_ltc.plugins',
-    ] + [('electrum_ltc.plugins.'+pkg) for pkg in find_packages('electrum_ltc/plugins')],
+        'vialectrum',
+        'vialectrum.gui',
+        'vialectrum.gui.qt',
+        'vialectrum.plugins',
+    ] + [('vialectrum.plugins.'+pkg) for pkg in find_packages('vialectrum/plugins')],
     package_dir={
-        'electrum_ltc': 'electrum_ltc'
+        'vialectrum': 'vialectrum'
     },
     package_data={
         '': ['*.txt', '*.json', '*.ttf', '*.otf'],
-        'electrum_ltc': [
+        'vialectrum': [
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
         ],
     },
-    scripts=['electrum_ltc/vialectrum'],
+    scripts=['vialectrum/vialectrum'],
     data_files=data_files,
     description="Lightweight Viacoin Wallet",
     author="Thomas Voegtlin",

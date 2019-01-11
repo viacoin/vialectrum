@@ -13,11 +13,11 @@ from PyQt5.QtWidgets import *
 
 from btchip.btchip import *
 
-from electrum_ltc.i18n import _
-from electrum_ltc.util import print_msg
-from electrum_ltc import constants, bitcoin
-from electrum_ltc.gui.qt.qrcodewidget import QRCodeWidget
-from electrum_ltc.gui.qt.util import *
+from vialectrum.i18n import _
+from vialectrum.util import print_msg
+from vialectrum import constants, bitcoin
+from vialectrum.gui.qt.qrcodewidget import QRCodeWidget
+from vialectrum.gui.qt.util import *
 
 
 DEBUG = False

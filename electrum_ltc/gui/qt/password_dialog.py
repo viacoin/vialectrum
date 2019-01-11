@@ -30,8 +30,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from electrum_ltc.i18n import _
-from electrum_ltc.plugin import run_hook
+from vialectrum.i18n import _
+from vialectrum.plugin import run_hook
 
 from .util import *
 

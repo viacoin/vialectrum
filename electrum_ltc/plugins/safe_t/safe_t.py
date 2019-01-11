@@ -2,15 +2,15 @@ from binascii import hexlify, unhexlify
 import traceback
 import sys
 
-from electrum_ltc.util import bfh, bh2u, versiontuple, UserCancelled, UserFacingException
-from electrum_ltc.bitcoin import TYPE_ADDRESS, TYPE_SCRIPT
-from electrum_ltc.bip32 import deserialize_xpub
-from electrum_ltc import constants
-from electrum_ltc.i18n import _
-from electrum_ltc.plugin import Device
-from electrum_ltc.transaction import deserialize, Transaction
-from electrum_ltc.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
-from electrum_ltc.base_wizard import ScriptTypeNotSupported
+from vialectrum.util import bfh, bh2u, versiontuple, UserCancelled, UserFacingException
+from vialectrum.bitcoin import TYPE_ADDRESS, TYPE_SCRIPT
+from vialectrum.bip32 import deserialize_xpub
+from vialectrum import constants
+from vialectrum.i18n import _
+from vialectrum.plugin import Device
+from vialectrum.transaction import deserialize, Transaction
+from vialectrum.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
+from vialectrum.base_wizard import ScriptTypeNotSupported
 
 from ..hw_wallet import HW_PluginBase
 from ..hw_wallet.plugin import is_any_tx_output_on_change_branch, trezor_validate_op_return_output_and_get_data

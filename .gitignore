@@ -17,9 +17,9 @@ bin/
 .idea
 
 # icons
-electrum_ltc/gui/qt/icons_rc.py
-electrum_ltc/gui/kivy/theming/light-0.png
-electrum_ltc/gui/kivy/theming/light.atlas
+vialectrum/gui/qt/icons_rc.py
+vialectrum/gui/kivy/theming/light-0.png
+vialectrum/gui/kivy/theming/light.atlas
 
 # tests/tox
 .tox/

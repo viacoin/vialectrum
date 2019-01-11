@@ -7,16 +7,16 @@ import traceback
 from decimal import Decimal
 import threading
 
-from electrum_ltc.bitcoin import TYPE_ADDRESS
-from electrum_ltc.storage import WalletStorage
-from electrum_ltc.wallet import Wallet, InternalAddressCorruption
-from electrum_ltc.paymentrequest import InvoiceStore
-from electrum_ltc.util import profiler, InvalidPassword, send_exception_to_crash_reporter
-from electrum_ltc.plugin import run_hook
-from electrum_ltc.util import format_satoshis, format_satoshis_plain
-from electrum_ltc.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
-from electrum_ltc import blockchain
-from electrum_ltc.network import Network
+from vialectrum.bitcoin import TYPE_ADDRESS
+from vialectrum.storage import WalletStorage
+from vialectrum.wallet import Wallet, InternalAddressCorruption
+from vialectrum.paymentrequest import InvoiceStore
+from vialectrum.util import profiler, InvalidPassword, send_exception_to_crash_reporter
+from vialectrum.plugin import run_hook
+from vialectrum.util import format_satoshis, format_satoshis_plain
+from vialectrum.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+from vialectrum import blockchain
+from vialectrum.network import Network
 from .i18n import _
 
 from kivy.app import App
@@ -32,10 +32,10 @@ from kivy.metrics import inch
 from kivy.lang import Builder
 
 ## lazy imports for factory so that widgets can be used in kv
-#Factory.register('InstallWizard', module='electrum_ltc.gui.kivy.uix.dialogs.installwizard')
-#Factory.register('InfoBubble', module='electrum_ltc.gui.kivy.uix.dialogs')
-#Factory.register('OutputList', module='electrum_ltc.gui.kivy.uix.dialogs')
-#Factory.register('OutputItem', module='electrum_ltc.gui.kivy.uix.dialogs')
+#Factory.register('InstallWizard', module='vialectrum.gui.kivy.uix.dialogs.installwizard')
+#Factory.register('InfoBubble', module='vialectrum.gui.kivy.uix.dialogs')
+#Factory.register('OutputList', module='vialectrum.gui.kivy.uix.dialogs')
+#Factory.register('OutputItem', module='vialectrum.gui.kivy.uix.dialogs')
 
 from .uix.dialogs.installwizard import InstallWizard
 from .uix.dialogs import InfoBubble, crash_reporter
@@ -51,26 +51,26 @@ util = False
 
 # register widget cache for keeping memory down timeout to forever to cache
 # the data
-Cache.register('electrum_ltc_widgets', timeout=0)
+Cache.register('vialectrum_widgets', timeout=0)
 
 from kivy.uix.screenmanager import Screen
 from kivy.uix.tabbedpanel import TabbedPanel
 from kivy.uix.label import Label
 from kivy.core.clipboard import Clipboard
 
-Factory.register('TabbedCarousel', module='electrum_ltc.gui.kivy.uix.screens')
+Factory.register('TabbedCarousel', module='vialectrum.gui.kivy.uix.screens')
 
 # Register fonts without this you won't be able to use bold/italic...
 # inside markup.
 from kivy.core.text import Label
 Label.register('Roboto',
-               'electrum_ltc/gui/kivy/data/fonts/Roboto.ttf',
-               'electrum_ltc/gui/kivy/data/fonts/Roboto.ttf',
-               'electrum_ltc/gui/kivy/data/fonts/Roboto-Bold.ttf',
-               'electrum_ltc/gui/kivy/data/fonts/Roboto-Bold.ttf')
+               'vialectrum/gui/kivy/data/fonts/Roboto.ttf',
+               'vialectrum/gui/kivy/data/fonts/Roboto.ttf',
+               'vialectrum/gui/kivy/data/fonts/Roboto-Bold.ttf',
+               'vialectrum/gui/kivy/data/fonts/Roboto-Bold.ttf')
 
 
-from electrum_ltc.util import (base_units, NoDynamicFeeEstimates, decimal_point_to_base_unit_name,
+from vialectrum.util import (base_units, NoDynamicFeeEstimates, decimal_point_to_base_unit_name,
                                base_unit_name_to_decimal_point, NotEnoughFunds, UnknownBaseUnit,
                                DECIMAL_POINT_DEFAULT)
 
@@ -120,7 +120,7 @@ class ElectrumWindow(App):
         from .uix.dialogs.choice_dialog import ChoiceDialog
         protocol = 's'
         def cb2(host):
-            from electrum_ltc import constants
+            from vialectrum import constants
             pp = servers.get(host, constants.net.DEFAULT_PORTS)
             port = pp.get(protocol, '')
             popup.ids.host.text = host
@@ -339,7 +339,7 @@ class ElectrumWindow(App):
             self.send_screen.do_clear()
 
     def on_qr(self, data):
-        from electrum_ltc.bitcoin import base_decode, is_address
+        from vialectrum.bitcoin import base_decode, is_address
         data = data.strip()
         if is_address(data):
             self.set_URI(data)
@@ -348,8 +348,8 @@ class ElectrumWindow(App):
             self.set_URI(data)
             return
         # try to decode transaction
-        from electrum_ltc.transaction import Transaction
-        from electrum_ltc.util import bh2u
+        from vialectrum.transaction import Transaction
+        from vialectrum.util import bh2u
         try:
             text = bh2u(base_decode(data, None, base=43))
             tx = Transaction(text)
@@ -386,13 +386,13 @@ class ElectrumWindow(App):
         self.receive_screen.screen.address = addr
 
     def show_pr_details(self, req, status, is_invoice):
-        from electrum_ltc.util import format_time
+        from vialectrum.util import format_time
         requestor = req.get('requestor')
         exp = req.get('exp')
         memo = req.get('memo')
         amount = req.get('amount')
         fund = req.get('fund')
-        popup = Builder.load_file('electrum_ltc/gui/kivy/uix/ui_screens/invoice.kv')
+        popup = Builder.load_file('vialectrum/gui/kivy/uix/ui_screens/invoice.kv')
         popup.is_invoice = is_invoice
         popup.amount = amount
         popup.requestor = requestor if is_invoice else req.get('address')
@@ -408,10 +408,10 @@ class ElectrumWindow(App):
         popup.open()
 
     def show_addr_details(self, req, status):
-        from electrum_ltc.util import format_time
+        from vialectrum.util import format_time
         fund = req.get('fund')
         isaddr = 'y'
-        popup = Builder.load_file('electrum_ltc/gui/kivy/uix/ui_screens/invoice.kv')
+        popup = Builder.load_file('vialectrum/gui/kivy/uix/ui_screens/invoice.kv')
         popup.isaddr = isaddr
         popup.is_invoice = False
         popup.status = status
@@ -471,7 +471,7 @@ class ElectrumWindow(App):
         currentActivity.startActivity(it)
 
     def build(self):
-        return Builder.load_file('electrum_ltc/gui/kivy/main.kv')
+        return Builder.load_file('vialectrum/gui/kivy/main.kv')
 
     def _pause(self):
         if platform == 'android':
@@ -627,7 +627,7 @@ class ElectrumWindow(App):
             d = WalletDialog()
             d.open()
         elif name == 'status':
-            popup = Builder.load_file('electrum_ltc/gui/kivy/uix/ui_screens/'+name+'.kv')
+            popup = Builder.load_file('vialectrum/gui/kivy/uix/ui_screens/'+name+'.kv')
             master_public_keys_layout = popup.ids.master_public_keys
             for xpub in self.wallet.get_master_public_keys()[1:]:
                 master_public_keys_layout.add_widget(TopLabel(text=_('Master Public Key')))
@@ -637,7 +637,7 @@ class ElectrumWindow(App):
                 master_public_keys_layout.add_widget(ref)
             popup.open()
         else:
-            popup = Builder.load_file('electrum_ltc/gui/kivy/uix/ui_screens/'+name+'.kv')
+            popup = Builder.load_file('vialectrum/gui/kivy/uix/ui_screens/'+name+'.kv')
             popup.open()
 
     @profiler
@@ -653,13 +653,13 @@ class ElectrumWindow(App):
 
         #setup lazy imports for mainscreen
         Factory.register('AnimatedPopup',
-                         module='electrum_ltc.gui.kivy.uix.dialogs')
+                         module='vialectrum.gui.kivy.uix.dialogs')
         Factory.register('QRCodeWidget',
-                         module='electrum_ltc.gui.kivy.uix.qrcodewidget')
+                         module='vialectrum.gui.kivy.uix.qrcodewidget')
 
         # preload widgets. Remove this if you want to load the widgets on demand
-        #Cache.append('electrum_ltc_widgets', 'AnimatedPopup', Factory.AnimatedPopup())
-        #Cache.append('electrum_ltc_widgets', 'QRCodeWidget', Factory.QRCodeWidget())
+        #Cache.append('vialectrum_widgets', 'AnimatedPopup', Factory.AnimatedPopup())
+        #Cache.append('vialectrum_widgets', 'QRCodeWidget', Factory.QRCodeWidget())
 
         # load and focus the ui
         self.root.manager = self.root.ids['manager']
@@ -753,7 +753,7 @@ class ElectrumWindow(App):
             self.fiat_balance = self.fx.format_amount(c+u+x) + ' [size=22dp]%s[/size]'% self.fx.ccy
 
     def get_max_amount(self):
-        from electrum_ltc.transaction import TxOutput
+        from vialectrum.transaction import TxOutput
         if run_hook('abort_send', self):
             return ''
         inputs = self.wallet.get_spendable_coins(None, self.electrum_config)
@@ -833,7 +833,7 @@ class ElectrumWindow(App):
         self.send_payment(address, amount=amount, label=label, message=message)
 
     def show_error(self, error, width='200dp', pos=None, arrow_pos=None,
-        exit=False, icon='atlas://electrum_ltc/gui/kivy/theming/light/error', duration=0,
+        exit=False, icon='atlas://vialectrum/gui/kivy/theming/light/error', duration=0,
         modal=False):
         ''' Show an error Message Bubble.
         '''
@@ -845,7 +845,7 @@ class ElectrumWindow(App):
         exit=False, duration=0, modal=False):
         ''' Show an Info Message Bubble.
         '''
-        self.show_error(error, icon='atlas://electrum_ltc/gui/kivy/theming/light/important',
+        self.show_error(error, icon='atlas://vialectrum/gui/kivy/theming/light/important',
             duration=duration, modal=modal, exit=exit, pos=pos,
             arrow_pos=arrow_pos)
 
@@ -885,7 +885,7 @@ class ElectrumWindow(App):
             info_bubble.show_arrow = False
             img.allow_stretch = True
             info_bubble.dim_background = True
-            info_bubble.background_image = 'atlas://electrum_ltc/gui/kivy/theming/light/card'
+            info_bubble.background_image = 'atlas://vialectrum/gui/kivy/theming/light/card'
         else:
             info_bubble.fs = False
             info_bubble.icon = icon

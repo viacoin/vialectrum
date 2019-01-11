@@ -32,7 +32,7 @@ is_local = not is_bundle and os.path.exists(os.path.join(script_dir, "vialectrum
 is_android = 'ANDROID_DATA' in os.environ
 
 # move this back to gui/kivy/__init.py once plugins are moved
-os.environ['KIVY_DATA_DIR'] = os.path.abspath(os.path.dirname(__file__)) + '/electrum_ltc/gui/kivy/data/'
+os.environ['KIVY_DATA_DIR'] = os.path.abspath(os.path.dirname(__file__)) + '/vialectrum/gui/kivy/data/'
 
 if is_local or is_android:
     sys.path.insert(0, os.path.join(script_dir, 'packages'))
@@ -65,16 +65,16 @@ if not is_android:
     check_imports()
 
 
-from electrum_ltc import util
-from electrum_ltc import constants
-from electrum_ltc import SimpleConfig
-from electrum_ltc.wallet import Wallet
-from electrum_ltc.storage import WalletStorage, get_derivation_used_for_hw_device_encryption
-from electrum_ltc.util import print_msg, print_stderr, json_encode, json_decode, UserCancelled
-from electrum_ltc.util import set_verbosity, InvalidPassword
-from electrum_ltc.commands import get_parser, known_commands, Commands, config_variables
-from electrum_ltc import daemon
-from electrum_ltc import keystore
+from vialectrum import util
+from vialectrum import constants
+from vialectrum import SimpleConfig
+from vialectrum.wallet import Wallet
+from vialectrum.storage import WalletStorage, get_derivation_used_for_hw_device_encryption
+from vialectrum.util import print_msg, print_stderr, json_encode, json_decode, UserCancelled
+from vialectrum.util import set_verbosity, InvalidPassword
+from vialectrum.commands import get_parser, known_commands, Commands, config_variables
+from vialectrum import daemon
+from vialectrum import keystore
 
 # get password routine
 def prompt_password(prompt, confirm=True):
@@ -246,7 +246,7 @@ def run_offline_command(config, config_options, plugins):
 
 
 def init_plugins(config, gui_name):
-    from electrum_ltc.plugin import Plugins
+    from vialectrum.plugin import Plugins
     return Plugins(config, gui_name)
 
 
@@ -357,7 +357,7 @@ if __name__ == '__main__':
                 init_plugins(config, 'cmdline')
                 d = daemon.Daemon(config, fd)
                 if config.get('websocket_server'):
-                    from electrum_ltc import websockets
+                    from vialectrum import websockets
                     websockets.WebSocketServer(config, d.network)
                 if config.get('requests_dir'):
                     path = os.path.join(config.get('requests_dir'), 'index.html')

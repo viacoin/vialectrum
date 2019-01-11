@@ -24,11 +24,11 @@
 # SOFTWARE.
 import webbrowser
 
-from electrum_ltc.i18n import _
-from electrum_ltc.util import block_explorer_URL
-from electrum_ltc.plugin import run_hook
-from electrum_ltc.bitcoin import is_address
-from electrum_ltc.wallet import InternalAddressCorruption
+from vialectrum.i18n import _
+from vialectrum.util import block_explorer_URL
+from vialectrum.plugin import run_hook
+from vialectrum.bitcoin import is_address
+from vialectrum.wallet import InternalAddressCorruption
 
 from .util import *
 
@@ -148,7 +148,7 @@ class AddressList(MyTreeView):
         self.set_current_idx(set_address)
 
     def create_menu(self, position):
-        from electrum_ltc.wallet import Multisig_Wallet
+        from vialectrum.wallet import Multisig_Wallet
         is_multisig = isinstance(self.wallet, Multisig_Wallet)
         can_delete = self.wallet.can_delete_address()
         selected = self.selected_in_column(1)

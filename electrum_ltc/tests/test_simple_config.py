@@ -5,7 +5,7 @@ import tempfile
 import shutil
 
 from io import StringIO
-from electrum_ltc.simple_config import (SimpleConfig, read_user_config)
+from vialectrum.simple_config import (SimpleConfig, read_user_config)
 
 from . import SequentialTestCase
 

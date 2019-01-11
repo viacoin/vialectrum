@@ -1,4 +1,4 @@
-from electrum_ltc.i18n import _
+from vialectrum.i18n import _
 
 fullname = _('Revealer Backup Utility')
 description = ''.join(["<br/>",

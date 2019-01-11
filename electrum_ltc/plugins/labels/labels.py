@@ -6,10 +6,10 @@ import traceback
 
 import base64
 
-from electrum_ltc.plugin import BasePlugin, hook
-from electrum_ltc.crypto import aes_encrypt_with_iv, aes_decrypt_with_iv
-from electrum_ltc.i18n import _
-from electrum_ltc.util import log_exceptions, ignore_exceptions, make_aiohttp_session
+from vialectrum.plugin import BasePlugin, hook
+from vialectrum.crypto import aes_encrypt_with_iv, aes_decrypt_with_iv
+from vialectrum.i18n import _
+from vialectrum.util import log_exceptions, ignore_exceptions, make_aiohttp_session
 
 class LabelsPlugin(BasePlugin):
 

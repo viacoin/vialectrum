@@ -65,8 +65,8 @@ git submodule update
 rm  -rf $BUILDDIR > /dev/null 2>&1
 mkdir $BUILDDIR
 
-cp -R ./contrib/deterministic-build/vialectrum-locale/locale/ ./electrum_ltc/locale/
-cp    ./contrib/deterministic-build/vialectrum-icons/icons_rc.py ./electrum_ltc/gui/qt/
+cp -R ./contrib/deterministic-build/vialectrum-locale/locale/ ./vialectrum/locale/
+cp    ./contrib/deterministic-build/vialectrum-icons/icons_rc.py ./vialectrum/gui/qt/
 
 
 info "Downloading libusb..."

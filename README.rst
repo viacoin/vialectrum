@@ -66,12 +66,12 @@ Render the SVG icons to PNGs (optional)::
 Compile the icons file for Qt::
 
     sudo apt-get install pyqt5-dev-tools
-    pyrcc5 icons.qrc -o electrum_ltc/gui/qt/icons_rc.py
+    pyrcc5 icons.qrc -o vialectrum/gui/qt/icons_rc.py
 
 Compile the protobuf description file::
 
     sudo apt-get install protobuf-compiler
-    protoc --proto_path=electrum_ltc --python_out=electrum_ltc electrum_ltc/paymentrequest.proto
+    protoc --proto_path=vialectrum --python_out=vialectrum vialectrum/paymentrequest.proto
 
 Create translations (optional)::
 
@@ -105,4 +105,4 @@ See `contrib/build-wine/`.
 Android
 -------
 
-See `electrum_ltc/gui/kivy/Readme.md` file.
+See `vialectrum/gui/kivy/Readme.md` file.

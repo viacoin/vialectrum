@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import asyncio
 
-from electrum_ltc.network import filter_protocol, Network
-from electrum_ltc.util import create_and_start_event_loop, log_exceptions
-from electrum_ltc.blockchain import hash_raw_header
+from vialectrum.network import filter_protocol, Network
+from vialectrum.util import create_and_start_event_loop, log_exceptions
+from vialectrum.blockchain import hash_raw_header
 
 import util
 

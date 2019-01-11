@@ -1,6 +1,6 @@
-from electrum_ltc.plugin import hook
+from vialectrum.plugin import hook
 from .coldcard import ColdcardPlugin
-from electrum_ltc.util import print_msg, print_error, raw_input, print_stderr
+from vialectrum.util import print_msg, print_error, raw_input, print_stderr
 
 class ColdcardCmdLineHandler:
 

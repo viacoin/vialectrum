@@ -34,12 +34,12 @@ from PyQt5.QtWidgets import *
 import qrcode
 from qrcode import exceptions
 
-from electrum_ltc.bitcoin import base_encode
-from electrum_ltc.i18n import _
-from electrum_ltc.plugin import run_hook
-from electrum_ltc import simple_config
-from electrum_ltc.util import bfh
-from electrum_ltc.transaction import SerializationError, Transaction
+from vialectrum.bitcoin import base_encode
+from vialectrum.i18n import _
+from vialectrum.plugin import run_hook
+from vialectrum import simple_config
+from vialectrum.util import bfh
+from vialectrum.transaction import SerializationError, Transaction
 
 from .util import *
 

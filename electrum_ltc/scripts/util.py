@@ -3,8 +3,8 @@ from typing import List, Sequence
 
 from aiorpcx import TaskGroup
 
-from electrum_ltc.network import parse_servers, Network
-from electrum_ltc.interface import Interface
+from vialectrum.network import parse_servers, Network
+from vialectrum.interface import Interface
 
 
 #electrum.util.set_verbosity(True)
