@@ -221,7 +221,7 @@ class Abstract_Wallet(AddressSynchronizer):
         addrs = self.get_receiving_addresses()
         if len(addrs) > 0:
             if not bitcoin.is_address(addrs[0]):
-                raise WalletFileException('The addresses in this wallet are not Litecoin addresses.')
+                raise WalletFileException('The addresses in this wallet are not Viacoin addresses.')
 
     def calc_unused_change_addresses(self):
         with self.lock:
@@ -609,7 +609,7 @@ class Abstract_Wallet(AddressSynchronizer):
         for i, o in enumerate(outputs):
             if o.type == TYPE_ADDRESS:
                 if not is_address(o.address):
-                    raise Exception("Invalid Litecoin address: {}".format(o.address))
+                    raise Exception("Invalid Viacoin address: {}".format(o.address))
             if o.value == '!':
                 if i_max is not None:
                     raise Exception("More than one output set to spend max")
@@ -1039,7 +1039,7 @@ class Abstract_Wallet(AddressSynchronizer):
     def add_payment_request(self, req, config):
         addr = req['address']
         if not bitcoin.is_address(addr):
-            raise Exception(_('Invalid Litecoin address.'))
+            raise Exception(_('Invalid Viacoin address.'))
         if not self.is_mine(addr):
             raise Exception(_('Address not in wallet.'))
 
@@ -1185,7 +1185,7 @@ class Abstract_Wallet(AddressSynchronizer):
         return None
 
     def price_at_timestamp(self, txid, price_func):
-        """Returns fiat price of Litecoin at the time tx got confirmed."""
+        """Returns fiat price of Viacoin at the time tx got confirmed."""
         timestamp = self.get_tx_height(txid).timestamp
         return price_func(timestamp if timestamp else time.time())
 

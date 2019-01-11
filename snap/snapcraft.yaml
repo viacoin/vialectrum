@@ -1,8 +1,8 @@
 name: vialectrum
 version: master
-summary: Litecoin thin client
+summary: Viacoin thin client
 description: |
-  Lightweight Litecoin client
+  Lightweight Viacoin client
 
 grade: devel # must be 'stable' to release into candidate/stable channels
 confinement: strict

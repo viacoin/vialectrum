@@ -2,13 +2,13 @@
 # sudo desktop-file-install vialectrum.desktop
 
 [Desktop Entry]
-Comment=Lightweight Litecoin Client
+Comment=Lightweight Viacoin Client
 Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\"; vialectrum %u"
-GenericName[en_US]=Litecoin Wallet
-GenericName=Litecoin Wallet
+GenericName[en_US]=Viacoin Wallet
+GenericName=Viacoin Wallet
 Icon=vialectrum
-Name[en_US]=Electrum Litecoin Wallet
-Name=Electrum Litecoin Wallet
+Name[en_US]=Electrum Viacoin Wallet
+Name=Electrum Viacoin Wallet
 Categories=Finance;Network;
 StartupNotify=false
 Terminal=false
