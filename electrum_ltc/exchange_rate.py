@@ -131,7 +131,7 @@ class ExchangeBase(PrintError):
 class Bit2C(ExchangeBase):
 
     async def get_rates(self, ccy):
-        json = await self.get_json('www.bit2c.co.il', '/Exchanges/LTCNIS/Ticker.json')
+        json = await self.get_json('www.bit2c.co.il', '/Exchanges/VIANIS/Ticker.json')
         return {'NIS': Decimal(json['ll'])}
 
 
@@ -139,7 +139,7 @@ class BitcoinAverage(ExchangeBase):
 
     async def get_rates(self, ccy):
         json = await self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/short')
-        return dict([(r.replace("LTC", ""), Decimal(json[r]['last']))
+        return dict([(r.replace("VIA", ""), Decimal(json[r]['last']))
                      for r in json if r != 'timestamp'])
 
     def history_ccys(self):
@@ -149,7 +149,7 @@ class BitcoinAverage(ExchangeBase):
 
     async def request_history(self, ccy):
         history = await self.get_csv('apiv2.bitcoinaverage.com',
-                               "/indices/global/history/LTC%s?period=alltime&format=csv" % ccy)
+                               "/indices/global/history/VIA%s?period=alltime&format=csv" % ccy)
         return dict([(h['DateTime'][:10], h['Average'])
                      for h in history])
 
@@ -158,8 +158,8 @@ class BitcoinVenezuela(ExchangeBase):
 
     async def get_rates(self, ccy):
         json = await self.get_json('api.bitcoinvenezuela.com', '/')
-        rates = [(r, json['LTC'][r]) for r in json['LTC']
-                 if json['LTC'][r] is not None]  # Giving NULL sometimes
+        rates = [(r, json['VIA'][r]) for r in json['VIA']
+                 if json['VIA'][r] is not None]  # Giving NULL sometimes
         return dict(rates)
 
     def history_ccys(self):
@@ -167,8 +167,8 @@ class BitcoinVenezuela(ExchangeBase):
 
     async def request_history(self, ccy):
         json = await self.get_json('api.bitcoinvenezuela.com',
-                             "/historical/index.php?coin=LTC")
-        return json[ccy +'_LTC']
+                             "/historical/index.php?coin=VIA")
+        return json[ccy +'_VIA']
 
 
 class Bitfinex(ExchangeBase):
@@ -196,7 +196,7 @@ class Coinbase(ExchangeBase):
 
     async def get_rates(self, ccy):
         json = await self.get_json('api.coinbase.com',
-                             '/v2/exchange-rates?currency=LTC')
+                             '/v2/exchange-rates?currency=VIA')
         return {ccy: Decimal(rate) for (ccy, rate) in json["data"]["rates"].items()}
 
 
@@ -212,7 +212,7 @@ class GoCoin(ExchangeBase):
 
     async def get_rates(self, ccy):
         json = await self.get_json('x.g0cn.com', '/prices')
-        ltc_prices = json['prices']['LTC']
+        ltc_prices = json['prices']['VIA']
         return dict([(r, Decimal(ltc_prices[r])) for r in ltc_prices])
 
 
@@ -220,7 +220,7 @@ class HitBTC(ExchangeBase):
 
     async def get_rates(self, ccy):
         ccys = ['USD']
-        json = await self.get_json('api.hitbtc.com', '/api/2/public/ticker/LTC%s' % ccy)
+        json = await self.get_json('api.hitbtc.com', '/api/2/public/ticker/VIA%s' % ccy)
         result = dict.fromkeys(ccys)
         if ccy in ccys:
             result[ccy] = Decimal(json['last'])
@@ -231,21 +231,21 @@ class Kraken(ExchangeBase):
 
     async def get_rates(self, ccy):
         dicts = await self.get_json('api.kraken.com', '/0/public/AssetPairs')
-        pairs = [k for k in dicts['result'] if k.startswith('XLTCZ')]
+        pairs = [k for k in dicts['result'] if k.startswith('XVIAZ')]
         json = await self.get_json('api.kraken.com',
                              '/0/public/Ticker?pair=%s' % ','.join(pairs))
         ccys = [p[5:] for p in pairs]
         result = dict.fromkeys(ccys)
-        result[ccy] = Decimal(json['result']['XLTCZ'+ccy]['c'][0])
+        result[ccy] = Decimal(json['result']['XVIAZ'+ccy]['c'][0])
         return result
 
     def history_ccys(self):
         return ['EUR', 'USD']
 
     async def request_history(self, ccy):
-        query = '/0/public/OHLC?pair=LTC%s&interval=1440' % ccy
+        query = '/0/public/OHLC?pair=VIA%s&interval=1440' % ccy
         json = await self.get_json('api.kraken.com', query)
-        history = json['result']['XLTCZ'+ccy]
+        history = json['result']['XVIAZ'+ccy]
         return dict([(time.strftime('%Y-%m-%d', time.localtime(t[0])), t[4])
                                     for t in history])
 
@@ -268,7 +268,7 @@ class TheRockTrading(ExchangeBase):
 
     async def get_rates(self, ccy):
         json = await self.get_json('api.therocktrading.com',
-                                   '/v1/funds/LTCEUR/ticker')
+                                   '/v1/funds/VIAEUR/ticker')
         return {'EUR': Decimal(json['last'])}
 
 class QuadrigaCX(ExchangeBase):

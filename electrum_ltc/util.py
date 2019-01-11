@@ -61,11 +61,11 @@ def inv_dict(d):
 ca_path = certifi.where()
 
 
-base_units = {'LTC':8, 'mLTC':5, 'uLTC':2, 'sat':0}
+base_units = {'VIA':8, 'mVIA':5, 'uVIA':2, 'sat':0}
 base_units_inverse = inv_dict(base_units)
-base_units_list = ['LTC', 'mLTC', 'uLTC', 'sat']  # list(dict) does not guarantee order
+base_units_list = ['VIA', 'mVIA', 'uVIA', 'sat']  # list(dict) does not guarantee order
 
-DECIMAL_POINT_DEFAULT = 8  # LTC
+DECIMAL_POINT_DEFAULT = 8  # VIA
 
 
 class UnknownBaseUnit(Exception): pass
@@ -148,7 +148,7 @@ class Satoshis(object):
         return 'Satoshis(%d)'%self.value
 
     def __str__(self):
-        return format_satoshis(self.value) + " LTC"
+        return format_satoshis(self.value) + " VIA"
 
     def __eq__(self, other):
         return self.value == other.value
@@ -615,7 +615,7 @@ def time_difference(distance_in_time, include_seconds):
 
 mainnet_block_explorers = {
     'Bchain.info': ('https://bchain.info/',
-                        {'tx': 'LTC/tx/', 'addr': 'LTC/addr/'}),
+                        {'tx': 'VIA/tx/', 'addr': 'VIA/addr/'}),
     'Blockchair.com': ('https://blockchair.com/viacoin/',
                         {'tx': 'transaction/', 'addr': 'address/'}),
     'BlockCypher.com': ('https://live.blockcypher.com/ltc/',
@@ -625,7 +625,7 @@ mainnet_block_explorers = {
     'LiteCore': ('https://insight.litecore.io/',
                         {'tx': 'tx/', 'addr': 'address/'}),
     'SoChain': ('https://chain.so/',
-                        {'tx': 'tx/LTC/', 'addr': 'address/LTC/'}),
+                        {'tx': 'tx/VIA/', 'addr': 'address/VIA/'}),
     'system default': ('blockchain://12a765e31ffd4059bada1e25190f6e98c99d9714d334efa41a195a7e7e04bfe2/',
                         {'tx': 'tx/', 'addr': 'address/'}),
 }
@@ -634,7 +634,7 @@ testnet_block_explorers = {
     'LiteCore': ('https://testnet.litecore.io/',
                         {'tx': 'tx/', 'addr': 'address/'}),
     'SoChain': ('https://chain.so/',
-                        {'tx': 'tx/LTCTEST/', 'addr': 'address/LTCTEST/'}),
+                        {'tx': 'tx/VIATEST/', 'addr': 'address/VIATEST/'}),
     'system default': ('blockchain://4966625a4b2851d9fdee139e56211a0d88575f59ed816ff5e6a63deb4e3e29a0/',
                        {'tx': 'tx/', 'addr': 'address/'}),
 }
