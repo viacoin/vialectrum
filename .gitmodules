@@ -1,9 +1,9 @@
 [submodule "contrib/deterministic-build/vialectrum-icons"]
 	path = contrib/deterministic-build/vialectrum-icons
-	url = https://github.com/pooler/vialectrum-icons
+	url = https://github.com/viacoin/vialectrum-icons
 [submodule "contrib/deterministic-build/vialectrum-locale"]
 	path = contrib/deterministic-build/vialectrum-locale
-	url = https://github.com/pooler/vialectrum-locale
+	url = https://github.com/viacoin/vialectrum-locale
 [submodule "contrib/CalinsQRReader"]
 	path = contrib/osx/CalinsQRReader
 	url = https://github.com/spesmilo/CalinsQRReader
