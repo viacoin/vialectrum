@@ -13,7 +13,7 @@ Categories=Finance;Network;
 StartupNotify=false
 Terminal=false
 Type=Application
-MimeType=x-scheme-handler/litecoin;
+MimeType=x-scheme-handler/viacoin;
 Actions=Testnet;
 
 [Desktop Action Testnet]

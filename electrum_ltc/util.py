@@ -616,11 +616,11 @@ def time_difference(distance_in_time, include_seconds):
 mainnet_block_explorers = {
     'Bchain.info': ('https://bchain.info/',
                         {'tx': 'LTC/tx/', 'addr': 'LTC/addr/'}),
-    'Blockchair.com': ('https://blockchair.com/litecoin/',
+    'Blockchair.com': ('https://blockchair.com/viacoin/',
                         {'tx': 'transaction/', 'addr': 'address/'}),
     'BlockCypher.com': ('https://live.blockcypher.com/ltc/',
                         {'tx': 'tx/', 'addr': 'address/'}),
-    'explorer.litecoin.net': ('http://explorer.litecoin.net/',
+    'explorer.viacoin.net': ('http://explorer.viacoin.net/',
                         {'tx': 'tx/', 'addr': 'address/'}),
     'LiteCore': ('https://insight.litecore.io/',
                         {'tx': 'tx/', 'addr': 'address/'}),
@@ -678,8 +678,8 @@ def parse_URI(uri: str, on_pr: Callable=None) -> dict:
         return {'address': uri}
 
     u = urllib.parse.urlparse(uri)
-    if u.scheme != 'litecoin':
-        raise Exception("Not a litecoin URI")
+    if u.scheme != 'viacoin':
+        raise Exception("Not a viacoin URI")
     address = u.path
 
     # python for android fails to parse query
@@ -745,7 +745,7 @@ def create_URI(addr, amount, message):
         query.append('amount=%s'%format_satoshis_plain(amount))
     if message:
         query.append('message=%s'%urllib.parse.quote(message))
-    p = urllib.parse.ParseResult(scheme='litecoin', netloc='', path=addr, params='', query='&'.join(query), fragment='')
+    p = urllib.parse.ParseResult(scheme='viacoin', netloc='', path=addr, params='', query='&'.join(query), fragment='')
     return urllib.parse.urlunparse(p)
 
 
