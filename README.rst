@@ -7,7 +7,7 @@ Vialectrum is a port of Electrum, the Bitcoin wallet, to Viacoin.
 
   Licence: MIT Licence
   Original Author: Thomas Voegtlin
-  Port Maintainer: Pooler
+  Port Maintainer: Romano
   Language: Python (>= 3.6)
   Homepage: https://vialectrum.org/
 
