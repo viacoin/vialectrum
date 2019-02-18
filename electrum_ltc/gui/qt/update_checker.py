@@ -28,7 +28,7 @@ class UpdateCheck(QWidget, PrintError):
     def __init__(self, main_window, latest_version=None):
         self.main_window = main_window
         QWidget.__init__(self)
-        self.setWindowTitle('Electrum-LTC - ' + _('Update Check'))
+        self.setWindowTitle('Vialectrum - ' + _('Update Check'))
         self.content = QVBoxLayout()
         self.content.setContentsMargins(*[10]*4)
 

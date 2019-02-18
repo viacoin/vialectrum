@@ -239,7 +239,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         # If the option hasn't been set yet
         if config.get('check_updates') is None:
             choice = QMessageBox.question(self,
-                                 "Electrum-LTC - " + _("Enable update check"),
+                                 "Vialectrum - " + _("Enable update check"),
                                  _("For security reasons we advise that you always use the latest version of Electrum.") + " " +
                                  _("Would you like to be notified when there is a newer version of Electrum available?"),
                                  QMessageBox.Yes,
@@ -449,7 +449,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.setGeometry(100, 100, 840, 400)
 
     def watching_only_changed(self):
-        name = "Electrum-LTC Testnet" if constants.net.TESTNET else "Electrum-LTC"
+        name = "Vialectrum Testnet" if constants.net.TESTNET else "Vialectrum"
         title = '%s %s  -  %s' % (name, ELECTRUM_VERSION,
                                         self.wallet.basename())
         extra = [self.wallet.storage.get('wallet_type', '?')]
@@ -628,7 +628,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.show_error(_('No donation address for this server'))
 
     def show_about(self):
-        QMessageBox.about(self, "Electrum-LTC",
+        QMessageBox.about(self, "Vialectrum",
                           (_("Version")+" %s" % ELECTRUM_VERSION + "\n\n" +
                            _("Electrum's focus is speed, with low resource usage and simplifying Litecoin.") + " " +
                            _("You do not need to perform regular backups, because your wallet can be "
@@ -647,7 +647,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             _("Before reporting a bug, upgrade to the most recent version of Electrum (latest release or git HEAD), and include the version number in your report."),
             _("Try to explain not only what the bug is, but how it occurs.")
          ])
-        self.show_message(msg, title="Electrum-LTC - " + _("Reporting Bugs"), rich_text=True)
+        self.show_message(msg, title="Vialectrum - " + _("Reporting Bugs"), rich_text=True)
 
     def notify_transactions(self):
         if self.tx_notification_queue.qsize() == 0:
@@ -685,9 +685,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.tray:
             try:
                 # this requires Qt 5.9
-                self.tray.showMessage("Electrum-LTC", message, read_QIcon("electrum_dark_icon"), 20000)
+                self.tray.showMessage("Vialectrum", message, read_QIcon("electrum_dark_icon"), 20000)
             except TypeError:
-                self.tray.showMessage("Electrum-LTC", message, QSystemTrayIcon.Information, 20000)
+                self.tray.showMessage("Vialectrum", message, QSystemTrayIcon.Information, 20000)
 
 
 

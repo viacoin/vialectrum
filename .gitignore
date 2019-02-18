@@ -5,7 +5,7 @@ build/
 dist/
 *.egg/
 contrib/pyinstaller/
-Electrum_LTC.egg-info/
+Vialectrum.egg-info/
 electrum_ltc/locale/
 .devlocaltmp/
 *_trial_temp

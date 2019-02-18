@@ -7,7 +7,7 @@ Source tarballs
     contrib/make_locale
     ```
 
-2. Prepare python dependencies used by Electrum-LTC.
+2. Prepare python dependencies used by Vialectrum.
 
     ```
     contrib/make_packages

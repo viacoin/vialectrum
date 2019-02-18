@@ -23,9 +23,9 @@ string = string.replace("##VERSION_ANDROID##", version_android)
 string = string.replace("##VERSION_APK##", APK_VERSION)
 
 files = {
-    'tgz': "Electrum-LTC-%s.tar.gz" % version,
+    'tgz': "Vialectrum-%s.tar.gz" % version,
     'appimage': "electrum-ltc-%s-x86_64.AppImage" % version,
-    'zip': "Electrum-LTC-%s.zip" % version,
+    'zip': "Vialectrum-%s.zip" % version,
     'mac': "electrum-ltc-%s.dmg" % version_mac,
     'win': "electrum-ltc-%s.exe" % version_win,
     'win_setup': "electrum-ltc-%s-setup.exe" % version_win,
