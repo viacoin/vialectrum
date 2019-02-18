@@ -698,8 +698,8 @@ def parse_URI(uri: str, on_pr: Callable=None) -> dict:
         return {'address': uri}
 
     u = urllib.parse.urlparse(uri)
-    if u.scheme != 'litecoin':
-        raise Exception("Not a litecoin URI")
+    if u.scheme != 'viacoin':
+        raise Exception("Not a viacoin URI")
     address = u.path
 
     # python for android fails to parse query
@@ -765,7 +765,7 @@ def create_URI(addr, amount, message):
         query.append('amount=%s'%format_satoshis_plain(amount))
     if message:
         query.append('message=%s'%urllib.parse.quote(message))
-    p = urllib.parse.ParseResult(scheme='litecoin', netloc='', path=addr, params='', query='&'.join(query), fragment='')
+    p = urllib.parse.ParseResult(scheme='viacoin', netloc='', path=addr, params='', query='&'.join(query), fragment='')
     return urllib.parse.urlunparse(p)
 
 
