@@ -694,7 +694,7 @@ def parse_URI(uri: str, on_pr: Callable=None) -> dict:
 
     if ':' not in uri:
         if not bitcoin.is_address(uri):
-            raise Exception("Not a Litecoin address")
+            raise Exception("Not a Viacoin address")
         return {'address': uri}
 
     u = urllib.parse.urlparse(uri)
@@ -716,7 +716,7 @@ def parse_URI(uri: str, on_pr: Callable=None) -> dict:
     out = {k: v[0] for k, v in pq.items()}
     if address:
         if not bitcoin.is_address(address):
-            raise Exception("Invalid Litecoin address:" + address)
+            raise Exception("Invalid Viacoin address:" + address)
         out['address'] = address
     if 'amount' in out:
         am = out['amount']

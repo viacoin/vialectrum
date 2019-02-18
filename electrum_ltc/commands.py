@@ -157,8 +157,8 @@ class Commands:
     @command('')
     def restore(self, text, passphrase=None, password=None, encrypt_file=True):
         """Restore a wallet from text. Text can be a seed phrase, a master
-        public key, a master private key, a list of Litecoin addresses
-        or Litecoin private keys. If you want to be prompted for your
+        public key, a master private key, a list of Viacoin addresses
+        or Viacoin private keys. If you want to be prompted for your
         seed, type '?' or ':' (concealed) """
         storage = WalletStorage(self.config.get_wallet_path())
         if storage.file_exists():
@@ -560,7 +560,7 @@ class Commands:
 
     @command('w')
     def setlabel(self, key, label):
-        """Assign a label to an item. Item may be a Litecoin address or a
+        """Assign a label to an item. Item may be a Viacoin address or a
         transaction ID"""
         self.wallet.set_label(key, label)
 
@@ -780,8 +780,8 @@ def eval_bool(x: str) -> bool:
 
 param_descriptions = {
     'privkey': 'Private key. Type \'?\' to get a prompt.',
-    'destination': 'Litecoin address, contact or alias',
-    'address': 'Litecoin address',
+    'destination': 'Viacoin address, contact or alias',
+    'address': 'Viacoin address',
     'seed': 'Seed phrase',
     'txid': 'Transaction ID',
     'pos': 'Position',
