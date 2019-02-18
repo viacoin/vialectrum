@@ -5,7 +5,7 @@ set -e
 CONTRIB="$(dirname "$(readlink -e "$0")")"
 ROOT_FOLDER="$CONTRIB"/..
 PACKAGES="$ROOT_FOLDER"/packages/
-LOCALE="$ROOT_FOLDER"/electrum_ltc/locale/
+LOCALE="$ROOT_FOLDER"/vialectrum/locale/
 
 if [ ! -d "$LOCALE" ]; then
   echo "Run make_locale first!"
@@ -17,7 +17,7 @@ if [ ! -d "$PACKAGES" ]; then
   exit 1
 fi
 
-pushd ./electrum_ltc/gui/kivy/
+pushd ./vialectrum/gui/kivy/
 
 make theming
 
@@ -27,7 +27,7 @@ if [[ -n "$1"  && "$1" == "release" ]] ; then
     export P4A_RELEASE_KEYSTORE=~/.keystore
     export P4A_RELEASE_KEYSTORE_PASSWD=$password
     export P4A_RELEASE_KEYALIAS_PASSWD=$password
-    export P4A_RELEASE_KEYALIAS=electrum_ltc
+    export P4A_RELEASE_KEYALIAS=vialectrum
     make release
 else
     make apk

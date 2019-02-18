@@ -6,7 +6,7 @@ dist/
 *.egg/
 contrib/pyinstaller/
 Vialectrum.egg-info/
-electrum_ltc/locale/
+vialectrum/locale/
 .devlocaltmp/
 *_trial_temp
 packages
@@ -17,8 +17,8 @@ bin/
 .idea
 
 # icons
-electrum_ltc/gui/kivy/theming/light-0.png
-electrum_ltc/gui/kivy/theming/light.atlas
+vialectrum/gui/kivy/theming/light-0.png
+vialectrum/gui/kivy/theming/light.atlas
 
 # tests/tox
 .tox/

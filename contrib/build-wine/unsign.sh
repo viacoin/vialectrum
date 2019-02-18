@@ -14,15 +14,15 @@ set -e
 mkdir -p signed >/dev/null 2>&1
 mkdir -p signed/stripped >/dev/null 2>&1
 
-version=`python3 -c "import electrum_ltc; print(electrum_ltc.version.ELECTRUM_VERSION)"`
+version=`python3 -c "import vialectrum; print(vialectrum.version.ELECTRUM_VERSION)"`
 
 echo "Found $(ls dist/*.exe | wc -w) files to verify."
 
 for mine in $(ls dist/*.exe); do
     echo "---------------"
     f=$(basename $mine)
-    echo "Downloading https://electrum-ltc.org/download/$f"
-    wget -q https://electrum-ltc.org/download/$f -O signed/$f
+    echo "Downloading https://vialectrum.org/download/$f"
+    wget -q https://vialectrum.org/download/$f -O signed/$f
     out="signed/stripped/$f"
     size=$( wc -c < $mine )
     # Step 1: Remove PE signature from signed binary

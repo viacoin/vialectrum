@@ -17,18 +17,18 @@ folder.
 2. Build image
 
     ```
-    $ sudo docker build --no-cache -t electrum-ltc-appimage-builder-img contrib/build-linux/appimage
+    $ sudo docker build --no-cache -t vialectrum-appimage-builder-img contrib/build-linux/appimage
     ```
 
 3. Build binary
 
     ```
     $ sudo docker run -it \
-        --name electrum-ltc-appimage-builder-cont \
-        -v $PWD:/opt/electrum-ltc \
+        --name vialectrum-appimage-builder-cont \
+        -v $PWD:/opt/vialectrum \
         --rm \
-        --workdir /opt/electrum-ltc/contrib/build-linux/appimage \
-        electrum-ltc-appimage-builder-img \
+        --workdir /opt/vialectrum/contrib/build-linux/appimage \
+        vialectrum-appimage-builder-img \
         ./build.sh
     ```
 

@@ -42,7 +42,7 @@ Move `prebuilt_qr` to El Capitan: `contrib/osx/CalinsQRReader/prebuilt_qr`.
 
 #### 1.2 Build Vialectrum
 
-    cd electrum-ltc
+    cd vialectrum
     ./contrib/osx/make_osx
     
 This creates both a folder named Vialectrum.app and the .dmg file.
@@ -62,5 +62,5 @@ Copy the Vialectrum.app directory over and install the dependencies, e.g.:
     
 Then you can just invoke `package.sh` with the path to the app:
 
-    cd electrum-ltc
+    cd vialectrum
     ./contrib/osx/package.sh ~/Vialectrum.app/

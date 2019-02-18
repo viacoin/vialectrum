@@ -26,7 +26,7 @@ with open('contrib/requirements/requirements-hw.txt') as f:
     requirements_hw = f.read().splitlines()
 
 # load version.py; needlessly complicated alternative to "imp.load_source":
-version_spec = importlib.util.spec_from_file_location('version', 'electrum_ltc/version.py')
+version_spec = importlib.util.spec_from_file_location('version', 'vialectrum/version.py')
 version_module = version = importlib.util.module_from_spec(version_spec)
 version_spec.loader.exec_module(version_module)
 
@@ -46,8 +46,8 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         else:
             usr_share = os.path.expanduser('~/.local/share')
     data_files += [
-        (os.path.join(usr_share, 'applications/'), ['electrum-ltc.desktop']),
-        (os.path.join(usr_share, icons_dirname), ['electrum_ltc/gui/icons/electrum-ltc.png']),
+        (os.path.join(usr_share, 'applications/'), ['vialectrum.desktop']),
+        (os.path.join(usr_share, icons_dirname), ['vialectrum/gui/icons/vialectrum.png']),
     ]
 
 extras_require = {
@@ -65,30 +65,30 @@ setup(
     install_requires=requirements,
     extras_require=extras_require,
     packages=[
-        'electrum_ltc',
-        'electrum_ltc.gui',
-        'electrum_ltc.gui.qt',
-        'electrum_ltc.plugins',
-    ] + [('electrum_ltc.plugins.'+pkg) for pkg in find_packages('electrum_ltc/plugins')],
+        'vialectrum',
+        'vialectrum.gui',
+        'vialectrum.gui.qt',
+        'vialectrum.plugins',
+    ] + [('vialectrum.plugins.'+pkg) for pkg in find_packages('vialectrum/plugins')],
     package_dir={
-        'electrum_ltc': 'electrum_ltc'
+        'vialectrum': 'vialectrum'
     },
     package_data={
         '': ['*.txt', '*.json', '*.ttf', '*.otf'],
-        'electrum_ltc': [
+        'vialectrum': [
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
         ],
-        'electrum_ltc.gui': [
+        'vialectrum.gui': [
             'icons/*',
         ],
     },
-    scripts=['electrum_ltc/electrum-ltc'],
+    scripts=['vialectrum/vialectrum'],
     data_files=data_files,
     description="Lightweight Viacoin Wallet",
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
     license="MIT Licence",
-    url="https://electrum-ltc.org",
+    url="https://vialectrum.org",
     long_description="""Lightweight Viacoin Wallet""",
 )

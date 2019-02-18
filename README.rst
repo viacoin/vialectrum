@@ -9,7 +9,7 @@ Vialectrum is a port of Electrum, the Bitcoin wallet, to Viacoin.
   Original Author: Thomas Voegtlin
   Port Maintainer: Pooler
   Language: Python (>= 3.6)
-  Homepage: https://electrum-ltc.org/
+  Homepage: https://vialectrum.org/
 
 
 
@@ -52,8 +52,8 @@ Development version
 
 Check out the code from GitHub::
 
-    git clone git://github.com/pooler/electrum-ltc.git
-    cd electrum-ltc
+    git clone git://github.com/pooler/vialectrum.git
+    cd vialectrum
 
 Run install (this should install dependencies)::
 
@@ -63,7 +63,7 @@ Run install (this should install dependencies)::
 Compile the protobuf description file::
 
     sudo apt-get install protobuf-compiler
-    protoc --proto_path=electrum_ltc --python_out=electrum_ltc electrum_ltc/paymentrequest.proto
+    protoc --proto_path=vialectrum --python_out=vialectrum vialectrum/paymentrequest.proto
 
 Create translations (optional)::
 
@@ -97,4 +97,4 @@ See :code:`contrib/build-wine/docker/README.md`.
 Android
 -------
 
-See :code:`electrum_ltc/gui/kivy/Readme.md`.
+See :code:`vialectrum/gui/kivy/Readme.md`.

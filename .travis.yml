@@ -19,7 +19,7 @@ install:
 cache:
   - pip: true
   - directories:
-    - /tmp/electrum-ltc-build
+    - /tmp/vialectrum-build
 script:
     - tox
 after_success:
@@ -37,9 +37,9 @@ jobs:
       services:
         - docker
       install:
-        - sudo docker build --no-cache -t electrum-ltc-wine-builder-img ./contrib/build-wine/docker/
+        - sudo docker build --no-cache -t vialectrum-wine-builder-img ./contrib/build-wine/docker/
       script:
-        - sudo docker run --name electrum-ltc-wine-builder-cont -v $PWD:/opt/wine64/drive_c/electrum-ltc --rm --workdir /opt/wine64/drive_c/electrum-ltc/contrib/build-wine electrum-ltc-wine-builder-img ./build.sh
+        - sudo docker run --name vialectrum-wine-builder-cont -v $PWD:/opt/wine64/drive_c/vialectrum --rm --workdir /opt/wine64/drive_c/vialectrum/contrib/build-wine vialectrum-wine-builder-img ./build.sh
       after_success: true
     - name: "Android build"
       language: python
@@ -52,7 +52,7 @@ jobs:
       install:
         - pip install requests && ./contrib/make_locale
         - ./contrib/make_packages
-        - sudo docker build --no-cache -t electrum-android-builder-img electrum_ltc/gui/kivy/tools
+        - sudo docker build --no-cache -t electrum-android-builder-img vialectrum/gui/kivy/tools
       script:
         - sudo chown -R 1000:1000 .
         # Output something every minute or Travis kills the job
@@ -81,9 +81,9 @@ jobs:
       services:
         - docker
       install:
-        - sudo docker build --no-cache -t electrum-ltc-appimage-builder-img ./contrib/build-linux/appimage/
+        - sudo docker build --no-cache -t vialectrum-appimage-builder-img ./contrib/build-linux/appimage/
       script:
-        - sudo docker run --name electrum-ltc-appimage-builder-cont -v $PWD:/opt/electrum-ltc --rm --workdir /opt/electrum-ltc/contrib/build-linux/appimage electrum-ltc-appimage-builder-img ./build.sh
+        - sudo docker run --name vialectrum-appimage-builder-cont -v $PWD:/opt/vialectrum --rm --workdir /opt/vialectrum/contrib/build-linux/appimage vialectrum-appimage-builder-img ./build.sh
       after_success: true
     - stage: release check
       install:

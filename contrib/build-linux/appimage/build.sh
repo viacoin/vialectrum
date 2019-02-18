@@ -6,7 +6,7 @@ PROJECT_ROOT="$(dirname "$(readlink -e "$0")")/../../.."
 CONTRIB="$PROJECT_ROOT/contrib"
 DISTDIR="$PROJECT_ROOT/dist"
 BUILDDIR="$CONTRIB/build-linux/appimage/build/appimage"
-APPDIR="$BUILDDIR/electrum-ltc.AppDir"
+APPDIR="$BUILDDIR/vialectrum.AppDir"
 CACHEDIR="$CONTRIB/build-linux/appimage/.cache/appimage"
 
 # pinned versions
@@ -16,7 +16,7 @@ LIBSECP_VERSION="b408c6a8b287003d1ade5709e6f7bc3c7f1d5be7"
 
 
 VERSION=`git describe --tags --dirty --always`
-APPIMAGE="$DISTDIR/electrum-ltc-$VERSION-x86_64.AppImage"
+APPIMAGE="$DISTDIR/vialectrum-$VERSION-x86_64.AppImage"
 
 rm -rf "$BUILDDIR"
 mkdir -p "$APPDIR" "$CACHEDIR" "$DISTDIR"
@@ -94,13 +94,13 @@ info "preparing electrum-locale."
     cd "$PROJECT_ROOT"
     git submodule update --init
 
-    pushd "$CONTRIB"/deterministic-build/electrum-ltc-locale
+    pushd "$CONTRIB"/deterministic-build/vialectrum-locale
     if ! which msgfmt > /dev/null 2>&1; then
         echo "Please install gettext"
         exit 1
     fi
     for i in ./locale/*; do
-        dir="$PROJECT_ROOT/electrum_ltc/$i/LC_MESSAGES"
+        dir="$PROJECT_ROOT/vialectrum/$i/LC_MESSAGES"
         mkdir -p $dir
         msgfmt --output-file="$dir/electrum.mo" "$i/electrum.po" || true
     done
@@ -121,8 +121,8 @@ cp "/usr/lib/libzbar.so.0" "$APPDIR/usr/lib/libzbar.so.0"
 
 
 info "desktop integration."
-cp "$PROJECT_ROOT/electrum-ltc.desktop" "$APPDIR/electrum-ltc.desktop"
-cp "$PROJECT_ROOT/electrum_ltc/gui/icons/electrum-ltc.png" "$APPDIR/electrum-ltc.png"
+cp "$PROJECT_ROOT/vialectrum.desktop" "$APPDIR/vialectrum.desktop"
+cp "$PROJECT_ROOT/vialectrum/gui/icons/vialectrum.png" "$APPDIR/vialectrum.png"
 
 
 # add launcher

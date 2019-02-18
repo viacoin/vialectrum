@@ -12,7 +12,7 @@ else:
 
 PYHOME = 'c:/python3'
 
-home = 'C:\\electrum-ltc\\'
+home = 'C:\\vialectrum\\'
 
 # see https://github.com/pyinstaller/pyinstaller/issues/2005
 hiddenimports = []
@@ -38,12 +38,12 @@ binaries += [b for b in collect_dynamic_libs('PyQt5') if 'qwindowsvista' in b[0]
 binaries += [('C:/tmp/libsecp256k1.dll', '.')]
 
 datas = [
-    (home+'electrum_ltc/*.json', 'electrum_ltc'),
-    (home+'electrum_ltc/wordlist/english.txt', 'electrum_ltc/wordlist'),
-    (home+'electrum_ltc/locale', 'electrum_ltc/locale'),
-    (home+'electrum_ltc/plugins', 'electrum_ltc/plugins'),
+    (home+'vialectrum/*.json', 'vialectrum'),
+    (home+'vialectrum/wordlist/english.txt', 'vialectrum/wordlist'),
+    (home+'vialectrum/locale', 'vialectrum/locale'),
+    (home+'vialectrum/plugins', 'vialectrum/plugins'),
     ('C:\\Program Files (x86)\\ZBar\\bin\\', '.'),
-    (home+'electrum_ltc/gui/icons', 'electrum_ltc/gui/icons'),
+    (home+'vialectrum/gui/icons', 'vialectrum/gui/icons'),
 ]
 datas += collect_data_files('trezorlib')
 datas += collect_data_files('safetlib')
@@ -53,23 +53,23 @@ datas += collect_data_files('ckcc')
 
 # We don't put these files in to actually include them in the script but to make the Analysis method scan them for imports
 a = Analysis([home+'run_electrum',
-              home+'electrum_ltc/gui/qt/main_window.py',
-              home+'electrum_ltc/gui/text.py',
-              home+'electrum_ltc/util.py',
-              home+'electrum_ltc/wallet.py',
-              home+'electrum_ltc/simple_config.py',
-              home+'electrum_ltc/bitcoin.py',
-              home+'electrum_ltc/blockchain.py',
-              home+'electrum_ltc/dnssec.py',
-              home+'electrum_ltc/commands.py',
-              home+'electrum_ltc/plugins/cosigner_pool/qt.py',
-              home+'electrum_ltc/plugins/email_requests/qt.py',
-              home+'electrum_ltc/plugins/trezor/qt.py',
-              home+'electrum_ltc/plugins/safe_t/client.py',
-              home+'electrum_ltc/plugins/safe_t/qt.py',
-              home+'electrum_ltc/plugins/keepkey/qt.py',
-              home+'electrum_ltc/plugins/ledger/qt.py',
-              home+'electrum_ltc/plugins/coldcard/qt.py',
+              home+'vialectrum/gui/qt/main_window.py',
+              home+'vialectrum/gui/text.py',
+              home+'vialectrum/util.py',
+              home+'vialectrum/wallet.py',
+              home+'vialectrum/simple_config.py',
+              home+'vialectrum/bitcoin.py',
+              home+'vialectrum/blockchain.py',
+              home+'vialectrum/dnssec.py',
+              home+'vialectrum/commands.py',
+              home+'vialectrum/plugins/cosigner_pool/qt.py',
+              home+'vialectrum/plugins/email_requests/qt.py',
+              home+'vialectrum/plugins/trezor/qt.py',
+              home+'vialectrum/plugins/safe_t/client.py',
+              home+'vialectrum/plugins/safe_t/qt.py',
+              home+'vialectrum/plugins/keepkey/qt.py',
+              home+'vialectrum/plugins/ledger/qt.py',
+              home+'vialectrum/plugins/coldcard/qt.py',
               #home+'packages/requests/utils.py'
               ],
              binaries=binaries,
@@ -117,11 +117,11 @@ exe_standalone = EXE(
     a.scripts,
     a.binaries,
     a.datas,
-    name=os.path.join('build\\pyi.win32\\electrum-ltc', cmdline_name + ".exe"),
+    name=os.path.join('build\\pyi.win32\\vialectrum', cmdline_name + ".exe"),
     debug=False,
     strip=None,
     upx=False,
-    icon=home+'electrum_ltc/gui/icons/electrum.ico',
+    icon=home+'vialectrum/gui/icons/electrum.ico',
     console=False)
     # console=True makes an annoying black box pop up, but it does make Electrum output command line commands, with this turned off no output will be given but commands can still be used
 
@@ -130,11 +130,11 @@ exe_portable = EXE(
     a.scripts,
     a.binaries,
     a.datas + [ ('is_portable', 'README.md', 'DATA' ) ],
-    name=os.path.join('build\\pyi.win32\\electrum-ltc', cmdline_name + "-portable.exe"),
+    name=os.path.join('build\\pyi.win32\\vialectrum', cmdline_name + "-portable.exe"),
     debug=False,
     strip=None,
     upx=False,
-    icon=home+'electrum_ltc/gui/icons/electrum.ico',
+    icon=home+'vialectrum/gui/icons/electrum.ico',
     console=False)
 
 #####
@@ -144,11 +144,11 @@ exe_dependent = EXE(
     pyz,
     a.scripts,
     exclude_binaries=True,
-    name=os.path.join('build\\pyi.win32\\electrum-ltc', cmdline_name),
+    name=os.path.join('build\\pyi.win32\\vialectrum', cmdline_name),
     debug=False,
     strip=None,
     upx=False,
-    icon=home+'electrum_ltc/gui/icons/electrum.ico',
+    icon=home+'vialectrum/gui/icons/electrum.ico',
     console=False)
 
 coll = COLLECT(
@@ -159,6 +159,6 @@ coll = COLLECT(
     strip=None,
     upx=True,
     debug=False,
-    icon=home+'electrum_ltc/gui/icons/electrum.ico',
+    icon=home+'vialectrum/gui/icons/electrum.ico',
     console=False,
-    name=os.path.join('dist', 'electrum-ltc'))
+    name=os.path.join('dist', 'vialectrum'))
