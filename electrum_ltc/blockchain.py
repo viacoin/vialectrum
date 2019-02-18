@@ -263,6 +263,7 @@ class Blockchain(util.PrintError):
 
     @classmethod
     def verify_header(cls, header: dict, prev_hash: str, target: int, expected_header_hash: str=None) -> None:
+        return True # Viacoin: no chain verify
         _hash = hash_header(header)
         _powhash = pow_hash_header(header)
         if expected_header_hash and expected_header_hash != _hash:
@@ -280,6 +281,9 @@ class Blockchain(util.PrintError):
 
     def verify_chunk(self, index: int, data: bytes) -> None:
         num = len(data) // HEADER_SIZE
+        # Viacoin: no verify chunks
+        self.save_chunk(index, data)
+        ############################
         start_height = index * 2016
         prev_hash = self.get_hash(start_height - 1)
         target = self.get_target(index-1)
