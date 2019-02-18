@@ -61,11 +61,11 @@ def inv_dict(d):
 ca_path = certifi.where()
 
 
-base_units = {'LTC':8, 'mLTC':5, 'uLTC':2, 'sat':0}
+base_units = {'VIA':8, 'mVIA':5, 'uVIA':2, 'sat':0}
 base_units_inverse = inv_dict(base_units)
-base_units_list = ['LTC', 'mLTC', 'uLTC', 'sat']  # list(dict) does not guarantee order
+base_units_list = ['VIA', 'mVIA', 'uVIA', 'sat']  # list(dict) does not guarantee order
 
-DECIMAL_POINT_DEFAULT = 8  # LTC
+DECIMAL_POINT_DEFAULT = 8  # VIA
 
 
 class UnknownBaseUnit(Exception): pass
@@ -148,7 +148,7 @@ class Satoshis(object):
         return 'Satoshis(%d)'%self.value
 
     def __str__(self):
-        return format_satoshis(self.value) + " LTC"
+        return format_satoshis(self.value) + " VIA"
 
     def __eq__(self, other):
         return self.value == other.value
