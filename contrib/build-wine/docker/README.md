@@ -35,7 +35,7 @@ folder.
         rm -rf $FRESH_CLONE && \
         mkdir -p $FRESH_CLONE && \
         cd $FRESH_CLONE  && \
-        git clone https://github.com/pooler/vialectrum.git && \
+        git clone https://github.com/viacoin/vialectrum.git && \
         cd vialectrum
     ```
 

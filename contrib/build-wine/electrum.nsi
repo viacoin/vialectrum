@@ -7,7 +7,7 @@
 ;Variables
 
   !define PRODUCT_NAME "Vialectrum"
-  !define PRODUCT_WEB_SITE "https://github.com/pooler/vialectrum"
+  !define PRODUCT_WEB_SITE "https://github.com/viacoin/vialectrum"
   !define PRODUCT_PUBLISHER "Electrum Technologies GmbH"
   !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 
