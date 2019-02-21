@@ -25,3 +25,6 @@ vialectrum/gui/kivy/theming/light.atlas
 .cache/
 .coverage
 .pytest_cache
+
+#ignore tmp
+contrib/build-wine/tmp/*
