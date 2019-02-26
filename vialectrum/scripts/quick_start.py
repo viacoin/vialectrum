@@ -1,14 +1,14 @@
 import os
 
-from electrum.simple_config import SimpleConfig
-from electrum import constants
-from electrum.daemon import Daemon
-from electrum.storage import WalletStorage
-from electrum.wallet import Wallet
-from electrum.commands import Commands
+from vialectrum.simple_config import SimpleConfig
+from vialectrum import constants
+from vialectrum.daemon import Daemon
+from vialectrum.storage import WalletStorage
+from vialectrum.wallet import Wallet
+from vialectrum.commands import Commands
 
 
-config = SimpleConfig({"testnet": True})  # to use ~/.electrum/testnet as datadir
+config = SimpleConfig({"testnet": True})  # to use ~/.electrum-ltc/testnet as datadir
 constants.set_testnet()  # to set testnet magic bytes
 daemon = Daemon(config, listen_jsonrpc=False)
 network = daemon.network

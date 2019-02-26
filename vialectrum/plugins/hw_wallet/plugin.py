@@ -26,9 +26,9 @@
 
 from vialectrum.plugin import BasePlugin, hook
 from vialectrum.i18n import _
-from vialectrum.bitcoin import is_address, TYPE_SCRIPT
+from vialectrum.bitcoin import is_address, TYPE_SCRIPT, opcodes
 from vialectrum.util import bfh, versiontuple, UserFacingException
-from vialectrum.transaction import opcodes, TxOutput, Transaction
+from vialectrum.transaction import TxOutput, Transaction
 
 
 class HW_PluginBase(BasePlugin):
