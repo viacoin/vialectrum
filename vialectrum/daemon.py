@@ -138,6 +138,7 @@ class Daemon(DaemonThread):
         if self.network:
             self.network.start([self.fx.run])
         self.gui = None
+        # path -> wallet;   make sure path is standardized.
         self.wallets = {}  # type: Dict[str, Abstract_Wallet]
         # Setup JSONRPC server
         self.server = None
@@ -188,6 +189,7 @@ class Daemon(DaemonThread):
             response = wallet is not None
         elif sub == 'close_wallet':
             path = config.get_wallet_path()
+            path = standardize_path(path)
             if path in self.wallets:
                 self.stop_wallet(path)
                 response = True
@@ -249,6 +251,8 @@ class Daemon(DaemonThread):
             storage.decrypt(password)
         if storage.requires_split():
             return
+        if storage.requires_upgrade():
+            return
         if storage.get_action():
             return
         wallet = Wallet(storage)
@@ -258,9 +262,11 @@ class Daemon(DaemonThread):
 
     def add_wallet(self, wallet: Abstract_Wallet):
         path = wallet.storage.path
+        path = standardize_path(path)
         self.wallets[path] = wallet
 
     def get_wallet(self, path):
+        path = standardize_path(path)
         return self.wallets.get(path)
 
     def delete_wallet(self, path):
@@ -271,6 +277,7 @@ class Daemon(DaemonThread):
         return False
 
     def stop_wallet(self, path):
+        path = standardize_path(path)
         wallet = self.wallets.pop(path, None)
         if not wallet: return
         wallet.stop_threads()
@@ -287,6 +294,7 @@ class Daemon(DaemonThread):
         cmd = known_commands[cmdname]
         if cmd.requires_wallet:
             path = config.get_wallet_path()
+            path = standardize_path(path)
             wallet = self.wallets.get(path)
             if wallet is None:
                 return {'error': 'Wallet "%s" is not loaded. Use "vialectrum daemon load_wallet"'%os.path.basename(path) }
