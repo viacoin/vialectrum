@@ -86,10 +86,10 @@ class UpdateCheck(QWidget, PrintError):
                 self.detail_label.setText(_("You can download the new version from {}.").format(url))
             else:
                 self.heading_label.setText('<h2>' + _("Already up to date") + '</h2>')
-                self.detail_label.setText(_("You are already on the latest version of Electrum."))
+                self.detail_label.setText(_("You are already on the latest version of Vialectrum."))
         else:
             self.heading_label.setText('<h2>' + _("Checking for updates...") + '</h2>')
-            self.detail_label.setText(_("Please wait while Electrum checks for available updates."))
+            self.detail_label.setText(_("Please wait while Vialectrum checks for available updates."))
 
 
 class UpdateCheckThread(QThread, PrintError):
