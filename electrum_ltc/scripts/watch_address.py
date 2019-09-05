@@ -11,7 +11,7 @@ from electrum_ltc.synchronizer import SynchronizerBase
 try:
     addr = sys.argv[1]
 except Exception:
-    print("usage: watch_address <litecoin_address>")
+    print("usage: watch_address <viacoin_address>")
     sys.exit(1)
 
 # start network

@@ -652,13 +652,13 @@ mainnet_block_explorers = {
                         {'tx': 'LTC/tx/', 'addr': 'LTC/addr/'}),
     'Bitaps.com': ('https://ltc.bitaps.com/',
                         {'tx': '', 'addr': ''}),
-    'Bitupper Explorer': ('https://bitupper.com/en/explorer/litecoin/',
+    'Bitupper Explorer': ('https://bitupper.com/en/explorer/viacoin/',
                         {'tx': 'transactions/', 'addr': 'addresses/'}),
-    'Blockchair.com': ('https://blockchair.com/litecoin/',
+    'Blockchair.com': ('https://blockchair.com/viacoin/',
                         {'tx': 'transaction/', 'addr': 'address/'}),
     'BlockCypher.com': ('https://live.blockcypher.com/ltc/',
                         {'tx': 'tx/', 'addr': 'address/'}),
-    'explorer.litecoin.net': ('http://explorer.litecoin.net/',
+    'explorer.viacoin.net': ('http://explorer.viacoin.net/',
                         {'tx': 'tx/', 'addr': 'address/'}),
     'LiteCore': ('https://insight.litecore.io/',
                         {'tx': 'tx/', 'addr': 'address/'}),
@@ -721,12 +721,12 @@ def parse_URI(uri: str, on_pr: Callable = None, *, loop=None) -> dict:
 
     if ':' not in uri:
         if not bitcoin.is_address(uri):
-            raise InvalidBitcoinURI("Not a litecoin address")
+            raise InvalidBitcoinURI("Not a viacoin address")
         return {'address': uri}
 
     u = urllib.parse.urlparse(uri)
-    if u.scheme != 'litecoin':
-        raise InvalidBitcoinURI("Not a litecoin URI")
+    if u.scheme != 'viacoin':
+        raise InvalidBitcoinURI("Not a viacoin URI")
     address = u.path
 
     # python for android fails to parse query
@@ -743,7 +743,7 @@ def parse_URI(uri: str, on_pr: Callable = None, *, loop=None) -> dict:
     out = {k: v[0] for k, v in pq.items()}
     if address:
         if not bitcoin.is_address(address):
-            raise InvalidBitcoinURI(f"Invalid litecoin address: {address}")
+            raise InvalidBitcoinURI(f"Invalid viacoin address: {address}")
         out['address'] = address
     if 'amount' in out:
         am = out['amount']
@@ -813,7 +813,7 @@ def create_bip21_uri(addr, amount_sat: Optional[int], message: Optional[str],
             raise Exception(f"illegal key for URI: {repr(k)}")
         v = urllib.parse.quote(v)
         query.append(f"{k}={v}")
-    p = urllib.parse.ParseResult(scheme='litecoin', netloc='', path=addr, params='', query='&'.join(query), fragment='')
+    p = urllib.parse.ParseResult(scheme='viacoin', netloc='', path=addr, params='', query='&'.join(query), fragment='')
     return str(urllib.parse.urlunparse(p))
 
 
