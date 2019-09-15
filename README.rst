@@ -1,7 +1,7 @@
-Electrum-LTC - Lightweight Litecoin client
+Electrum-LTC - Lightweight Viacoin client
 ==========================================
 
-Electrum-LTC is a port of Electrum, the Bitcoin wallet, to Litecoin.
+Electrum-LTC is a port of Electrum, the Bitcoin wallet, to Viacoin.
 
 ::
 
