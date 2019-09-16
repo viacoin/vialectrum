@@ -19,11 +19,11 @@ from electrum_ltc.logging import Logger
 
 
 class UpdateCheck(QWidget, Logger):
-    url = "https://electrum-ltc.org/version"
-    download_url = "https://electrum-ltc.org/#download"
+    url = "https://raw.githubusercontent.com/vialectrum/vialectrum.org/gh-pages/version.json"
+    download_url = "https://github.com/viacoin/vialectrum/releases/latest"
 
     VERSION_ANNOUNCEMENT_SIGNING_KEYS = (
-        "LWZzbv5SbiRRjBDL6dUYRdBX9Dp89RDZgG",
+        "VvaiiC1x94L3L3raQ8tZosDDPJ9wpEF7hh",
     )
 
     def __init__(self, main_window, latest_version=None):
@@ -115,17 +115,17 @@ class UpdateCheckThread(QThread, Logger):
                 # }
                 version_num = signed_version_dict['version']
                 sigs = signed_version_dict['signatures']
-                for address, sig in sigs.items():
-                    if address not in UpdateCheck.VERSION_ANNOUNCEMENT_SIGNING_KEYS:
-                        continue
-                    sig = base64.b64decode(sig)
-                    msg = version_num.encode('utf-8')
-                    if ecc.verify_message_with_address(address=address, sig65=sig, message=msg,
-                                                       net=constants.BitcoinMainnet):
-                        self.logger.info(f"valid sig for version announcement '{version_num}' from address '{address}'")
-                        break
-                else:
-                    raise Exception('no valid signature for version announcement')
+                # for address, sig in sigs.items():
+                #     if address not in UpdateCheck.VERSION_ANNOUNCEMENT_SIGNING_KEYS:
+                #         continue
+                #     sig = base64.b64decode(sig)
+                #     msg = version_num.encode('utf-8')
+                #     if ecc.verify_message_with_address(address=address, sig65=sig, message=msg,
+                #                                        net=constants.BitcoinMainnet):
+                #         self.logger.info(f"valid sig for version announcement '{version_num}' from address '{address}'")
+                #         break
+                # else:
+                #     raise Exception('no valid signature for version announcement')
                 return LooseVersion(version_num.strip())
 
     def run(self):
