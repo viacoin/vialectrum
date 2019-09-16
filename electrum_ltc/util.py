@@ -648,22 +648,12 @@ def time_difference(distance_in_time, include_seconds):
         return "over %d years" % (round(distance_in_minutes / 525600))
 
 mainnet_block_explorers = {
-    'Bchain.info': ('https://bchain.info/',
-                        {'tx': 'LTC/tx/', 'addr': 'LTC/addr/'}),
-    'Bitaps.com': ('https://ltc.bitaps.com/',
-                        {'tx': '', 'addr': ''}),
-    'Bitupper Explorer': ('https://bitupper.com/en/explorer/viacoin/',
-                        {'tx': 'transactions/', 'addr': 'addresses/'}),
-    'Blockchair.com': ('https://blockchair.com/viacoin/',
-                        {'tx': 'transaction/', 'addr': 'address/'}),
-    'BlockCypher.com': ('https://live.blockcypher.com/ltc/',
+    'cryptoID.info': ('https://chainz.cryptoid.info/via/',
+                        {'tx': 'tx.dws', 'addr': 'address.dws?'}),
+    'blockbook': ('https://blockbook.viacoin.org/',
                         {'tx': 'tx/', 'addr': 'address/'}),
-    'explorer.viacoin.net': ('http://explorer.viacoin.net/',
-                        {'tx': 'tx/', 'addr': 'address/'}),
-    'LiteCore': ('https://insight.litecore.io/',
-                        {'tx': 'tx/', 'addr': 'address/'}),
-    'SoChain': ('https://chain.so/',
-                        {'tx': 'tx/LTC/', 'addr': 'address/LTC/'}),
+    'via-insight': ('https://explorer.viacoin.org/',
+                        {'tx': 'tx/', 'addr': 'addr/'}),
     'system default': ('blockchain://12a765e31ffd4059bada1e25190f6e98c99d9714d334efa41a195a7e7e04bfe2/',
                         {'tx': 'tx/', 'addr': 'address/'}),
 }

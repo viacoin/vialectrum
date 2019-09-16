@@ -1,15 +1,15 @@
-Electrum-LTC - Lightweight Viacoin client
+Vialectrum - Lightweight Viacoin client
 ==========================================
 
-Electrum-LTC is a port of Electrum, the Bitcoin wallet, to Viacoin.
+Vialectrum is a port of Electrum, the Bitcoin wallet, to Viacoin.
 
 ::
 
   Licence: MIT Licence
   Original Author: Thomas Voegtlin
-  Port Maintainer: Pooler
+  Port Maintainer: Romano
   Language: Python (>= 3.6)
-  Homepage: https://electrum-ltc.org/
+  Homepage: https://vialectrum.org/
 
 
 
@@ -19,25 +19,25 @@ Electrum-LTC is a port of Electrum, the Bitcoin wallet, to Viacoin.
 Getting started
 ===============
 
-Electrum-LTC is a pure python application. If you want to use the
+vialectrum is a pure python application. If you want to use the
 Qt interface, install the Qt dependencies::
 
     sudo apt-get install python3-pyqt5
 
 If you downloaded the official package (tar.gz), you can run
-Electrum-LTC from its root directory without installing it on your
+Vialectrum from its root directory without installing it on your
 system; all the python dependencies are included in the 'packages'
-directory. To run Electrum-LTC from its root directory, just do::
+directory. To run Vialectrum from its root directory, just do::
 
     ./run_electrum
 
-You can also install Electrum-LTC on your system, by running this command::
+You can also install Vialectrum on your system, by running this command::
 
     sudo apt-get install python3-setuptools
-    python3 -m pip install .[fast]
+    python3 -m pip install .
 
 This will download and install the Python dependencies used by
-Electrum-LTC instead of using the 'packages' directory.
+Vialectrum instead of using the 'packages' directory.
 The 'fast' extra contains some optional dependencies that we think
 are often useful but they are not strictly needed.
 
@@ -53,7 +53,7 @@ Development version
 Check out the code from GitHub::
 
     git clone git://github.com/viacoin/vialectrum.git
-    cd electrum-ltc
+    cd vialectrum
 
 Run install (this should install dependencies)::
 
