@@ -35,7 +35,7 @@ folder.
         sudo rm -rf $FRESH_CLONE && \
         mkdir -p $FRESH_CLONE && \
         cd $FRESH_CLONE  && \
-        git clone https://github.com/pooler/electrum-ltc.git && \
+        git clone https://github.com/viacoin/vialectrum.git && \
         cd electrum-ltc
     ```
 

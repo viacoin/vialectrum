@@ -4,7 +4,7 @@
 PYTHON_VERSION=3.6.4
 BUILDDIR=/tmp/electrum-ltc-build
 PACKAGE=Electrum-LTC
-GIT_REPO=https://github.com/pooler/electrum-ltc
+GIT_REPO=https://github.com/viacoin/vialectrum
 LIBSECP_VERSION="b408c6a8b287003d1ade5709e6f7bc3c7f1d5be7"
 
 . $(dirname "$0")/base.sh

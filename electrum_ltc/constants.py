@@ -40,7 +40,7 @@ def read_json(filename, default):
 
 
 GIT_REPO_URL = "https://github.com/viacoin/vialectrum"
-GIT_REPO_ISSUES_URL = "https://github.com/pooler/vialectrum/issues"
+GIT_REPO_ISSUES_URL = "https://github.com/viacoin/vialectrum/issues"
 
 
 class AbstractNet:
