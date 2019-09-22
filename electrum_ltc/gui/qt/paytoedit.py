@@ -40,7 +40,7 @@ from . import util
 
 RE_ALIAS = r'(.*?)\s*\<([0-9A-Za-z]{1,})\>'
 
-frozen_style = "QWidget { background-color:none; border:none;}"
+frozen_style = "QWidget {border:none;}"
 normal_style = "QPlainTextEdit { }"
 
 
@@ -61,10 +61,8 @@ class PayToEdit(CompletionTextEdit, ScanQRTextEdit, Logger):
         self.errors = []
         self.is_pr = False
         self.is_alias = False
-        self.scan_f = win.pay_to_URI
         self.update_size()
         self.payto_address = None
-
         self.previous_payto = ''
 
     def setFrozen(self, b):
@@ -130,13 +128,21 @@ class PayToEdit(CompletionTextEdit, ScanQRTextEdit, Logger):
         if len(lines) == 1:
             data = lines[0]
             if data.startswith("viacoin:"):
-                self.scan_f(data)
+                self.win.pay_to_URI(data)
+                return
+            lower = data.lower()
+            if lower.startswith("lightning:ln"):
+                lower = lower[10:]
+            if lower.startswith("ln"):
+                self.win.parse_lightning_invoice(lower)
+                self.lightning_invoice = lower
                 return
             try:
                 self.payto_address = self.parse_output(data)
             except:
                 pass
             if self.payto_address:
+                self.win.set_onchain(True)
                 self.win.lock_amount(False)
                 return
 
@@ -147,12 +153,13 @@ class PayToEdit(CompletionTextEdit, ScanQRTextEdit, Logger):
             except:
                 self.errors.append((i, line.strip()))
                 continue
-
             outputs.append(output)
             if output.value == '!':
                 is_max = True
             else:
                 total += output.value
+        if outputs:
+            self.win.set_onchain(True)
 
         self.win.max_button.setChecked(is_max)
         self.outputs = outputs
@@ -204,7 +211,7 @@ class PayToEdit(CompletionTextEdit, ScanQRTextEdit, Logger):
     def qr_input(self):
         data = super(PayToEdit,self).qr_input()
         if data.startswith("viacoin:"):
-            self.scan_f(data)
+            self.win.pay_to_URI(data)
             # TODO: update fee
 
     def resolve(self):

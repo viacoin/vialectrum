@@ -54,6 +54,7 @@ Check out the code from GitHub::
 
     git clone git://github.com/viacoin/vialectrum.git
     cd vialectrum
+    git submodule update --init
 
 Run install (this should install dependencies)::
 

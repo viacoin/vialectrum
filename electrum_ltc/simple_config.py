@@ -3,6 +3,7 @@ import threading
 import time
 import os
 import stat
+import ssl
 from decimal import Decimal
 from typing import Union, Optional
 from numbers import Real
@@ -10,6 +11,7 @@ from numbers import Real
 from copy import deepcopy
 
 from . import util
+from . import constants
 from .util import (user_dir, make_dir,
                    NoDynamicFeeEstimates, format_fee_satoshis, quantize_feerate)
 from .i18n import _
@@ -18,31 +20,41 @@ from .logging import get_logger, Logger
 
 FEE_ETA_TARGETS = [25, 10, 5, 2]
 FEE_DEPTH_TARGETS = [10000000, 5000000, 2000000, 1000000, 500000, 200000, 100000]
+FEE_LN_ETA_TARGET = 2  # note: make sure the network is asking for estimates for this target
 
 # satoshi per kbyte
 FEERATE_MAX_DYNAMIC = 1000000
 FEERATE_WARNING_HIGH_FEE = 600000
 FEERATE_FALLBACK_STATIC_FEE = 100000
 FEERATE_DEFAULT_RELAY = 1000
+FEERATE_MAX_RELAY = 50000
 FEERATE_STATIC_VALUES = [10000, 20000, 30000, 50000, 70000, 100000,
                          150000, 200000, 300000, 500000]
+FEERATE_REGTEST_HARDCODED = 180000  # for eclair compat
 
 
-config = None
 _logger = get_logger(__name__)
 
 
-def get_config():
-    global config
-    return config
+def estimate_fee(tx_size_bytes: int) -> int:
+    def use_fallback_feerate():
+        fee_per_kb = FEERATE_FALLBACK_STATIC_FEE
+        fee = SimpleConfig.estimate_fee_for_feerate(fee_per_kb, tx_size_bytes)
+        return fee
 
-
-def set_config(c):
-    global config
-    config = c
-
+    global _INSTANCE
+    if not _INSTANCE:
+        return use_fallback_feerate()
+    try:
+        return _INSTANCE.estimate_fee(tx_size_bytes)
+    except NoDynamicFeeEstimates:
+        return use_fallback_feerate()
 
 FINAL_CONFIG_VERSION = 3
+
+
+_INSTANCE = None
+_ENFORCE_SIMPLECONFIG_SINGLETON = True  # disabled in tests
 
 
 class SimpleConfig(Logger):
@@ -58,11 +70,18 @@ class SimpleConfig(Logger):
 
     def __init__(self, options=None, read_user_config_function=None,
                  read_user_dir_function=None):
+        # note: To be honest, singletons are bad design... :/
+        #       However currently we somewhat rely on config being one.
+        global _INSTANCE
+        if _ENFORCE_SIMPLECONFIG_SINGLETON:
+            assert _INSTANCE is None, "SimpleConfig is a singleton!"
+        _INSTANCE = self
 
         if options is None:
             options = {}
 
         Logger.__init__(self)
+        self.lightning_settle_delay = int(os.environ.get('ELECTRUM_DEBUG_LIGHTNING_SETTLE_DELAY', 0))
 
         # This lock needs to be acquired for updating and reading the config in
         # a thread-safe way.
@@ -103,8 +122,9 @@ class SimpleConfig(Logger):
         if self.requires_upgrade():
             self.upgrade()
 
-        # Make a singleton instance of 'self'
-        set_config(self)
+    @staticmethod
+    def get_instance() -> Optional["SimpleConfig"]:
+        return _INSTANCE
 
     def electrum_path(self):
         # Read electrum_path from command line
@@ -248,17 +268,17 @@ class SimpleConfig(Logger):
             if os.path.exists(self.path):  # or maybe not?
                 raise
 
-    def get_wallet_path(self):
+    def get_wallet_path(self, *, use_gui_last_wallet=False):
         """Set the path of the wallet."""
 
         # command line -w option
         if self.get('wallet_path'):
             return os.path.join(self.get('cwd', ''), self.get('wallet_path'))
 
-        # path in config file
-        path = self.get('default_wallet_path')
-        if path and os.path.exists(path):
-            return path
+        if use_gui_last_wallet:
+            path = self.get('gui_last_wallet')
+            if path and os.path.exists(path):
+                return path
 
         # default path
         util.assert_datadir_available(self.path)
@@ -286,12 +306,6 @@ class SimpleConfig(Logger):
 
     def get_session_timeout(self):
         return self.get('session_timeout', 300)
-
-    def open_last_wallet(self):
-        if self.get('wallet_path') is None:
-            last_wallet = self.get('gui_last_wallet')
-            if last_wallet is not None and os.path.exists(last_wallet):
-                self.cmdline_options['default_wallet_path'] = last_wallet
 
     def save_last_wallet(self, wallet):
         if self.get('wallet_path') is None:
@@ -511,6 +525,8 @@ class SimpleConfig(Logger):
 
         fee_level: float between 0.0 and 1.0, representing fee slider position
         """
+        if constants.net is constants.BitcoinRegtest:
+            return FEERATE_REGTEST_HARDCODED
         if dyn is None:
             dyn = self.is_dynfee()
         if mempool is None:
@@ -572,6 +588,14 @@ class SimpleConfig(Logger):
         if device == 'default':
             device = ''
         return device
+
+    def get_ssl_context(self):
+        ssl_keyfile = self.get('ssl_keyfile')
+        ssl_certfile = self.get('ssl_certfile')
+        if ssl_keyfile and ssl_certfile:
+            ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            ssl_context.load_cert_chain(ssl_certfile, ssl_keyfile)
+            return ssl_context
 
 
 def read_user_config(path):
