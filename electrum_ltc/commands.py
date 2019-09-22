@@ -627,13 +627,8 @@ class Commands:
         return json_encode(lightning_history)
 
     @command('w')
-<<<<<<< HEAD
-    def setlabel(self, key, label):
-        """Assign a label to an item. Item may be a Viacoin address or a
-=======
     async def setlabel(self, key, label, wallet: Abstract_Wallet = None):
         """Assign a label to an item. Item may be a litecoin address or a
->>>>>>> upstream/master
         transaction ID"""
         wallet.set_label(key, label)
 
