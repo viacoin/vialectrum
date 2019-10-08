@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 export HOME=~
 set -eux pipefail
-mkdir -p ~/.litecoin
-cat > ~/.litecoin/litecoin.conf <<EOF
+mkdir -p ~/.viacoin
+cat > ~/.viacoin/viacoin.conf <<EOF
 regtest=1
 txindex=1
 printtoconsole=1
@@ -15,9 +15,9 @@ zmqpubrawtx=tcp://127.0.0.1:28333
 rpcbind=0.0.0.0
 rpcport=18554
 EOF
-rm -rf ~/.litecoin/regtest
+rm -rf ~/.viacoin/regtest
 screen -S litecoind -X quit || true
 screen -S litecoind -m -d litecoind -regtest
 sleep 6
-addr=$(litecoin-cli getnewaddress)
-litecoin-cli generatetoaddress 150 $addr > /dev/null
+addr=$(viacoin-cli getnewaddress)
+viacoin-cli generatetoaddress 150 $addr > /dev/null

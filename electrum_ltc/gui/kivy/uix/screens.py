@@ -292,7 +292,7 @@ class SendScreen(CScreen):
     def read_invoice(self):
         address = str(self.screen.address)
         if not address:
-            self.app.show_error(_('Recipient not specified.') + ' ' + _('Please scan a Litecoin address or a payment request'))
+            self.app.show_error(_('Recipient not specified.') + ' ' + _('Please scan a Viacoin address or a payment request'))
             return
         if not self.screen.amount:
             self.app.show_error(_('Please enter an amount'))
@@ -304,12 +304,7 @@ class SendScreen(CScreen):
             return
         message = self.screen.message
         if self.screen.is_lightning:
-            return {
-                'type': PR_TYPE_LN,
-                'invoice': address,
-                'amount': amount,
-                'message': message,
-            }
+            return self.app.wallet.lnworker.parse_bech32_invoice(address)
         else:
             if not bitcoin.is_address(address):
                 self.app.show_error(_('Invalid Viacoin Address') + ':\n' + address)

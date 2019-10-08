@@ -162,7 +162,7 @@ class ElectrumGui(Logger):
             submenu.addAction(_("Close"), window.close)
         m.addAction(_("Dark/Light"), self.toggle_tray_icon)
         m.addSeparator()
-        m.addAction(_("Exit Electrum-LTC"), self.close)
+        m.addAction(_("Exit Vialectrum"), self.close)
 
     def tray_icon(self):
         if self.dark_icon:
@@ -308,7 +308,7 @@ class ElectrumGui(Logger):
         # return if wallet creation is not complete
         if storage is None or storage.get_action():
             return
-        wallet = Wallet(storage)
+        wallet = Wallet(storage, config=self.config)
         wallet.start_network(self.daemon.network)
         self.daemon.add_wallet(wallet)
         return wallet
