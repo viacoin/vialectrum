@@ -251,8 +251,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         # If the option hasn't been set yet
         if config.get('check_updates') is None:
             choice = self.question(title="Vialectrum - " + _("Enable update check"),
-                                   msg=_("For security reasons we advise that you always use the latest version of Electrum.") + " " +
-                                       _("Would you like to be notified when there is a newer version of Electrum available?"))
+                                   msg=_("For security reasons we advise that you always use the latest version of Vialectrum.") + " " +
+                                       _("Would you like to be notified when there is a newer version of Vialectrum available?"))
             config.set_key('check_updates', bool(choice), save=True)
 
         if config.get('check_updates', False):
@@ -260,7 +260,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             # to prevent GC from getting in our way.
             def on_version_received(v):
                 if UpdateCheck.is_newer(v):
-                    self.update_check_button.setText(_("Update to Electrum {} is available").format(v))
+                    self.update_check_button.setText(_("Update to Vialectrum {} is available").format(v))
                     self.update_check_button.clicked.connect(lambda: self.show_update_check(v))
                     self.update_check_button.show()
             self._update_check_thread = UpdateCheckThread(self)
