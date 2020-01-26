@@ -36,7 +36,7 @@ from .lnutil import (get_ecdh, PaymentFailure, NUM_MAX_HOPS_IN_PAYMENT_PATH,
                      NUM_MAX_EDGES_IN_PAYMENT_PATH, ShortChannelID)
 
 if TYPE_CHECKING:
-    from .lnrouter import RouteEdge
+    from .lnrouter import LNPaymentRoute
 
 
 HOPS_DATA_SIZE = 1300      # also sometimes called routingInfoSize in bolt-04
@@ -188,7 +188,7 @@ def new_onion_packet(payment_path_pubkeys: Sequence[bytes], session_key: bytes,
         hmac=next_hmac)
 
 
-def calc_hops_data_for_payment(route: List['RouteEdge'], amount_msat: int, final_cltv: int) \
+def calc_hops_data_for_payment(route: 'LNPaymentRoute', amount_msat: int, final_cltv: int) \
         -> Tuple[List[OnionHopsDataSingle], int, int]:
     """Returns the hops_data to be used for constructing an onion packet,
     and the amount_msat and cltv to be used on our immediate channel.
@@ -348,7 +348,10 @@ def get_failure_msg_from_onion_error(decrypted_error_packet: bytes) -> OnionRout
     failure_msg = decrypted_error_packet[34:34+failure_len]
     # create failure message object
     failure_code = int.from_bytes(failure_msg[:2], byteorder='big')
-    failure_code = OnionFailureCode(failure_code)
+    try:
+        failure_code = OnionFailureCode(failure_code)
+    except ValueError:
+        pass  # uknown failure code
     failure_data = failure_msg[2:]
     return OnionRoutingFailureMessage(failure_code, failure_data)
 
@@ -386,12 +389,6 @@ class OnionFailureCode(IntEnum):
     FINAL_INCORRECT_HTLC_AMOUNT =             19
     CHANNEL_DISABLED =                        UPDATE | 20
     EXPIRY_TOO_FAR =                          21
-
-    @classmethod
-    def _missing_(cls, value: int) -> int:
-        # note that for unknown error codes, we return an int,
-        # not an instance of cls
-        return value
 
 
 # don't use these elsewhere, the names are ambiguous without context

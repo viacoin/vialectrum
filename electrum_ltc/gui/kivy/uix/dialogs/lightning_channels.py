@@ -87,6 +87,7 @@ Builder.load_string(r'''
 <ChannelDetailsPopup@Popup>:
     id: popuproot
     data: []
+    is_closed: False
     BoxLayout:
         orientation: 'vertical'
         ScrollView:
@@ -100,13 +101,21 @@ Builder.load_string(r'''
             Button:
                 size_hint: 0.5, None
                 height: '48dp'
-                text: _('Close channel')
+                text: _('Close')
                 on_release: root.close()
+                disabled: root.is_closed
             Button:
                 size_hint: 0.5, None
                 height: '48dp'
                 text: _('Force-close')
                 on_release: root.force_close()
+                disabled: root.is_closed
+            Button:
+                size_hint: 0.5, None
+                height: '48dp'
+                text: _('Delete')
+                on_release: root.remove_channel()
+                disabled: not root.is_closed
             Button:
                 size_hint: 0.5, None
                 height: '48dp'
@@ -119,6 +128,7 @@ class ChannelDetailsPopup(Popup):
 
     def __init__(self, chan, app, **kwargs):
         super(ChannelDetailsPopup,self).__init__(**kwargs)
+        self.is_closed = chan.is_closed()
         self.app = app
         self.chan = chan
         self.title = _('Channel details')
@@ -126,10 +136,11 @@ class ChannelDetailsPopup(Popup):
 
     def details(self):
         chan = self.chan
+        status = self.app.wallet.lnworker.get_channel_status(chan)
         return {
             _('Short Chan ID'): format_short_channel_id(chan.short_channel_id),
             _('Initiator'): 'Local' if chan.constraints.is_initiator else 'Remote',
-            _('State'): chan.get_state(),
+            _('State'): status,
             _('Local CTN'): chan.get_latest_ctn(LOCAL),
             _('Remote CTN'): chan.get_latest_ctn(REMOTE),
             _('Capacity'): self.app.format_amount_and_units(chan.constraints.capacity),
@@ -154,13 +165,24 @@ class ChannelDetailsPopup(Popup):
         except Exception as e:
             self.app.show_info(_('Could not close channel: ') + repr(e)) # repr because str(Exception()) == ''
 
+    def remove_channel(self):
+        msg = _('Are you sure you want to delete this channel? This will purge associated transactions from your wallet history.')
+        Question(msg, self._remove_channel).open()
+
+    def _remove_channel(self, b):
+        if not b:
+            return
+        self.app.wallet.lnworker.remove_channel(self.chan.channel_id)
+        self.app._trigger_update_history()
+        self.dismiss()
+
     def force_close(self):
         Question(_('Force-close channel?'), self._force_close).open()
 
     def _force_close(self, b):
         if not b:
             return
-        if self.chan.get_state() == 'CLOSED':
+        if self.chan.is_closed():
             self.app.show_error(_('Channel already closed'))
             return
         loop = self.app.wallet.network.asyncio_loop
@@ -202,7 +224,7 @@ class LightningChannelsDialog(Factory.Popup):
 
     def update_item(self, item):
         chan = item._chan
-        item.status = chan.get_state()
+        item.status = self.app.wallet.lnworker.get_channel_status(chan)
         item.short_channel_id = format_short_channel_id(chan.short_channel_id)
         l, r = self.format_fields(chan)
         item.local_balance = _('Local') + ':' + l

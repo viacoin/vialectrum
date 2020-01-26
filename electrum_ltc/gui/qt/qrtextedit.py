@@ -2,7 +2,6 @@ from PyQt5.QtWidgets import QFileDialog
 
 from electrum_ltc.i18n import _
 from electrum_ltc.plugin import run_hook
-from electrum_ltc.simple_config import SimpleConfig
 
 from .util import ButtonsTextEdit, MessageBoxMixin, ColorScheme, get_parent_main_window
 
@@ -47,8 +46,13 @@ class ScanQRTextEdit(ButtonsTextEdit, MessageBoxMixin):
         if not fileName:
             return
         try:
-            with open(fileName, "r") as f:
-                data = f.read()
+            try:
+                with open(fileName, "r") as f:
+                    data = f.read()
+            except UnicodeError as e:
+                with open(fileName, "rb") as f:
+                    data = f.read()
+                data = data.hex()
         except BaseException as e:
             self.show_error(_('Error opening file') + ':\n' + repr(e))
         else:

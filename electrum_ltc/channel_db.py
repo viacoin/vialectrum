@@ -250,14 +250,17 @@ class ChannelDB(SqlDB):
         self._channels = {}  # type: Dict[bytes, ChannelInfo]
         self._policies = {}
         self._nodes = {}
-        self._addresses = defaultdict(set)
+        # node_id -> (host, port, ts)
+        self._addresses = defaultdict(set)  # type: Dict[bytes, Set[Tuple[str, int, int]]]
         self._channels_for_node = defaultdict(set)
         self.data_loaded = asyncio.Event()
+        self.network = network # only for callback
 
     def update_counts(self):
+        self.num_nodes = len(self._nodes)
         self.num_channels = len(self._channels)
         self.num_policies = len(self._policies)
-        self.num_nodes = len(self._nodes)
+        self.network.trigger_callback('channel_db', self.num_nodes, self.num_channels, self.num_policies)
 
     def get_channel_ids(self):
         return set(self._channels.keys())
@@ -278,15 +281,26 @@ class ChannelDB(SqlDB):
             return None
         addr = sorted(list(r), key=lambda x: x[2])[0]
         host, port, timestamp = addr
-        return LNPeerAddr(host, port, node_id)
+        try:
+            return LNPeerAddr(host, port, node_id)
+        except ValueError:
+            return None
 
     def get_recent_peers(self):
         assert self.data_loaded.is_set(), "channelDB load_data did not finish yet!"
-        r = [self.get_last_good_address(x) for x in self._addresses.keys()]
-        r = r[-self.NUM_MAX_RECENT_PEERS:]
-        return r
+        # FIXME this does not reliably return "recent" peers...
+        #       Also, the list() cast over the whole dict (thousands of elements),
+        #       is really inefficient.
+        r = [self.get_last_good_address(node_id)
+             for node_id in list(self._addresses.keys())[-self.NUM_MAX_RECENT_PEERS:]]
+        return list(reversed(r))
 
-    def add_channel_announcement(self, msg_payloads, trusted=True):
+    # note: currently channel announcements are trusted by default (trusted=True);
+    #       they are not verified. Verifying them would make the gossip sync
+    #       even slower; especially as servers will start throttling us.
+    #       It would probably put significant strain on servers if all clients
+    #       verified the complete gossip.
+    def add_channel_announcement(self, msg_payloads, *, trusted=True):
         if type(msg_payloads) is dict:
             msg_payloads = [msg_payloads]
         added = 0
@@ -302,16 +316,25 @@ class ChannelDB(SqlDB):
             except UnknownEvenFeatureBits:
                 self.logger.info("unknown feature bits")
                 continue
-            added += 1
-            self._channels[short_channel_id] = channel_info
-            self._channels_for_node[channel_info.node1_id].add(channel_info.short_channel_id)
-            self._channels_for_node[channel_info.node2_id].add(channel_info.short_channel_id)
-            self.save_channel(channel_info)
-            if not trusted:
-                self.ca_verifier.add_new_channel_info(channel_info.short_channel_id, msg)
+            if trusted:
+                added += 1
+                self.add_verified_channel_info(msg)
+            else:
+                added += self.ca_verifier.add_new_channel_info(short_channel_id, msg)
 
         self.update_counts()
         self.logger.debug('add_channel_announcement: %d/%d'%(added, len(msg_payloads)))
+
+    def add_verified_channel_info(self, msg: dict, *, capacity_sat: int = None) -> None:
+        try:
+            channel_info = ChannelInfo.from_msg(msg)
+        except UnknownEvenFeatureBits:
+            return
+        channel_info = channel_info._replace(capacity_sat=capacity_sat)
+        self._channels[channel_info.short_channel_id] = channel_info
+        self._channels_for_node[channel_info.node1_id].add(channel_info.short_channel_id)
+        self._channels_for_node[channel_info.node2_id].add(channel_info.short_channel_id)
+        self.save_channel(channel_info)
 
     def print_change(self, old_policy: Policy, new_policy: Policy):
         # print what changed between policies
@@ -489,10 +512,11 @@ class ChannelDB(SqlDB):
 
     def prune_old_policies(self, delta):
         l = self.get_old_policies(delta)
-        for k in l:
-            self._policies.pop(k)
-            self.delete_policy(*k)
         if l:
+            for k in l:
+                self._policies.pop(k)
+                self.delete_policy(*k)
+            self.update_counts()
             self.logger.info(f'Deleting {len(l)} old policies')
 
     def get_orphaned_channels(self):
@@ -501,11 +525,10 @@ class ChannelDB(SqlDB):
 
     def prune_orphaned_channels(self):
         l = self.get_orphaned_channels()
-        for short_channel_id in l:
-            self.remove_channel(short_channel_id)
-            self.delete_channel(short_channel_id)
-        self.update_counts()
         if l:
+            for short_channel_id in l:
+                self.remove_channel(short_channel_id)
+            self.update_counts()
             self.logger.info(f'Deleting {len(l)} orphaned channels')
 
     def add_channel_update_for_private_channel(self, msg_payload: dict, start_node_id: bytes):
@@ -520,6 +543,8 @@ class ChannelDB(SqlDB):
         if channel_info:
             self._channels_for_node[channel_info.node1_id].remove(channel_info.short_channel_id)
             self._channels_for_node[channel_info.node2_id].remove(channel_info.short_channel_id)
+        # delete from database
+        self.delete_channel(short_channel_id)
 
     def get_node_addresses(self, node_id):
         return self._addresses.get(node_id)

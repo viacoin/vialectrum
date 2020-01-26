@@ -85,7 +85,7 @@ class ContactList(MyTreeView):
             column_title = self.model().horizontalHeaderItem(column).text()
             column_data = '\n'.join(self.model().itemFromIndex(s_idx).text()
                                     for s_idx in self.selected_in_column(column))
-            menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))
+            menu.addAction(_("Copy {}").format(column_title), lambda: self.place_text_on_clipboard(column_data, title=column_title))
             if column in self.editable_columns:
                 item = self.model().itemFromIndex(idx)
                 if item.isEditable():
@@ -102,6 +102,8 @@ class ContactList(MyTreeView):
         menu.exec_(self.viewport().mapToGlobal(position))
 
     def update(self):
+        if self.maybe_defer_update():
+            return
         current_key = self.current_item_user_role(col=self.Columns.NAME)
         self.model().clear()
         self.update_headers(self.__class__.headers)

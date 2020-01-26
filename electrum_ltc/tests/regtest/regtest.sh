@@ -4,9 +4,9 @@ set -eu
 
 # alice -> bob -> carol
 
-alice="./run_electrum --regtest --lightning -D /tmp/alice"
-bob="./run_electrum --regtest --lightning -D /tmp/bob"
-carol="./run_electrum --regtest --lightning -D /tmp/carol"
+alice="./run_electrum --regtest -D /tmp/alice"
+bob="./run_electrum --regtest -D /tmp/bob"
+carol="./run_electrum --regtest -D /tmp/carol"
 
 bitcoin_cli="viacoin-cli -rpcuser=doggman -rpcpassword=donkey -rpcport=18554 -regtest"
 
@@ -18,7 +18,7 @@ function new_blocks()
 function wait_for_balance()
 {
     msg="wait until $1's balance reaches $2"
-    cmd="./run_electrum --regtest --lightning -D /tmp/$1"
+    cmd="./run_electrum --regtest -D /tmp/$1"
     while balance=$($cmd getbalance | jq '[.confirmed, .unconfirmed] | to_entries | map(select(.value != null).value) | map(tonumber) | add ') && (( $(echo "$balance < $2" | bc -l) )); do
         sleep 1
 	msg="$msg."
@@ -30,7 +30,7 @@ function wait_for_balance()
 function wait_until_channel_open()
 {
     msg="wait until $1 sees channel open"
-    cmd="./run_electrum --regtest --lightning -D /tmp/$1"
+    cmd="./run_electrum --regtest -D /tmp/$1"
     while channel_state=$($cmd list_channels | jq '.[0] | .state' | tr -d '"') && [ $channel_state != "OPEN" ]; do
         sleep 1
 	msg="$msg."
@@ -42,7 +42,7 @@ function wait_until_channel_open()
 function wait_until_channel_closed()
 {
     msg="wait until $1 sees channel closed"
-    cmd="./run_electrum --regtest --lightning -D /tmp/$1"
+    cmd="./run_electrum --regtest -D /tmp/$1"
     while [[ $($cmd list_channels | jq '.[0].state' | tr -d '"') != "CLOSED" ]]; do
         sleep 1
 	msg="$msg."
@@ -73,6 +73,9 @@ if [[ $1 == "init" ]]; then
     $alice create --offline > /dev/null
     $bob   create --offline > /dev/null
     $carol create --offline > /dev/null
+    $alice -o init_lightning
+    $bob   -o init_lightning
+    $carol -o init_lightning
     $alice setconfig --offline log_to_file True
     $bob   setconfig --offline log_to_file True
     $carol setconfig --offline log_to_file True
@@ -84,6 +87,10 @@ if [[ $1 == "init" ]]; then
     echo "funding alice and carol"
     $bitcoin_cli sendtoaddress $($alice getunusedaddress -o) 1
     $bitcoin_cli sendtoaddress $($carol getunusedaddress -o) 1
+    new_blocks 1
+fi
+
+if [[ $1 == "new_block" ]]; then
     new_blocks 1
 fi
 
@@ -106,8 +113,8 @@ fi
 
 if [[ $1 == "open" ]]; then
     bob_node=$($bob nodeid)
-    channel_id1=$($alice open_channel $bob_node 0.001 --channel_push 0.001)
-    channel_id2=$($carol open_channel $bob_node 0.001 --channel_push 0.001)
+    channel_id1=$($alice open_channel $bob_node 0.002 --push_amount 0.001)
+    channel_id2=$($carol open_channel $bob_node 0.002 --push_amount 0.001)
     echo "mining 3 blocks"
     new_blocks 3
     sleep 10 # time for channelDB
@@ -144,7 +151,7 @@ if [[ $1 == "breach" ]]; then
     echo "alice pays"
     $alice lnpay $request
     sleep 2
-    ctx=$($alice get_channel_ctx $channel | jq '.hex' | tr -d '"')
+    ctx=$($alice get_channel_ctx $channel)
     request=$($bob add_lightning_request 0.01 -m "blah2")
     echo "alice pays again"
     $alice lnpay $request
@@ -221,7 +228,7 @@ if [[ $1 == "breach_with_unspent_htlc" ]]; then
         echo "SETTLE_DELAY did not work, $settled != 0"
         exit 1
     fi
-    ctx=$($alice get_channel_ctx $channel | jq '.hex' | tr -d '"')
+    ctx=$($alice get_channel_ctx $channel)
     sleep 5
     settled=$($alice list_channels | jq '.[] | .local_htlcs | .settles | length')
     if [[ "$settled" != "1" ]]; then
@@ -248,7 +255,7 @@ if [[ $1 == "breach_with_spent_htlc" ]]; then
     echo "alice pays bob"
     invoice=$($bob add_lightning_request 0.05 -m "test")
     $alice lnpay $invoice --timeout=1 || true
-    ctx=$($alice get_channel_ctx $channel | jq '.hex' | tr -d '"')
+    ctx=$($alice get_channel_ctx $channel)
     settled=$($alice list_channels | jq '.[] | .local_htlcs | .settles | length')
     if [[ "$settled" != "0" ]]; then
         echo "SETTLE_DELAY did not work, $settled != 0"

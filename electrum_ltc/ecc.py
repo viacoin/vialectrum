@@ -25,6 +25,8 @@
 
 import base64
 import hashlib
+import functools
+import copy
 from typing import Union, Tuple, Optional
 
 import ecdsa
@@ -181,6 +183,7 @@ class _PubkeyForPointAtInfinity:
     point = ecdsa.ellipticcurve.INFINITY
 
 
+@functools.total_ordering
 class ECPubkey(object):
 
     def __init__(self, b: Optional[bytes]):
@@ -256,6 +259,29 @@ class ECPubkey(object):
 
     def __ne__(self, other):
         return not (self == other)
+
+    def __hash__(self):
+        return hash(self._pubkey.point.x())
+
+    def __lt__(self, other):
+        if not isinstance(other, ECPubkey):
+            raise TypeError('comparison not defined for ECPubkey and {}'.format(type(other)))
+        return self._pubkey.point.x() < other._pubkey.point.x()
+
+    def __deepcopy__(self, memo: dict = None):
+        # note: This custom deepcopy implementation needed as copy.deepcopy(self._pubkey) raises.
+        if memo is None: memo = {}
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k == '_pubkey' and not self.is_at_infinity():
+                point = _ser_to_python_ecdsa_point(self.get_public_key_bytes(compressed=False))
+                _pubkey_copy = ecdsa.ecdsa.Public_key(generator_secp256k1, point)
+                setattr(result, k, _pubkey_copy)
+            else:
+                setattr(result, k, copy.deepcopy(v, memo))
+        return result
 
     def verify_message_for_address(self, sig65: bytes, message: bytes, algo=lambda x: sha256d(msg_magic(x))) -> None:
         assert_bytes(message)
@@ -363,7 +389,6 @@ class ECPrivkey(ECPubkey):
 
         point = generator_secp256k1 * secret
         super().__init__(point_to_ser(point))
-        self._privkey = ecdsa.ecdsa.Private_key(self._pubkey, secret)
 
     @classmethod
     def from_secret_scalar(cls, secret_scalar: int):
@@ -404,7 +429,15 @@ class ECPrivkey(ECPubkey):
         if sigdecode is None:
             sigdecode = get_r_and_s_from_sig_string
         private_key = _MySigningKey.from_secret_exponent(self.secret_scalar, curve=SECP256k1)
-        sig = private_key.sign_digest_deterministic(data, hashfunc=hashlib.sha256, sigencode=sigencode)
+        def sig_encode_r_s(r, s, order):
+            return r, s
+        r, s = private_key.sign_digest_deterministic(data, hashfunc=hashlib.sha256, sigencode=sig_encode_r_s)
+        counter = 0
+        while r >= 2**255:  # grind for low R value https://github.com/bitcoin/bitcoin/pull/13666
+            counter += 1
+            extra_entropy = int.to_bytes(counter, 32, 'little')
+            r, s = private_key.sign_digest_deterministic(data, hashfunc=hashlib.sha256, sigencode=sig_encode_r_s, extra_entropy=extra_entropy)
+        sig = sigencode(r, s, CURVE_ORDER)
         public_key = private_key.get_verifying_key()
         if not public_key.verify_digest(sig, data, sigdecode=sigdecode):
             raise Exception('Sanity check verifying our own signature failed.')

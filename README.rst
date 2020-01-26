@@ -42,7 +42,7 @@ The 'fast' extra contains some optional dependencies that we think
 are often useful but they are not strictly needed.
 
 If you cloned the git repository, you need to compile extra files
-before you can run Electrum-LTC. Read the next section, "Development
+before you can run Vialectrum. Read the next section, "Development
 Version".
 
 

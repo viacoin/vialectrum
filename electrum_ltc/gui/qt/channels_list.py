@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 import traceback
-import asyncio
 from enum import IntEnum
 
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMenu, QHBoxLayout, QLabel, QVBoxLayout, QGridLayout, QLineEdit
 
-from electrum_ltc.util import inv_dict, bh2u, bfh
+from electrum_ltc.util import bh2u, NotEnoughFunds, NoDynamicFeeEstimates
 from electrum_ltc.i18n import _
 from electrum_ltc.lnchannel import Channel
-from electrum_ltc.lnutil import LOCAL, REMOTE, ConnStringFormatError, format_short_channel_id
+from electrum_ltc.wallet import Abstract_Wallet
+from electrum_ltc.lnutil import LOCAL, REMOTE, format_short_channel_id, LN_MAX_FUNDING_SAT
 
-from .util import MyTreeView, WindowModalDialog, Buttons, OkButton, CancelButton, EnterButton, WWLabel, WaitingDialog
-from .amountedit import BTCAmountEdit
+from .util import MyTreeView, WindowModalDialog, Buttons, OkButton, CancelButton, EnterButton, WaitingDialog
+from .amountedit import BTCAmountEdit, FreezableLineEdit
 from .channel_details import ChannelDetailsDialog
 
 
@@ -21,7 +21,7 @@ ROLE_CHANNEL_ID = Qt.UserRole
 
 
 class ChannelsList(MyTreeView):
-    update_rows = QtCore.pyqtSignal()
+    update_rows = QtCore.pyqtSignal(Abstract_Wallet)
     update_single_row = QtCore.pyqtSignal(Channel)
 
     class Columns(IntEnum):
@@ -60,12 +60,13 @@ class ChannelsList(MyTreeView):
             if bal_other != bal_minus_htlcs_other:
                 label += ' (+' + self.parent.format_amount(bal_other - bal_minus_htlcs_other) + ')'
             labels[subject] = label
+        status = self.lnworker.get_channel_status(chan)
         return [
             format_short_channel_id(chan.short_channel_id),
             bh2u(chan.node_id),
             labels[LOCAL],
             labels[REMOTE],
-            chan.get_state()
+            status
         ]
 
     def on_success(self, txid):
@@ -102,6 +103,7 @@ class ChannelsList(MyTreeView):
         channel_id = idx.sibling(idx.row(), self.Columns.NODE_ID).data(ROLE_CHANNEL_ID)
         chan = self.lnworker.channels[channel_id]
         menu.addAction(_("Details..."), lambda: self.details(channel_id))
+        self.add_copy_menu(menu, idx)
         if not chan.is_closed():
             menu.addAction(_("Close channel"), lambda: self.close_channel(channel_id))
             menu.addAction(_("Force-close channel"), lambda: self.force_close(channel_id))
@@ -121,11 +123,16 @@ class ChannelsList(MyTreeView):
                 for column, v in enumerate(self.format_fields(chan)):
                     self.model().item(row, column).setData(v, QtCore.Qt.DisplayRole)
 
-    @QtCore.pyqtSlot()
-    def do_update_rows(self):
+    @QtCore.pyqtSlot(Abstract_Wallet)
+    def do_update_rows(self, wallet):
+        if wallet != self.parent.wallet:
+            return
+        lnworker = self.parent.wallet.lnworker
+        if not lnworker:
+            return
         self.model().clear()
         self.update_headers(self.headers)
-        for chan in self.parent.wallet.lnworker.channels.values():
+        for chan in lnworker.channels.values():
             items = [QtGui.QStandardItem(x) for x in self.format_fields(chan)]
             self.set_editability(items)
             items[self.Columns.NODE_ID].setData(chan.channel_id, ROLE_CHANNEL_ID)
@@ -158,26 +165,46 @@ class ChannelsList(MyTreeView):
     def new_channel_dialog(self):
         lnworker = self.parent.wallet.lnworker
         d = WindowModalDialog(self.parent, _('Open Channel'))
-        d.setMinimumWidth(700)
         vbox = QVBoxLayout(d)
-        h = QGridLayout()
-        local_nodeid = QLineEdit()
+        vbox.addWidget(QLabel(_('Enter Remote Node ID or connection string or invoice')))
+        local_nodeid = FreezableLineEdit()
+        local_nodeid.setMinimumWidth(700)
         local_nodeid.setText(bh2u(lnworker.node_keypair.pubkey))
-        local_nodeid.setReadOnly(True)
+        local_nodeid.setFrozen(True)
         local_nodeid.setCursorPosition(0)
         remote_nodeid = QLineEdit()
-        local_amt_inp = BTCAmountEdit(self.parent.get_decimal_point)
-        local_amt_inp.setAmount(200000)
-        push_amt_inp = BTCAmountEdit(self.parent.get_decimal_point)
-        push_amt_inp.setAmount(0)
+        remote_nodeid.setMinimumWidth(700)
+        amount_e = BTCAmountEdit(self.parent.get_decimal_point)
+        # max button
+        def spend_max():
+            amount_e.setFrozen(max_button.isChecked())
+            if not max_button.isChecked():
+                return
+            make_tx = self.parent.mktx_for_open_channel('!')
+            try:
+                tx = make_tx(None)
+            except (NotEnoughFunds, NoDynamicFeeEstimates) as e:
+                max_button.setChecked(False)
+                amount_e.setFrozen(False)
+                self.main_window.show_error(str(e))
+                return
+            amount = tx.output_value()
+            amount = min(amount, LN_MAX_FUNDING_SAT)
+            amount_e.setAmount(amount)
+        max_button = EnterButton(_("Max"), spend_max)
+        max_button.setFixedWidth(100)
+        max_button.setCheckable(True)
+        h = QGridLayout()
         h.addWidget(QLabel(_('Your Node ID')), 0, 0)
         h.addWidget(local_nodeid, 0, 1)
-        h.addWidget(QLabel(_('Remote Node ID or connection string or invoice')), 1, 0)
+        h.addWidget(QLabel(_('Remote Node ID')), 1, 0)
         h.addWidget(remote_nodeid, 1, 1)
-        h.addWidget(QLabel('Local amount'), 2, 0)
-        h.addWidget(local_amt_inp, 2, 1)
-        h.addWidget(QLabel('Push amount'), 3, 0)
-        h.addWidget(push_amt_inp, 3, 1)
+        h.addWidget(QLabel('Amount'), 2, 0)
+        hbox = QHBoxLayout()
+        hbox.addWidget(amount_e)
+        hbox.addWidget(max_button)
+        hbox.addStretch(1)
+        h.addLayout(hbox, 2, 1)
         vbox.addLayout(h)
         ok_button = OkButton(d)
         ok_button.setDefault(True)
@@ -187,7 +214,12 @@ class ChannelsList(MyTreeView):
         remote_nodeid.setCursorPosition(0)
         if not d.exec_():
             return
-        local_amt = local_amt_inp.get_amount()
-        push_amt = push_amt_inp.get_amount()
-        connect_contents = str(remote_nodeid.text()).strip()
-        self.parent.open_channel(connect_contents, local_amt, push_amt)
+        if max_button.isChecked() and amount_e.get_amount() < LN_MAX_FUNDING_SAT:
+            # if 'max' enabled and amount is strictly less than max allowed,
+            # that means we have fewer coins than max allowed, and hence we can
+            # spend all coins
+            funding_sat = '!'
+        else:
+            funding_sat = amount_e.get_amount()
+        connect_str = str(remote_nodeid.text()).strip()
+        self.parent.open_channel(connect_str, funding_sat, 0)

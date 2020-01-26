@@ -29,16 +29,17 @@ import time
 import traceback
 import sys
 import threading
-from typing import Dict, Optional, Tuple
-import aiohttp
-from aiohttp import web
+from typing import Dict, Optional, Tuple, Iterable
 from base64 import b64decode
 from collections import defaultdict
 
+import aiohttp
+from aiohttp import web, client_exceptions
 import jsonrpcclient
 import jsonrpcserver
 from jsonrpcserver import response
 from jsonrpcclient.clients.aiohttp_client import AiohttpClient
+from aiorpcx import TaskGroup
 
 from .network import Network
 from .util import (json_decode, to_bytes, to_string, profiler, standardize_path, constant_time_compare)
@@ -53,6 +54,7 @@ from .logging import get_logger, Logger
 
 
 _logger = get_logger(__name__)
+
 
 class DaemonNotRunning(Exception):
     pass
@@ -100,7 +102,7 @@ def request(config: SimpleConfig, endpoint, args=(), timeout=60):
         auth = aiohttp.BasicAuth(login=rpc_user, password=rpc_password)
         loop = asyncio.get_event_loop()
         async def request_coroutine():
-            async with aiohttp.ClientSession(auth=auth, loop=loop) as session:
+            async with aiohttp.ClientSession(auth=auth) as session:
                 server = AiohttpClient(session, server_url)
                 f = getattr(server, endpoint)
                 response = await f(*args)
@@ -259,6 +261,12 @@ class PayServer(Logger):
 class AuthenticationError(Exception):
     pass
 
+class AuthenticationInvalidOrMissing(AuthenticationError):
+    pass
+
+class AuthenticationCredentialsInvalid(AuthenticationError):
+    pass
+
 class Daemon(Logger):
 
     @profiler
@@ -273,28 +281,45 @@ class Daemon(Logger):
             if fd is None:
                 raise Exception('failed to lock daemon; already running?')
         self.asyncio_loop = asyncio.get_event_loop()
-        if config.get('offline'):
-            self.network = None
-        else:
-            self.network = Network(config)
+        self.network = None
+        if not config.get('offline'):
+            self.network = Network(config, daemon=self)
         self.fx = FxThread(config, self.network)
         self.gui_object = None
         # path -> wallet;   make sure path is standardized.
         self._wallets = {}  # type: Dict[str, Abstract_Wallet]
-        jobs = [self.fx.run]
+        daemon_jobs = []
         # Setup JSONRPC server
         if listen_jsonrpc:
-            jobs.append(self.start_jsonrpc(config, fd))
+            daemon_jobs.append(self.start_jsonrpc(config, fd))
         # request server
-        if self.config.get('run_payserver'):
+        self.pay_server = None
+        if not config.get('offline') and self.config.get('run_payserver'):
             self.pay_server = PayServer(self)
-            jobs.append(self.pay_server.run())
+            daemon_jobs.append(self.pay_server.run())
         # server-side watchtower
-        if self.config.get('run_watchtower'):
+        self.watchtower = None
+        if not config.get('offline') and self.config.get('run_watchtower'):
             self.watchtower = WatchTowerServer(self.network)
-            jobs.append(self.watchtower.run)
+            daemon_jobs.append(self.watchtower.run)
         if self.network:
-            self.network.start(jobs)
+            self.network.start(jobs=[self.fx.run])
+
+        self.taskgroup = TaskGroup()
+        asyncio.run_coroutine_threadsafe(self._run(jobs=daemon_jobs), self.asyncio_loop)
+
+    @log_exceptions
+    async def _run(self, jobs: Iterable = None):
+        if jobs is None:
+            jobs = []
+        try:
+            async with self.taskgroup as group:
+                [await group.spawn(job) for job in jobs]
+                await group.spawn(asyncio.Event().wait)  # run forever (until cancel)
+        except BaseException as e:
+            self.logger.exception('daemon.taskgroup died.')
+        finally:
+            self.logger.info("stopping daemon.taskgroup")
 
     async def authenticate(self, headers):
         if self.rpc_password == '':
@@ -302,23 +327,26 @@ class Daemon(Logger):
             return
         auth_string = headers.get('Authorization', None)
         if auth_string is None:
-            raise AuthenticationError('CredentialsMissing')
+            raise AuthenticationInvalidOrMissing('CredentialsMissing')
         basic, _, encoded = auth_string.partition(' ')
         if basic != 'Basic':
-            raise AuthenticationError('UnsupportedType')
+            raise AuthenticationInvalidOrMissing('UnsupportedType')
         encoded = to_bytes(encoded, 'utf8')
         credentials = to_string(b64decode(encoded), 'utf8')
         username, _, password = credentials.partition(':')
         if not (constant_time_compare(username, self.rpc_user)
                 and constant_time_compare(password, self.rpc_password)):
             await asyncio.sleep(0.050)
-            raise AuthenticationError('Invalid Credentials')
+            raise AuthenticationCredentialsInvalid('Invalid Credentials')
 
     async def handle(self, request):
         async with self.auth_lock:
             try:
                 await self.authenticate(request.headers)
-            except AuthenticationError:
+            except AuthenticationInvalidOrMissing:
+                return web.Response(headers={"WWW-Authenticate": "Basic realm=Electrum"},
+                                    text='Unauthorized', status=401)
+            except AuthenticationCredentialsInvalid:
                 return web.Response(text='Forbidden', status=403)
         request = await request.text()
         response = await jsonrpcserver.async_dispatch(request, methods=self.methods)
@@ -367,13 +395,13 @@ class Daemon(Logger):
             response = "Error: Electrum is running in daemon mode. Please stop the daemon first."
         return response
 
-    def load_wallet(self, path, password) -> Optional[Abstract_Wallet]:
+    def load_wallet(self, path, password, *, manual_upgrades=True) -> Optional[Abstract_Wallet]:
         path = standardize_path(path)
         # wizard will be launched if we return
         if path in self._wallets:
             wallet = self._wallets[path]
             return wallet
-        storage = WalletStorage(path, manual_upgrades=True)
+        storage = WalletStorage(path, manual_upgrades=manual_upgrades)
         if not storage.file_exists():
             return
         if storage.is_encrypted():
@@ -452,7 +480,7 @@ class Daemon(Logger):
 
     def is_running(self):
         with self.running_lock:
-            return self.running
+            return self.running and not self.taskgroup.closed()
 
     def stop(self):
         with self.running_lock:
@@ -467,14 +495,22 @@ class Daemon(Logger):
         if self.network:
             self.logger.info("shutting down network")
             self.network.stop()
-        self.logger.info("stopping, removing lockfile")
+        self.logger.info("stopping taskgroup")
+        fut = asyncio.run_coroutine_threadsafe(self.taskgroup.cancel_remaining(), self.asyncio_loop)
+        try:
+            fut.result(timeout=2)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            pass
+        self.logger.info("removing lockfile")
         remove_lockfile(get_lockfile(self.config))
+        self.logger.info("stopped")
 
     def run_gui(self, config, plugins):
         threading.current_thread().setName('GUI')
         gui_name = config.get('gui', 'qt')
         if gui_name in ['lite', 'classic']:
             gui_name = 'qt'
+        self.logger.info(f'launching GUI: {gui_name}')
         gui = __import__('electrum_ltc.gui.' + gui_name, fromlist=['electrum_ltc'])
         self.gui_object = gui.ElectrumGui(config, self, plugins)
         try:

@@ -77,9 +77,11 @@ class SweepStore(SqlDB):
         return set([r[0] for r in c.fetchall()])
 
     @sql
-    def add_sweep_tx(self, funding_outpoint, ctn, prevout, tx):
+    def add_sweep_tx(self, funding_outpoint, ctn, prevout, tx: Transaction):
         c = self.conn.cursor()
-        c.execute("""INSERT INTO sweep_txs (funding_outpoint, ctn, prevout, tx) VALUES (?,?,?,?)""", (funding_outpoint, ctn, prevout, bfh(str(tx))))
+        assert tx.is_complete()
+        raw_tx = bfh(tx.serialize())
+        c.execute("""INSERT INTO sweep_txs (funding_outpoint, ctn, prevout, tx) VALUES (?,?,?,?)""", (funding_outpoint, ctn, prevout, raw_tx))
         self.conn.commit()
 
     @sql
@@ -135,7 +137,7 @@ class SweepStore(SqlDB):
 
 
 class LNWatcher(AddressSynchronizer):
-    verbosity_filter = 'W'
+    LOGGING_SHORTCUT = 'W'
 
     def __init__(self, network: 'Network'):
         AddressSynchronizer.__init__(self, JsonDB({}, manual_upgrades=False))
@@ -143,14 +145,17 @@ class LNWatcher(AddressSynchronizer):
         self.channels = {}
         self.network = network
         self.network.register_callback(self.on_network_update,
-                                       ['network_updated', 'blockchain_updated', 'verified', 'wallet_updated'])
+                                       ['network_updated', 'blockchain_updated', 'verified', 'wallet_updated', 'fee'])
+
         # status gets populated when we run
         self.channel_status = {}
 
     def get_channel_status(self, outpoint):
         return self.channel_status.get(outpoint, 'unknown')
 
-    def add_channel(self, outpoint, address):
+    def add_channel(self, outpoint: str, address: str) -> None:
+        assert isinstance(outpoint, str)
+        assert isinstance(address, str)
         self.add_address(address)
         self.channels[address] = outpoint
 
@@ -176,16 +181,16 @@ class LNWatcher(AddressSynchronizer):
         funding_height = self.get_tx_height(funding_txid)
         closing_txid = spenders.get(funding_outpoint)
         if closing_txid is None:
-            self.network.trigger_callback('channel_open', funding_outpoint, funding_txid, funding_height)
+            self.network.trigger_callback('update_open_channel', funding_outpoint, funding_txid, funding_height)
         else:
             closing_height = self.get_tx_height(closing_txid)
             closing_tx = self.db.get_transaction(closing_txid)
             if not closing_tx:
                 self.logger.info(f"channel {funding_outpoint} closed by {closing_txid}. still waiting for tx itself...")
                 return
-            self.network.trigger_callback('channel_closed', funding_outpoint, spenders,
+            self.network.trigger_callback('update_closed_channel', funding_outpoint, spenders,
                                           funding_txid, funding_height, closing_txid,
-                                          closing_height, closing_tx)  # FIXME sooo many args..
+                                          closing_height, closing_tx, keep_watching)  # FIXME sooo many args..
             # TODO: add tests for local_watchtower
             await self.do_breach_remedy(funding_outpoint, spenders)
         if not keep_watching:
@@ -245,7 +250,7 @@ class LNWatcher(AddressSynchronizer):
 
 class WatchTower(LNWatcher):
 
-    verbosity_filter = 'W'
+    LOGGING_SHORTCUT = 'W'
 
     def __init__(self, network):
         LNWatcher.__init__(self, network)

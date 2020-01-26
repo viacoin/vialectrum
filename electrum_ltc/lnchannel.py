@@ -26,18 +26,18 @@ import os
 from collections import namedtuple, defaultdict
 import binascii
 import json
-from enum import Enum, auto
+from enum import IntEnum
 from typing import Optional, Dict, List, Tuple, NamedTuple, Set, Callable, Iterable, Sequence, TYPE_CHECKING
 import time
 
 from . import ecc
-from .util import bfh, bh2u, PR_PAID, PR_FAILED
-from .bitcoin import TYPE_SCRIPT, TYPE_ADDRESS
+from .util import bfh, bh2u
 from .bitcoin import redeem_script_to_address
 from .crypto import sha256, sha256d
-from .transaction import Transaction
+from .transaction import Transaction, PartialTransaction
 from .logging import Logger
 
+from .lnonion import decode_onion_error
 from .lnutil import (Outpoint, LocalConfig, RemoteConfig, Keypair, OnlyPubkeyKeypair, ChannelConstraints,
                     get_per_commitment_secret_from_seed, secret_to_pubkey, derive_privkey, make_closing_tx,
                     sign_and_get_sig_string, RevocationStore, derive_blinded_pubkey, Direction, derive_pubkey,
@@ -54,6 +54,42 @@ from .lnhtlc import HTLCManager
 if TYPE_CHECKING:
     from .lnworker import LNWallet
 
+
+# lightning channel states
+class channel_states(IntEnum):
+    PREOPENING      = 0 # negociating
+    OPENING         = 1 # awaiting funding tx
+    FUNDED          = 2 # funded (requires min_depth and tx verification)
+    OPEN            = 3 # both parties have sent funding_locked
+    FORCE_CLOSING   = 4 # force-close tx has been broadcast
+    CLOSING         = 5 # closing negociation
+    CLOSED          = 6 # funding txo has been spent
+    REDEEMED        = 7 # we can stop watching
+
+class peer_states(IntEnum):
+    DISCONNECTED   = 0
+    REESTABLISHING = 1
+    GOOD           = 2
+
+cs = channel_states
+state_transitions = [
+    (cs.PREOPENING, cs.OPENING),
+    (cs.OPENING, cs.FUNDED),
+    (cs.FUNDED, cs.OPEN),
+    (cs.OPENING, cs.CLOSING),
+    (cs.FUNDED, cs.CLOSING),
+    (cs.OPEN, cs.CLOSING),
+    (cs.OPENING, cs.FORCE_CLOSING),
+    (cs.FUNDED, cs.FORCE_CLOSING),
+    (cs.OPEN, cs.FORCE_CLOSING),
+    (cs.CLOSING, cs.FORCE_CLOSING),
+    (cs.OPENING, cs.CLOSED),
+    (cs.FUNDED, cs.CLOSED),
+    (cs.OPEN, cs.CLOSED),
+    (cs.CLOSING, cs.CLOSED),
+    (cs.FORCE_CLOSING, cs.CLOSED),
+    (cs.CLOSED, cs.REDEEMED),
+]
 
 class ChannelJsonEncoder(json.JSONEncoder):
     def default(self, o):
@@ -136,18 +172,13 @@ class Channel(Logger):
         self.short_channel_id = ShortChannelID.normalize(state["short_channel_id"])
         self.short_channel_id_predicted = self.short_channel_id
         self.onion_keys = str_bytes_dict_from_save(state.get('onion_keys', {}))
-        self.force_closed = state.get('force_closed')
         self.data_loss_protect_remote_pcp = str_bytes_dict_from_save(state.get('data_loss_protect_remote_pcp', {}))
         self.remote_update = bfh(state.get('remote_update')) if state.get('remote_update') else None
 
         log = state.get('log')
-        self.hm = HTLCManager(log=log,
-                              initial_feerate=initial_feerate)
-
-
-        self._is_funding_txo_spent = None  # "don't know"
-        self._state = None
-        self.set_state('DISCONNECTED')
+        self.hm = HTLCManager(log=log, initial_feerate=initial_feerate)
+        self._state = channel_states[state['state']]
+        self.peer_state = peer_states.DISCONNECTED
         self.sweep_info = {}  # type: Dict[str, Dict[str, SweepInfo]]
         self._outgoing_channel_update = None  # type: Optional[bytes]
 
@@ -184,26 +215,32 @@ class Channel(Logger):
                                                            next_per_commitment_point=None)
         self.config[LOCAL] = self.config[LOCAL]._replace(current_commitment_signature=remote_sig)
         self.hm.channel_open_finished()
-        self.set_state('OPENING')
+        self.peer_state = peer_states.GOOD
+        self.set_state(channel_states.OPENING)
 
-    def set_force_closed(self):
-        self.force_closed = True
-
-    def set_state(self, state: str):
+    def set_state(self, state):
+        """ set on-chain state """
+        old_state = self._state
+        if (old_state, state) not in state_transitions:
+            raise Exception(f"Transition not allowed: {old_state.name} -> {state.name}")
         self._state = state
+        self.logger.debug(f'Setting channel state: {old_state.name} -> {state.name}')
+        if self.lnworker:
+            self.lnworker.save_channel(self)
+            self.lnworker.network.trigger_callback('channel', self)
 
     def get_state(self):
         return self._state
 
     def is_closed(self):
-        return self.force_closed or self.get_state() in ['CLOSED', 'CLOSING']
+        return self.get_state() > channel_states.OPEN
 
     def _check_can_pay(self, amount_msat: int) -> None:
         # TODO check if this method uses correct ctns (should use "latest" + 1)
         if self.is_closed():
             raise PaymentFailure('Channel closed')
-        if self.get_state() != 'OPEN':
-            raise PaymentFailure('Channel not open')
+        if self.get_state() != channel_states.OPEN:
+            raise PaymentFailure('Channel not open', self.get_state())
         if self.available_to_spend(LOCAL) < amount_msat:
             raise PaymentFailure(f'Not enough local balance. Have: {self.available_to_spend(LOCAL)}, Need: {amount_msat}')
         if len(self.hm.htlcs(LOCAL)) + 1 > self.config[REMOTE].max_accepted_htlcs:
@@ -222,12 +259,8 @@ class Channel(Logger):
             return False
         return True
 
-    def set_funding_txo_spentness(self, is_spent: bool):
-        assert isinstance(is_spent, bool)
-        self._is_funding_txo_spent = is_spent
-
     def should_try_to_reestablish_peer(self) -> bool:
-        return self._is_funding_txo_spent is False and self._state == 'DISCONNECTED'
+        return self._state < channel_states.CLOSED and self.peer_state == peer_states.DISCONNECTED
 
     def get_funding_address(self):
         script = funding_output_script(self.config[LOCAL], self.config[REMOTE])
@@ -527,19 +560,19 @@ class Channel(Logger):
         ctx = self.make_commitment(subject, point, ctn)
         return secret, ctx
 
-    def get_commitment(self, subject, ctn):
+    def get_commitment(self, subject, ctn) -> PartialTransaction:
         secret, ctx = self.get_secret_and_commitment(subject, ctn)
         return ctx
 
-    def get_next_commitment(self, subject: HTLCOwner) -> Transaction:
+    def get_next_commitment(self, subject: HTLCOwner) -> PartialTransaction:
         ctn = self.get_next_ctn(subject)
         return self.get_commitment(subject, ctn)
 
-    def get_latest_commitment(self, subject: HTLCOwner) -> Transaction:
+    def get_latest_commitment(self, subject: HTLCOwner) -> PartialTransaction:
         ctn = self.get_latest_ctn(subject)
         return self.get_commitment(subject, ctn)
 
-    def get_oldest_unrevoked_commitment(self, subject: HTLCOwner) -> Transaction:
+    def get_oldest_unrevoked_commitment(self, subject: HTLCOwner) -> PartialTransaction:
         ctn = self.get_oldest_unrevoked_ctn(subject)
         return self.get_commitment(subject, ctn)
 
@@ -572,8 +605,18 @@ class Channel(Logger):
         assert htlc.payment_hash == sha256(preimage)
         assert htlc_id not in log['settles']
         self.hm.send_settle(htlc_id)
-        if self.lnworker:
-            self.lnworker.set_invoice_status(htlc.payment_hash, PR_PAID)
+
+    def get_payment_hash(self, htlc_id):
+        log = self.hm.log[LOCAL]
+        htlc = log['adds'][htlc_id]
+        return htlc.payment_hash
+
+    def decode_onion_error(self, reason, route, htlc_id):
+        failure_msg, sender_idx = decode_onion_error(
+            reason,
+            [x.node_id for x in route],
+            self.onion_keys[htlc_id])
+        return failure_msg, sender_idx
 
     def receive_htlc_settle(self, preimage, htlc_id):
         self.logger.info("receive_htlc_settle")
@@ -582,9 +625,6 @@ class Channel(Logger):
         assert htlc.payment_hash == sha256(preimage)
         assert htlc_id not in log['settles']
         self.hm.recv_settle(htlc_id)
-        if self.lnworker:
-            self.lnworker.save_preimage(htlc.payment_hash, preimage)
-            self.lnworker.set_invoice_status(htlc.payment_hash, PR_PAID)
 
     def fail_htlc(self, htlc_id):
         self.logger.info("fail_htlc")
@@ -595,7 +635,7 @@ class Channel(Logger):
         self.hm.recv_fail(htlc_id)
 
     def pending_local_fee(self):
-        return self.constraints.capacity - sum(x[2] for x in self.get_next_commitment(LOCAL).outputs())
+        return self.constraints.capacity - sum(x.value for x in self.get_next_commitment(LOCAL).outputs())
 
     def update_fee(self, feerate: int, from_us: bool):
         # feerate uses sat/kw
@@ -617,7 +657,7 @@ class Channel(Logger):
                 "node_id": self.node_id,
                 "log": self.hm.to_save(),
                 "onion_keys": str_bytes_dict_to_save(self.onion_keys),
-                "force_closed": self.force_closed,
+                "state": self._state.name,
                 "data_loss_protect_remote_pcp": str_bytes_dict_to_save(self.data_loss_protect_remote_pcp),
                 "remote_update": self.remote_update.hex() if self.remote_update else None
         }
@@ -650,7 +690,7 @@ class Channel(Logger):
     def __str__(self):
         return str(self.serialize())
 
-    def make_commitment(self, subject, this_point, ctn) -> Transaction:
+    def make_commitment(self, subject, this_point, ctn) -> PartialTransaction:
         assert type(subject) is HTLCOwner
         feerate = self.get_feerate(subject, ctn)
         other = REMOTE if LOCAL == subject else LOCAL
@@ -709,21 +749,20 @@ class Channel(Logger):
             onchain_fees,
             htlcs=htlcs)
 
-    def get_local_index(self):
-        return int(self.config[LOCAL].multisig_key.pubkey > self.config[REMOTE].multisig_key.pubkey)
-
     def make_closing_tx(self, local_script: bytes, remote_script: bytes,
-                        fee_sat: int) -> Tuple[bytes, Transaction]:
+                        fee_sat: int) -> Tuple[bytes, PartialTransaction]:
         """ cooperative close """
-        _, outputs = make_commitment_outputs({
+        _, outputs = make_commitment_outputs(
+                fees_per_participant={
                     LOCAL:  fee_sat * 1000 if     self.constraints.is_initiator else 0,
                     REMOTE: fee_sat * 1000 if not self.constraints.is_initiator else 0,
                 },
-                self.balance(LOCAL),
-                self.balance(REMOTE),
-                (TYPE_SCRIPT, bh2u(local_script)),
-                (TYPE_SCRIPT, bh2u(remote_script)),
-                [], self.config[LOCAL].dust_limit_sat)
+                local_amount_msat=self.balance(LOCAL),
+                remote_amount_msat=self.balance(REMOTE),
+                local_script=bh2u(local_script),
+                remote_script=bh2u(remote_script),
+                htlcs=[],
+                dust_limit_sat=self.config[LOCAL].dust_limit_sat)
 
         closing_tx = make_closing_tx(self.config[LOCAL].multisig_key.pubkey,
                                      self.config[REMOTE].multisig_key.pubkey,
@@ -736,25 +775,23 @@ class Channel(Logger):
         sig = ecc.sig_string_from_der_sig(der_sig[:-1])
         return sig, closing_tx
 
-    def signature_fits(self, tx):
+    def signature_fits(self, tx: PartialTransaction):
         remote_sig = self.config[LOCAL].current_commitment_signature
         preimage_hex = tx.serialize_preimage(0)
-        pre_hash = sha256d(bfh(preimage_hex))
+        msg_hash = sha256d(bfh(preimage_hex))
         assert remote_sig
-        res = ecc.verify_signature(self.config[REMOTE].multisig_key.pubkey, remote_sig, pre_hash)
+        res = ecc.verify_signature(self.config[REMOTE].multisig_key.pubkey, remote_sig, msg_hash)
         return res
 
     def force_close_tx(self):
         tx = self.get_latest_commitment(LOCAL)
         assert self.signature_fits(tx)
-        tx = Transaction(str(tx))
-        tx.deserialize(True)
         tx.sign({bh2u(self.config[LOCAL].multisig_key.pubkey): (self.config[LOCAL].multisig_key.privkey, True)})
         remote_sig = self.config[LOCAL].current_commitment_signature
         remote_sig = ecc.der_sig_from_sig_string(remote_sig) + b"\x01"
-        sigs = tx._inputs[0]["signatures"]
-        none_idx = sigs.index(None)
-        tx.add_signature_to_txin(0, none_idx, bh2u(remote_sig))
+        tx.add_signature_to_txin(txin_idx=0,
+                                 signing_pubkey=self.config[REMOTE].multisig_key.pubkey.hex(),
+                                 sig=remote_sig.hex())
         assert tx.is_complete()
         return tx
 

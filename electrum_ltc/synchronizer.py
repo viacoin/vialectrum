@@ -30,7 +30,7 @@ import logging
 
 from aiorpcx import TaskGroup, run_in_thread, RPCError
 
-from .transaction import Transaction
+from .transaction import Transaction, PartialTransaction
 from .util import bh2u, make_aiohttp_session, NetworkJobOnDefaultServer
 from .bitcoin import address_to_scripthash, is_address
 from .network import UntrustedServerReturnedError
@@ -60,8 +60,8 @@ class SynchronizerBase(NetworkJobOnDefaultServer):
     """
     def __init__(self, network: 'Network'):
         self.asyncio_loop = network.asyncio_loop
-        NetworkJobOnDefaultServer.__init__(self, network)
         self._reset_request_counters()
+        NetworkJobOnDefaultServer.__init__(self, network)
 
     def _reset(self):
         super()._reset()
@@ -196,8 +196,9 @@ class Synchronizer(SynchronizerBase):
         for tx_hash, tx_height in hist:
             if tx_hash in self.requested_tx:
                 continue
-            if self.wallet.db.get_transaction(tx_hash):
-                continue
+            tx = self.wallet.db.get_transaction(tx_hash)
+            if tx and not isinstance(tx, PartialTransaction):
+                continue  # already have complete tx
             transaction_hashes.append(tx_hash)
             self.requested_tx[tx_hash] = tx_height
 
@@ -209,7 +210,7 @@ class Synchronizer(SynchronizerBase):
     async def _get_transaction(self, tx_hash, *, allow_server_not_finding_tx=False):
         self._requests_sent += 1
         try:
-            result = await self.network.get_transaction(tx_hash)
+            raw_tx = await self.network.get_transaction(tx_hash)
         except UntrustedServerReturnedError as e:
             # most likely, "No such mempool or blockchain transaction"
             if allow_server_not_finding_tx:
@@ -219,21 +220,12 @@ class Synchronizer(SynchronizerBase):
                 raise
         finally:
             self._requests_answered += 1
-        tx = Transaction(result)
-        try:
-            tx.deserialize()  # see if raises
-        except Exception as e:
-            # possible scenarios:
-            # 1: server is sending garbage
-            # 2: there is a bug in the deserialization code
-            # 3: there was a segwit-like upgrade that changed the tx structure
-            #    that we don't know about
-            raise SynchronizerFailure(f"cannot deserialize transaction {tx_hash}") from e
+        tx = Transaction(raw_tx)
         if tx_hash != tx.txid():
             raise SynchronizerFailure(f"received tx does not match expected txid ({tx_hash} != {tx.txid()})")
         tx_height = self.requested_tx.pop(tx_hash)
         self.wallet.receive_tx_callback(tx_hash, tx, tx_height)
-        self.logger.info(f"received tx {tx_hash} height: {tx_height} bytes: {len(tx.raw)}")
+        self.logger.info(f"received tx {tx_hash} height: {tx_height} bytes: {len(raw_tx)}")
         # callbacks
         self.wallet.network.trigger_callback('new_transaction', self.wallet, tx)
 

@@ -5,6 +5,8 @@ import os
 from contextlib import contextmanager
 from collections import defaultdict
 import logging
+import concurrent
+from concurrent import futures
 
 from electrum_ltc.network import Network
 from electrum_ltc.ecc import ECPrivkey
@@ -16,12 +18,13 @@ from electrum_ltc.lnpeer import Peer
 from electrum_ltc.lnutil import LNPeerAddr, Keypair, privkey_to_pubkey
 from electrum_ltc.lnutil import LightningPeerConnectionClosed, RemoteMisbehaving
 from electrum_ltc.lnutil import PaymentFailure, LnLocalFeatures
+from electrum_ltc.lnchannel import channel_states
 from electrum_ltc.lnrouter import LNPathFinder
 from electrum_ltc.channel_db import ChannelDB
-from electrum_ltc.lnworker import LNWallet
+from electrum_ltc.lnworker import LNWallet, NoPathFound
 from electrum_ltc.lnmsg import encode_msg, decode_msg
 from electrum_ltc.logging import console_stderr_handler
-from electrum_ltc.lnworker import InvoiceInfo, RECEIVED, PR_UNPAID
+from electrum_ltc.lnworker import PaymentInfo, RECEIVED, PR_UNPAID
 
 from .test_lnchannel import create_test_channels
 from . import ElectrumTestCase
@@ -88,8 +91,8 @@ class MockLNWallet:
         self.node_keypair = local_keypair
         self.network = MockNetwork(tx_queue)
         self.channels = {self.chan.channel_id: self.chan}
-        self.invoices = {}
-        self.inflight = {}
+        self.payments = {}
+        self.logs = defaultdict(list)
         self.wallet = MockWallet()
         self.localfeatures = LnLocalFeatures(0)
         self.pending_payments = defaultdict(asyncio.Future)
@@ -117,16 +120,14 @@ class MockLNWallet:
     def save_channel(self, chan):
         print("Ignoring channel save")
 
-    def on_channels_updated(self):
-        pass
-
-    def save_invoice(*args, is_paid=False):
-        pass
-
     preimages = {}
-    get_invoice_info = LNWallet.get_invoice_info
-    save_invoice_info = LNWallet.save_invoice_info
-    set_invoice_status = LNWallet.set_invoice_status
+    get_payment_info = LNWallet.get_payment_info
+    save_payment_info = LNWallet.save_payment_info
+    set_payment_status = LNWallet.set_payment_status
+    get_payment_status = LNWallet.get_payment_status
+    await_payment = LNWallet.await_payment
+    payment_received = LNWallet.payment_received
+    payment_sent = LNWallet.payment_sent
     save_preimage = LNWallet.save_preimage
     get_preimage = LNWallet.get_preimage
     _create_route_from_invoice = LNWallet._create_route_from_invoice
@@ -201,9 +202,9 @@ class TestPeer(ElectrumTestCase):
         w1.peer = p1
         w2.peer = p2
         # mark_open won't work if state is already OPEN.
-        # so set it to OPENING
-        self.alice_channel.set_state("OPENING")
-        self.bob_channel.set_state("OPENING")
+        # so set it to FUNDED
+        self.alice_channel._state = channel_states.FUNDED
+        self.bob_channel._state = channel_states.FUNDED
         # this populates the channel graph:
         p1.mark_open(self.alice_channel)
         p2.mark_open(self.bob_channel)
@@ -216,9 +217,9 @@ class TestPeer(ElectrumTestCase):
         amount_btc = amount_sat/Decimal(COIN)
         payment_preimage = os.urandom(32)
         RHASH = sha256(payment_preimage)
-        info = InvoiceInfo(RHASH, amount_sat, RECEIVED, PR_UNPAID)
+        info = PaymentInfo(RHASH, amount_sat, RECEIVED, PR_UNPAID)
         w2.save_preimage(RHASH, payment_preimage)
-        w2.save_invoice_info(info)
+        w2.save_payment_info(info)
         lnaddr = LnAddr(
                     RHASH,
                     amount_btc,
@@ -237,7 +238,7 @@ class TestPeer(ElectrumTestCase):
         gath = asyncio.gather(pay(), p1._message_loop(), p2._message_loop())
         async def f():
             await gath
-        with self.assertRaises(asyncio.CancelledError):
+        with self.assertRaises(concurrent.futures.CancelledError):
             run(f())
 
     def test_channel_usage_after_closing(self):
@@ -251,9 +252,8 @@ class TestPeer(ElectrumTestCase):
         # check if a tx (commitment transaction) was broadcasted:
         assert q1.qsize() == 1
 
-        with self.assertRaises(PaymentFailure) as e:
+        with self.assertRaises(NoPathFound) as e:
             run(w1._create_route_from_invoice(decoded_invoice=addr))
-        self.assertEqual(str(e.exception), 'No path found')
 
         peer = w1.peers[route[0].node_id]
         # AssertionError is ok since we shouldn't use old routes, and the
