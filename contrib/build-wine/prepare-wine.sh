@@ -17,7 +17,7 @@ PYINSTALLER_REPO="https://github.com/SomberNight/pyinstaller.git"
 PYINSTALLER_COMMIT=e934539374e30d1500fcdbe8e4eb0860413935b2
 # ^ tag 3.6, plus a custom commit that fixes cross-compilation with MinGW
 
-PYTHON_VERSION=3.6.8
+PYTHON_VERSION=3.7.6
 
 ## These settings probably don't need change
 export WINEPREFIX=/opt/wine64
@@ -89,7 +89,6 @@ info "Compiling libusb..."
     git remote add origin $LIBUSB_REPO
     git fetch --depth 1 origin $LIBUSB_COMMIT
     git checkout -b pinned FETCH_HEAD
-    export SOURCE_DATE_EPOCH=1530212462
     echo "libusb_1_0_la_LDFLAGS += -Wc,-static" >> libusb/Makefile.am
     ./bootstrap.sh || fail "Could not bootstrap libusb"
     host="i686-w64-mingw32"
@@ -102,8 +101,8 @@ info "Compiling libusb..."
 cp "$CACHEDIR/libusb/libusb/.libs/libusb-1.0.dll" $WINEPREFIX/drive_c/tmp/  || fail "Could not copy libusb to its destination"
 
 
-# copy libsecp dll (already built by build-secp256k1.sh)
-cp "$CACHEDIR/secp256k1/libsecp256k1.dll" $WINEPREFIX/drive_c/tmp/ || fail "Could not copy libsecp to its destination"
+# copy libsecp dll (already built)
+cp "$PROJECT_ROOT/electrum_ltc/libsecp256k1-0.dll" $WINEPREFIX/drive_c/tmp/ || fail "Could not copy libsecp to its destination"
 
 
 info "Building PyInstaller."

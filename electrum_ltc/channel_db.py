@@ -39,9 +39,11 @@ from .util import bh2u, profiler, get_headers_dir, bfh, is_ip_address, list_enab
 from .logging import Logger
 from .lnutil import LN_GLOBAL_FEATURES_KNOWN_SET, LNPeerAddr, format_short_channel_id, ShortChannelID
 from .lnverifier import LNChannelVerifier, verify_sig_for_channel_update
+from .lnmsg import decode_msg
 
 if TYPE_CHECKING:
     from .network import Network
+    from .lnchannel import Channel
 
 
 class UnknownEvenFeatureBits(Exception): pass
@@ -63,7 +65,7 @@ class ChannelInfo(NamedTuple):
     capacity_sat: Optional[int]
 
     @staticmethod
-    def from_msg(payload):
+    def from_msg(payload: dict) -> 'ChannelInfo':
         features = int.from_bytes(payload['features'], 'big')
         validate_features(features)
         channel_id = payload['short_channel_id']
@@ -78,6 +80,11 @@ class ChannelInfo(NamedTuple):
             capacity_sat = capacity_sat
         )
 
+    @staticmethod
+    def from_raw_msg(raw: bytes) -> 'ChannelInfo':
+        payload_dict = decode_msg(raw)[1]
+        return ChannelInfo.from_msg(payload_dict)
+
 
 class Policy(NamedTuple):
     key: bytes
@@ -91,7 +98,7 @@ class Policy(NamedTuple):
     timestamp: int
 
     @staticmethod
-    def from_msg(payload):
+    def from_msg(payload: dict) -> 'Policy':
         return Policy(
             key                         = payload['short_channel_id'] + payload['start_node'],
             cltv_expiry_delta           = int.from_bytes(payload['cltv_expiry_delta'], "big"),
@@ -103,6 +110,12 @@ class Policy(NamedTuple):
             channel_flags               = int.from_bytes(payload['channel_flags'], "big"),
             timestamp                   = int.from_bytes(payload['timestamp'], "big")
         )
+
+    @staticmethod
+    def from_raw_msg(key:bytes, raw: bytes) -> 'Policy':
+        payload = decode_msg(raw)[1]
+        payload['start_node'] = key[8:]
+        return Policy.from_msg(payload)
 
     def is_disabled(self):
         return self.channel_flags & FLAG_DISABLE
@@ -133,6 +146,11 @@ class NodeInfo(NamedTuple):
         timestamp = int.from_bytes(payload['timestamp'], "big")
         return NodeInfo(node_id=node_id, features=features, timestamp=timestamp, alias=alias), [
             Address(host=host, port=port, node_id=node_id, last_connected_date=None) for host, port in addresses]
+
+    @staticmethod
+    def from_raw_msg(raw: bytes) -> 'NodeInfo':
+        payload_dict = decode_msg(raw)[1]
+        return NodeInfo.from_msg(payload_dict)
 
     @staticmethod
     def parse_addresses_field(addresses_field):
@@ -190,35 +208,24 @@ class CategorizedChannelUpdates(NamedTuple):
     to_delete: List   # database entries to delete
 
 
-# TODO It would make more sense to store the raw gossip messages in the db.
-#      That is pretty much a pre-requisite of actively participating in gossip.
 
 create_channel_info = """
 CREATE TABLE IF NOT EXISTS channel_info (
-short_channel_id VARCHAR(64),
-node1_id VARCHAR(66),
-node2_id VARCHAR(66),
-capacity_sat INTEGER,
+short_channel_id BLOB(8),
+msg BLOB,
 PRIMARY KEY(short_channel_id)
 )"""
 
 create_policy = """
 CREATE TABLE IF NOT EXISTS policy (
-key VARCHAR(66),
-cltv_expiry_delta INTEGER NOT NULL,
-htlc_minimum_msat INTEGER NOT NULL,
-htlc_maximum_msat INTEGER,
-fee_base_msat INTEGER NOT NULL,
-fee_proportional_millionths INTEGER NOT NULL,
-channel_flags INTEGER NOT NULL,
-message_flags INTEGER NOT NULL,
-timestamp INTEGER NOT NULL,
+key BLOB(41),
+msg BLOB,
 PRIMARY KEY(key)
 )"""
 
 create_address = """
 CREATE TABLE IF NOT EXISTS address (
-node_id VARCHAR(66),
+node_id BLOB(33),
 host STRING(256),
 port INTEGER NOT NULL,
 timestamp INTEGER,
@@ -227,10 +234,8 @@ PRIMARY KEY(node_id, host, port)
 
 create_node_info = """
 CREATE TABLE IF NOT EXISTS node_info (
-node_id VARCHAR(66),
-features INTEGER NOT NULL,
-timestamp INTEGER NOT NULL,
-alias STRING(64),
+node_id BOB(33),
+msg BLOB,
 PRIMARY KEY(node_id)
 )"""
 
@@ -240,7 +245,7 @@ class ChannelDB(SqlDB):
     NUM_MAX_RECENT_PEERS = 20
 
     def __init__(self, network: 'Network'):
-        path = os.path.join(get_headers_dir(network.config), 'channel_db')
+        path = os.path.join(get_headers_dir(network.config), 'gossip_db')
         super().__init__(network, path, commit_interval=100)
         self.num_nodes = 0
         self.num_channels = 0
@@ -248,11 +253,11 @@ class ChannelDB(SqlDB):
         self.ca_verifier = LNChannelVerifier(network, self)
         # initialized in load_data
         self._channels = {}  # type: Dict[bytes, ChannelInfo]
-        self._policies = {}
+        self._policies = {}  # type: Dict[Tuple[bytes, bytes], Policy]  # (node_id, scid) -> Policy
         self._nodes = {}
         # node_id -> (host, port, ts)
         self._addresses = defaultdict(set)  # type: Dict[bytes, Set[Tuple[str, int, int]]]
-        self._channels_for_node = defaultdict(set)
+        self._channels_for_node = defaultdict(set)  # type: Dict[bytes, Set[ShortChannelID]]
         self.data_loaded = asyncio.Event()
         self.network = network # only for callback
 
@@ -334,7 +339,8 @@ class ChannelDB(SqlDB):
         self._channels[channel_info.short_channel_id] = channel_info
         self._channels_for_node[channel_info.node1_id].add(channel_info.short_channel_id)
         self._channels_for_node[channel_info.node2_id].add(channel_info.short_channel_id)
-        self.save_channel(channel_info)
+        if 'raw' in msg:
+            self.save_channel(channel_info.short_channel_id, msg['raw'])
 
     def print_change(self, old_policy: Policy, new_policy: Policy):
         # print what changed between policies
@@ -392,7 +398,8 @@ class ChannelDB(SqlDB):
                 self.verify_channel_update(payload)
             policy = Policy.from_msg(payload)
             self._policies[key] = policy
-            self.save_policy(policy)
+            if 'raw' in payload:
+                self.save_policy(policy.key, payload['raw'])
         #
         self.update_counts()
         return CategorizedChannelUpdates(
@@ -404,9 +411,8 @@ class ChannelDB(SqlDB):
         )
 
     def add_channel_update(self, payload):
-        # called from add_own_channel
-        # the update may be categorized as deprecated because of caching
-        categorized_chan_upds = self.add_channel_updates([payload], verify=False)
+        # called from tests
+        self.add_channel_updates([payload], verify=False)
 
     def create_database(self):
         c = self.conn.cursor()
@@ -417,9 +423,9 @@ class ChannelDB(SqlDB):
         self.conn.commit()
 
     @sql
-    def save_policy(self, policy):
+    def save_policy(self, key, msg):
         c = self.conn.cursor()
-        c.execute("""REPLACE INTO policy (key, cltv_expiry_delta, htlc_minimum_msat, htlc_maximum_msat, fee_base_msat, fee_proportional_millionths, channel_flags, message_flags, timestamp) VALUES (?,?,?,?,?,?,?,?,?)""", list(policy))
+        c.execute("""REPLACE INTO policy (key, msg) VALUES (?,?)""", [key, msg])
 
     @sql
     def delete_policy(self, node_id, short_channel_id):
@@ -428,9 +434,9 @@ class ChannelDB(SqlDB):
         c.execute("""DELETE FROM policy WHERE key=?""", (key,))
 
     @sql
-    def save_channel(self, channel_info):
+    def save_channel(self, short_channel_id, msg):
         c = self.conn.cursor()
-        c.execute("REPLACE INTO channel_info (short_channel_id, node1_id, node2_id, capacity_sat) VALUES (?,?,?,?)", list(channel_info))
+        c.execute("REPLACE INTO channel_info (short_channel_id, msg) VALUES (?,?)", [short_channel_id, msg])
 
     @sql
     def delete_channel(self, short_channel_id):
@@ -438,9 +444,9 @@ class ChannelDB(SqlDB):
         c.execute("""DELETE FROM channel_info WHERE short_channel_id=?""", (short_channel_id,))
 
     @sql
-    def save_node(self, node_info):
+    def save_node_info(self, node_id, msg):
         c = self.conn.cursor()
-        c.execute("REPLACE INTO node_info (node_id, features, timestamp, alias) VALUES (?,?,?,?)", list(node_info))
+        c.execute("REPLACE INTO node_info (node_id, msg) VALUES (?,?)", [node_id, msg])
 
     @sql
     def save_node_address(self, node_id, peer, now):
@@ -487,24 +493,14 @@ class ChannelDB(SqlDB):
                 continue
             # save
             self._nodes[node_id] = node_info
-            self.save_node(node_info)
+            if 'raw' in msg_payload:
+                self.save_node_info(node_id, msg_payload['raw'])
             for addr in node_addresses:
                 self._addresses[node_id].add((addr.host, addr.port, 0))
             self.save_node_addresses(node_id, node_addresses)
 
         self.logger.debug("on_node_announcement: %d/%d"%(len(new_nodes), len(msg_payloads)))
         self.update_counts()
-
-    def get_routing_policy_for_channel(self, start_node_id: bytes,
-                                       short_channel_id: bytes) -> Optional[Policy]:
-        if not start_node_id or not short_channel_id: return None
-        channel_info = self.get_channel_info(short_channel_id)
-        if channel_info is not None:
-            return self.get_policy_for_node(short_channel_id, start_node_id)
-        msg = self._channel_updates_for_private_channels.get((start_node_id, short_channel_id))
-        if not msg:
-            return None
-        return Policy.from_msg(msg) # won't actually be written to DB
 
     def get_old_policies(self, delta):
         now = int(time.time())
@@ -558,17 +554,17 @@ class ChannelDB(SqlDB):
             node_id, host, port, timestamp = x
             self._addresses[node_id].add((str(host), int(port), int(timestamp or 0)))
         c.execute("""SELECT * FROM channel_info""")
-        for x in c:
-            x = (ShortChannelID.normalize(x[0]), *x[1:])
-            ci = ChannelInfo(*x)
-            self._channels[ci.short_channel_id] = ci
+        for short_channel_id, msg in c:
+            ci = ChannelInfo.from_raw_msg(msg)
+            self._channels[short_channel_id] = ci
         c.execute("""SELECT * FROM node_info""")
-        for x in c:
-            ni = NodeInfo(*x)
-            self._nodes[ni.node_id] = ni
+        for node_id, msg in c:
+            node_info, node_addresses = NodeInfo.from_raw_msg(msg)
+            # don't load node_addresses because they dont have timestamps
+            self._nodes[node_id] = node_info
         c.execute("""SELECT * FROM policy""")
-        for x in c:
-            p = Policy(*x)
+        for key, msg in c:
+            p = Policy.from_raw_msg(key, msg)
             self._policies[(p.start_node, p.short_channel_id)] = p
         for channel_info in self._channels.values():
             self._channels_for_node[channel_info.node1_id].add(channel_info.short_channel_id)
@@ -587,12 +583,56 @@ class ChannelDB(SqlDB):
                 out.add(short_channel_id)
         self.logger.info(f'semi-orphaned: {len(out)}')
 
-    def get_policy_for_node(self, short_channel_id: bytes, node_id: bytes) -> Optional['Policy']:
-        return self._policies.get((node_id, short_channel_id))
+    def get_policy_for_node(self, short_channel_id: bytes, node_id: bytes, *,
+                            my_channels: Dict[ShortChannelID, 'Channel'] = None) -> Optional['Policy']:
+        channel_info = self.get_channel_info(short_channel_id)
+        if channel_info is not None:  # publicly announced channel
+            policy = self._policies.get((node_id, short_channel_id))
+            if policy:
+                return policy
+        else:  # private channel
+            chan_upd_dict = self._channel_updates_for_private_channels.get((node_id, short_channel_id))
+            if chan_upd_dict:
+                return Policy.from_msg(chan_upd_dict)
+        # check if it's one of our own channels
+        if not my_channels:
+            return
+        chan = my_channels.get(short_channel_id)  # type: Optional[Channel]
+        if not chan:
+            return
+        if node_id == chan.node_id:  # incoming direction (to us)
+            remote_update_raw = chan.get_remote_update()
+            if not remote_update_raw:
+                return
+            now = int(time.time())
+            remote_update_decoded = decode_msg(remote_update_raw)[1]
+            remote_update_decoded['timestamp'] = now.to_bytes(4, byteorder="big")
+            remote_update_decoded['start_node'] = node_id
+            return Policy.from_msg(remote_update_decoded)
+        elif node_id == chan.get_local_pubkey():  # outgoing direction (from us)
+            local_update_decoded = decode_msg(chan.get_outgoing_gossip_channel_update())[1]
+            local_update_decoded['start_node'] = node_id
+            return Policy.from_msg(local_update_decoded)
 
-    def get_channel_info(self, channel_id: bytes) -> ChannelInfo:
-        return self._channels.get(channel_id)
+    def get_channel_info(self, short_channel_id: bytes, *,
+                         my_channels: Dict[ShortChannelID, 'Channel'] = None) -> Optional[ChannelInfo]:
+        ret = self._channels.get(short_channel_id)
+        if ret:
+            return ret
+        # check if it's one of our own channels
+        if not my_channels:
+            return
+        chan = my_channels.get(short_channel_id)  # type: Optional[Channel]
+        ci = ChannelInfo.from_raw_msg(chan.construct_channel_announcement_without_sigs())
+        return ci._replace(capacity_sat=chan.constraints.capacity)
 
-    def get_channels_for_node(self, node_id) -> Set[bytes]:
-        """Returns the set of channels that have node_id as one of the endpoints."""
-        return self._channels_for_node.get(node_id) or set()
+    def get_channels_for_node(self, node_id: bytes, *,
+                              my_channels: Dict[ShortChannelID, 'Channel'] = None) -> Set[bytes]:
+        """Returns the set of short channel IDs where node_id is one of the channel participants."""
+        relevant_channels = self._channels_for_node.get(node_id) or set()
+        relevant_channels = set(relevant_channels)  # copy
+        # add our own channels  # TODO maybe slow?
+        for chan in (my_channels.values() or []):
+            if node_id in (chan.node_id, chan.get_local_pubkey()):
+                relevant_channels.add(chan.short_channel_id)
+        return relevant_channels

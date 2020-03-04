@@ -19,10 +19,27 @@ Vialectrum is a port of Electrum, the Bitcoin wallet, to Viacoin.
 Getting started
 ===============
 
-vialectrum is a pure python application. If you want to use the
-Qt interface, install the Qt dependencies::
+Vialectrum itself is pure Python, and so are most of the required dependencies.
+
+Non-python dependencies
+-----------------------
+
+If you want to use the Qt interface, install the Qt dependencies::
 
     sudo apt-get install python3-pyqt5
+
+For elliptic curve operations, libsecp256k1 is a required dependency::
+
+    sudo apt-get install libsecp256k1-0
+
+Alternatively, when running from a cloned repository, a script is provided to build
+libsecp256k1 yourself::
+
+    ./contrib/make_libsecp256k1.sh
+
+
+Running from tar.gz
+-------------------
 
 If you downloaded the official package (tar.gz), you can run
 Vialectrum from its root directory without installing it on your
@@ -33,22 +50,19 @@ directory. To run Vialectrum from its root directory, just do::
 
 You can also install Vialectrum on your system, by running this command::
 
-    sudo apt-get install python3-setuptools
-    python3 -m pip install .
+    sudo apt-get install python3-setuptools python3-pip
+    python3 -m pip install --user .
 
 This will download and install the Python dependencies used by
 Vialectrum instead of using the 'packages' directory.
-The 'fast' extra contains some optional dependencies that we think
-are often useful but they are not strictly needed.
 
 If you cloned the git repository, you need to compile extra files
-before you can run Vialectrum. Read the next section, "Development
-Version".
-
+before you can run Electrum-LTC. Read the next section, "Development
+version".
 
 
 Development version
-===================
+-------------------
 
 Check out the code from GitHub::
 
@@ -58,13 +72,8 @@ Check out the code from GitHub::
 
 Run install (this should install dependencies)::
 
-    python3 -m pip install .[fast]
+    python3 -m pip install --user .
 
-
-Compile the protobuf description file::
-
-    sudo apt-get install protobuf-compiler
-    protoc --proto_path=electrum_ltc --python_out=electrum_ltc electrum_ltc/paymentrequest.proto
 
 Create translations (optional)::
 
