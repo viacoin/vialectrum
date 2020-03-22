@@ -62,11 +62,11 @@ they are not deterministic.
 Instead, we use the toolchain that Bitcoin uses: genisoimage and libdmg-hfsplus.
 These tools do not work on macOS, so you need a separate Linux machine (or VM).
 
-Copy the Electrum-LTC.app directory over and install the dependencies, e.g.:
+Copy the Vialectrum.app directory over and install the dependencies, e.g.:
 
     apt install libcap-dev cmake make gcc faketime
     
 Then you can just invoke `package.sh` with the path to the app:
 
     cd electrum-ltc
-    ./contrib/osx/package.sh ~/Electrum-LTC.app/
+    ./contrib/osx/package.sh ~/Vialectrum.app/

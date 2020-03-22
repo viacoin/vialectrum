@@ -16,8 +16,8 @@ rpcbind=0.0.0.0
 rpcport=18554
 EOF
 rm -rf ~/.viacoin/regtest
-screen -S litecoind -X quit || true
-screen -S litecoind -m -d litecoind -regtest
+screen -S viacoind -X quit || true
+screen -S viacoind -m -d viacoind -regtest
 sleep 6
 addr=$(viacoin-cli getnewaddress)
 viacoin-cli generatetoaddress 150 $addr > /dev/null

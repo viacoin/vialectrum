@@ -538,7 +538,7 @@ class WalletDB(JsonDB):
     def _convert_version_25(self):
         if not self._is_upgrade_method_needed(24, 24):
             return
-        # add 'type' feld to onchain requests
+        # add 'type' field to onchain requests
         requests = self.data.get('payment_requests', {})
         for k, r in list(requests.items()):
             if r.get('address') == k:
@@ -563,7 +563,7 @@ class WalletDB(JsonDB):
                     'type': PR_TYPE_ONCHAIN,
                     'amount': pr.get_amount(),
                     'bip70': data,
-                    'exp': pr.get_expiration_date(),
+                    'exp': pr.get_expiration_date() - pr.get_time(),
                     'id': pr.id,
                     'message': pr.get_memo(),
                     'outputs': [x.to_legacy_tuple() for x in pr.get_outputs()],
@@ -818,7 +818,9 @@ class WalletDB(JsonDB):
         return self.transactions.pop(tx_hash, None)
 
     @locked
-    def get_transaction(self, tx_hash: str) -> Optional[Transaction]:
+    def get_transaction(self, tx_hash: Optional[str]) -> Optional[Transaction]:
+        if tx_hash is None:
+            return None
         assert isinstance(tx_hash, str)
         return self.transactions.get(tx_hash)
 
@@ -1077,7 +1079,7 @@ class WalletDB(JsonDB):
             # note: for performance, "deserialize=False" so that we will deserialize these on-demand
             v = dict((k, tx_from_any(x, deserialize=False)) for k, x in v.items())
         elif key == 'adds':
-            v = dict((k, UpdateAddHtlc(*x)) for k, x in v.items())
+            v = dict((k, UpdateAddHtlc.from_tuple(*x)) for k, x in v.items())
         elif key == 'fee_updates':
             v = dict((k, FeeUpdate(**x)) for k, x in v.items())
         elif key == 'tx_fees':
@@ -1099,18 +1101,6 @@ class WalletDB(JsonDB):
             v = ChannelConstraints(**v)
         elif key == 'funding_outpoint':
             v = Outpoint(**v)
-        elif key.endswith("_basepoint") or key.endswith("_key"):
-            v = Keypair(**v) if len(v)==2 else OnlyPubkeyKeypair(**v)
-        elif key in [
-                "short_channel_id",
-                "current_per_commitment_point",
-                "next_per_commitment_point",
-                "per_commitment_secret_seed",
-                "current_commitment_signature",
-                "current_htlc_signatures"]:
-            v = binascii.unhexlify(v) if v is not None else None
-        elif len(path) > 2 and path[-2] in ['local_config', 'remote_config'] and key in ["pubkey", "privkey"]:
-            v = binascii.unhexlify(v) if v is not None else None
         return v
 
     def write(self, storage: 'WalletStorage'):
