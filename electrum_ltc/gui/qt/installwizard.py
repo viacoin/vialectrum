@@ -31,6 +31,8 @@ from electrum_ltc.plugin import run_hook, Plugins
 
 if TYPE_CHECKING:
     from electrum_ltc.simple_config import SimpleConfig
+    from electrum_ltc.wallet_db import WalletDB
+    from . import ElectrumGui
 
 
 MSG_ENTER_PASSWORD = _("Choose a password to encrypt your wallet keys.") + '\n'\
@@ -94,19 +96,27 @@ def wizard_dialog(func):
     def func_wrapper(*args, **kwargs):
         run_next = kwargs['run_next']
         wizard = args[0]  # type: InstallWizard
-        wizard.back_button.setText(_('Back') if wizard.can_go_back() else _('Cancel'))
-        try:
-            out = func(*args, **kwargs)
-            if type(out) is not tuple:
-                out = (out,)
-            run_next(*out)
-        except GoBack:
-            if wizard.can_go_back():
-                wizard.go_back()
-                return
-            else:
-                wizard.close()
+        while True:
+            wizard.back_button.setText(_('Back') if wizard.can_go_back() else _('Cancel'))
+            # current dialog
+            try:
+                out = func(*args, **kwargs)
+                if type(out) is not tuple:
+                    out = (out,)
+            except GoBack:
+                if not wizard.can_go_back():
+                    wizard.close()
+                # to go back from the current dialog, we just let the caller unroll the stack:
                 raise
+            # next dialog
+            try:
+                run_next(*out)
+            except GoBack:
+                # to go back from the next dialog, we ask the wizard to restore state
+                wizard.go_back(rerun_previous=False)
+                # and we re-run the current dialog (by continuing)
+            else:
+                break
     return func_wrapper
 
 
@@ -121,12 +131,13 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
 
     accept_signal = pyqtSignal()
 
-    def __init__(self, config: 'SimpleConfig', app: QApplication, plugins: 'Plugins'):
+    def __init__(self, config: 'SimpleConfig', app: QApplication, plugins: 'Plugins', *, gui_object: 'ElectrumGui'):
         QDialog.__init__(self, None)
         BaseWizard.__init__(self, config, plugins)
         self.setWindowTitle('Vialectrum  -  ' + _('Install Wizard'))
         self.app = app
         self.config = config
+        self.gui_thread = gui_object.gui_thread
         self.setMinimumSize(600, 400)
         self.accept_signal.connect(self.accept)
         self.title = QLabel()
@@ -304,6 +315,8 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
                                               _('If you use a passphrase, make sure it is correct.'))
                         self.reset_stack()
                         return self.select_storage(path, get_wallet_from_daemon)
+                    except (UserCancelled, GoBack):
+                        raise
                     except BaseException as e:
                         self.logger.exception('')
                         self.show_message(title=_('Error'), msg=repr(e))
@@ -317,7 +330,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
 
         return temp_storage.path, (temp_storage if temp_storage.file_exists() else None)
 
-    def run_upgrades(self, storage, db):
+    def run_upgrades(self, storage: WalletStorage, db: 'WalletDB') -> None:
         path = storage.path
         if db.requires_split():
             self.hide()
@@ -355,12 +368,6 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
 
         if db.requires_upgrade():
             self.upgrade_db(storage, db)
-
-        return db
-
-    def finished(self):
-        """Called in hardware client wrapper, in order to close popups."""
-        return
 
     def on_error(self, exc_info):
         if not isinstance(exc_info[1], UserCancelled):
@@ -530,6 +537,26 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         if on_finished:
             on_finished()
 
+    def run_task_without_blocking_gui(self, task, *, msg=None):
+        assert self.gui_thread == threading.current_thread(), 'must be called from GUI thread'
+        if msg is None:
+            msg = _("Please wait...")
+
+        exc = None  # type: Optional[Exception]
+        res = None
+        def task_wrapper():
+            nonlocal exc
+            nonlocal res
+            try:
+                res = task()
+            except Exception as e:
+                exc = e
+        self.waiting_dialog(task_wrapper, msg=msg)
+        if exc is None:
+            return res
+        else:
+            raise exc
+
     @wizard_dialog
     def choice_dialog(self, title, message, choices, run_next):
         c_values = [x[0] for x in choices]
@@ -664,18 +691,25 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         def on_m(m):
             m_label.setText(_('Require {0} signatures').format(m))
             cw.set_m(m)
+            backup_warning_label.setVisible(cw.m != cw.n)
         def on_n(n):
             n_label.setText(_('From {0} cosigners').format(n))
             cw.set_n(n)
             m_edit.setMaximum(n)
+            backup_warning_label.setVisible(cw.m != cw.n)
         n_edit.valueChanged.connect(on_n)
         m_edit.valueChanged.connect(on_m)
-        on_n(2)
-        on_m(2)
         vbox = QVBoxLayout()
         vbox.addWidget(cw)
         vbox.addWidget(WWLabel(_("Choose the number of signatures needed to unlock funds in your wallet:")))
         vbox.addLayout(grid)
+        vbox.addSpacing(2 * char_width_in_lineedit())
+        backup_warning_label = WWLabel(_("Warning: to be able to restore a multisig wallet, "
+                                         "you should include the master public key for each cosigner "
+                                         "in all of your backups."))
+        vbox.addWidget(backup_warning_label)
+        on_n(2)
+        on_m(2)
         self.exec_layout(vbox, _("Multi-Signature Wallet"))
         m = int(m_edit.value())
         n = int(n_edit.value())

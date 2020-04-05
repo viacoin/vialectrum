@@ -39,7 +39,7 @@ from .simple_config import SimpleConfig
 from .logging import get_logger, Logger
 
 if TYPE_CHECKING:
-    from .plugins.hw_wallet import HW_PluginBase, HardwareClientBase
+    from .plugins.hw_wallet import HW_PluginBase, HardwareClientBase, HardwareHandlerBase
     from .keystore import Hardware_KeyStore
 
 
@@ -305,6 +305,7 @@ class DeviceInfo(NamedTuple):
     label: Optional[str] = None
     initialized: Optional[bool] = None
     exception: Optional[Exception] = None
+    plugin_name: Optional[str] = None  # manufacturer, e.g. "trezor"
 
 
 class HardwarePluginToScan(NamedTuple):
@@ -348,23 +349,30 @@ class DeviceMgr(ThreadJob):
     This plugin is thread-safe.  Currently only devices supported by
     hidapi are implemented.'''
 
-    def __init__(self, config):
+    def __init__(self, config: SimpleConfig):
         ThreadJob.__init__(self)
         # Keyed by xpub.  The value is the device id
-        # has been paired, and None otherwise.
+        # has been paired, and None otherwise. Needs self.lock.
         self.xpub_ids = {}  # type: Dict[str, str]
         # A list of clients.  The key is the client, the value is
-        # a (path, id_) pair.
+        # a (path, id_) pair. Needs self.lock.
         self.clients = {}  # type: Dict[HardwareClientBase, Tuple[Union[str, bytes], str]]
         # What we recognise.  Each entry is a (vendor_id, product_id)
         # pair.
         self.recognised_hardware = set()
         # Custom enumerate functions for devices we don't know about.
         self.enumerate_func = set()
-        # For synchronization
+        # locks: if you need to take multiple ones, acquire them in the order they are defined here!
+        self._scan_lock = threading.RLock()
         self.lock = threading.RLock()
-        self.hid_lock = threading.RLock()
+
         self.config = config
+
+    def with_scan_lock(func):
+        def func_wrapper(self: 'DeviceMgr', *args, **kwargs):
+            with self._scan_lock:
+                return func(self, *args, **kwargs)
+        return func_wrapper
 
     def thread_jobs(self):
         # Thread job to handle device timeouts
@@ -386,7 +394,8 @@ class DeviceMgr(ThreadJob):
     def register_enumerate_func(self, func):
         self.enumerate_func.add(func)
 
-    def create_client(self, device: 'Device', handler, plugin: 'HW_PluginBase') -> Optional['HardwareClientBase']:
+    def create_client(self, device: 'Device', handler: Optional['HardwareHandlerBase'],
+                      plugin: 'HW_PluginBase') -> Optional['HardwareClientBase']:
         # Get from cache first
         client = self.client_lookup(device.id_)
         if client:
@@ -447,7 +456,9 @@ class DeviceMgr(ThreadJob):
         self.scan_devices()
         return self.client_lookup(id_)
 
-    def client_for_keystore(self, plugin: 'HW_PluginBase', handler, keystore: 'Hardware_KeyStore',
+    @with_scan_lock
+    def client_for_keystore(self, plugin: 'HW_PluginBase', handler: Optional['HardwareHandlerBase'],
+                            keystore: 'Hardware_KeyStore',
                             force_pair: bool) -> Optional['HardwareClientBase']:
         self.logger.info("getting client for keystore")
         if handler is None:
@@ -468,7 +479,7 @@ class DeviceMgr(ThreadJob):
         self.logger.info("end client for keystore")
         return client
 
-    def client_by_xpub(self, plugin: 'HW_PluginBase', xpub, handler,
+    def client_by_xpub(self, plugin: 'HW_PluginBase', xpub, handler: 'HardwareHandlerBase',
                        devices: Iterable['Device']) -> Optional['HardwareClientBase']:
         _id = self.xpub_id(xpub)
         client = self.client_lookup(_id)
@@ -482,7 +493,7 @@ class DeviceMgr(ThreadJob):
             if device.id_ == _id:
                 return self.create_client(device, handler, plugin)
 
-    def force_pair_xpub(self, plugin: 'HW_PluginBase', handler,
+    def force_pair_xpub(self, plugin: 'HW_PluginBase', handler: 'HardwareHandlerBase',
                         info: 'DeviceInfo', xpub, derivation) -> Optional['HardwareClientBase']:
         # The wallet has not been previously paired, so let the user
         # choose an unpaired device and compare its first address.
@@ -510,7 +521,8 @@ class DeviceMgr(ThreadJob):
               'its seed (and passphrase, if any).  Otherwise all viacoins you '
               'receive will be unspendable.').format(plugin.device))
 
-    def unpaired_device_infos(self, handler, plugin: 'HW_PluginBase', devices: List['Device'] = None,
+    def unpaired_device_infos(self, handler: Optional['HardwareHandlerBase'], plugin: 'HW_PluginBase',
+                              devices: List['Device'] = None,
                               include_failing_clients=False) -> List['DeviceInfo']:
         '''Returns a list of DeviceInfo objects: one for each connected,
         unpaired device accepted by the plugin.'''
@@ -529,20 +541,23 @@ class DeviceMgr(ThreadJob):
             except Exception as e:
                 self.logger.error(f'failed to create client for {plugin.name} at {device.path}: {repr(e)}')
                 if include_failing_clients:
-                    infos.append(DeviceInfo(device=device, exception=e))
+                    infos.append(DeviceInfo(device=device, exception=e, plugin_name=plugin.name))
                 continue
             if not client:
                 continue
             infos.append(DeviceInfo(device=device,
                                     label=client.label(),
-                                    initialized=client.is_initialized()))
+                                    initialized=client.is_initialized(),
+                                    plugin_name=plugin.name))
 
         return infos
 
-    def select_device(self, plugin: 'HW_PluginBase', handler,
+    def select_device(self, plugin: 'HW_PluginBase', handler: 'HardwareHandlerBase',
                       keystore: 'Hardware_KeyStore', devices: List['Device'] = None) -> 'DeviceInfo':
         '''Ask the user to select a device to use if there is more than one,
         and return the DeviceInfo for the device.'''
+        # ideally this should not be called from the GUI thread...
+        # assert handler.get_gui_thread() != threading.current_thread(), 'must not be called from GUI thread'
         while True:
             infos = self.unpaired_device_infos(handler, plugin, devices)
             if infos:
@@ -571,7 +586,7 @@ class DeviceMgr(ThreadJob):
         # ask user to select device
         msg = _("Please select which {} device to use:").format(plugin.device)
         descriptions = ["{label} ({init}, {transport})"
-                        .format(label=info.label,
+                        .format(label=info.label or _("An unnamed {}").format(info.plugin_name),
                                 init=(_("initialized") if info.initialized else _("wiped")),
                                 transport=info.device.transport_ui_string)
                         for info in infos]
@@ -581,18 +596,19 @@ class DeviceMgr(ThreadJob):
         info = infos[c]
         # save new label
         keystore.set_label(info.label)
-        if handler.win.wallet is not None:
-            handler.win.wallet.save_keystore()
+        wallet = handler.get_wallet()
+        if wallet is not None:
+            wallet.save_keystore()
         return info
 
+    @with_scan_lock
     def _scan_devices_with_hid(self) -> List['Device']:
         try:
             import hid
         except ImportError:
             return []
 
-        with self.hid_lock:
-            hid_list = hid.enumerate(0, 0)
+        hid_list = hid.enumerate(0, 0)
 
         devices = []
         for d in hid_list:
@@ -613,6 +629,7 @@ class DeviceMgr(ThreadJob):
                                       transport_ui_string='hid'))
         return devices
 
+    @with_scan_lock
     def scan_devices(self) -> List['Device']:
         self.logger.info("scanning devices...")
 

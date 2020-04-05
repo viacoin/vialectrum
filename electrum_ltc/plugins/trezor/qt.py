@@ -169,9 +169,6 @@ class QtPlugin(QtPluginBase):
     #   icon_file
     #   pin_matrix_widget_class
 
-    def create_handler(self, window):
-        return QtHandler(window, self.pin_matrix_widget_class(), self.device)
-
     @only_hook_if_libraries_available
     @hook
     def receive_menu(self, menu, addrs, wallet):
@@ -185,9 +182,13 @@ class QtPlugin(QtPluginBase):
                 menu.addAction(_("Show on {}").format(device_name), show_address)
 
     def show_settings_dialog(self, window, keystore):
-        device_id = self.choose_device(window, keystore)
-        if device_id:
-            SettingsDialog(window, self, keystore, device_id).exec_()
+        def connect():
+            device_id = self.choose_device(window, keystore)
+            return device_id
+        def show_dialog(device_id):
+            if device_id:
+                SettingsDialog(window, self, keystore, device_id).exec_()
+        keystore.thread.add(connect, on_success=show_dialog)
 
     def request_trezor_init_settings(self, wizard, method, device_id):
         vbox = QVBoxLayout()
@@ -376,6 +377,9 @@ class QtPlugin(QtPluginBase):
 class Plugin(TrezorPlugin, QtPlugin):
     icon_unpaired = "trezor_unpaired.png"
     icon_paired = "trezor.png"
+
+    def create_handler(self, window):
+        return QtHandler(window, self.pin_matrix_widget_class(), self.device)
 
     @classmethod
     def pin_matrix_widget_class(self):

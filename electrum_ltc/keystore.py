@@ -48,7 +48,8 @@ from .logging import Logger
 
 if TYPE_CHECKING:
     from .gui.qt.util import TaskThread
-    from .plugins.hw_wallet import HW_PluginBase, HardwareClientBase
+    from .plugins.hw_wallet import HW_PluginBase, HardwareClientBase, HardwareHandlerBase
+    from .wallet_db import WalletDB
 
 
 class KeyStore(Logger, ABC):
@@ -723,7 +724,7 @@ class Hardware_KeyStore(Xpub, KeyStore):
         # device reconnects
         self.xpub = d.get('xpub')
         self.label = d.get('label')
-        self.handler = None
+        self.handler = None  # type: Optional[HardwareHandlerBase]
         run_hook('init_keystore', self)
 
     def set_label(self, label):
@@ -886,8 +887,9 @@ def hardware_keystore(d) -> Hardware_KeyStore:
     raise WalletFileException(f'unknown hardware type: {hw_type}. '
                               f'hw_keystores: {list(hw_keystores)}')
 
-def load_keystore(db, name) -> KeyStore:
+def load_keystore(db: 'WalletDB', name: str) -> KeyStore:
     d = db.get(name, {})
+    d = dict(d)  # convert to dict from StoredDict (see #6066)
     t = d.get('type')
     if not t:
         raise WalletFileException(
