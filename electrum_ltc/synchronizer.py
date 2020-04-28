@@ -30,6 +30,7 @@ import logging
 
 from aiorpcx import TaskGroup, run_in_thread, RPCError
 
+from . import util
 from .transaction import Transaction, PartialTransaction
 from .util import bh2u, make_aiohttp_session, NetworkJobOnDefaultServer
 from .bitcoin import address_to_scripthash, is_address
@@ -227,7 +228,7 @@ class Synchronizer(SynchronizerBase):
         self.wallet.receive_tx_callback(tx_hash, tx, tx_height)
         self.logger.info(f"received tx {tx_hash} height: {tx_height} bytes: {len(raw_tx)}")
         # callbacks
-        self.wallet.network.trigger_callback('new_transaction', self.wallet, tx)
+        util.trigger_callback('new_transaction', self.wallet, tx)
 
     async def main(self):
         self.wallet.set_up_to_date(False)
@@ -252,7 +253,7 @@ class Synchronizer(SynchronizerBase):
                 if up_to_date:
                     self._reset_request_counters()
                 self.wallet.set_up_to_date(up_to_date)
-                self.wallet.network.trigger_callback('wallet_updated', self.wallet)
+                util.trigger_callback('wallet_updated', self.wallet)
 
 
 class Notifier(SynchronizerBase):
@@ -262,7 +263,7 @@ class Notifier(SynchronizerBase):
     def __init__(self, network):
         SynchronizerBase.__init__(self, network)
         self.watched_addresses = defaultdict(list)  # type: Dict[str, List[str]]
-        self.start_watching_queue = asyncio.Queue()
+        self._start_watching_queue = asyncio.Queue()  # type: asyncio.Queue[Tuple[str, str]]
 
     async def main(self):
         # resend existing subscriptions if we were restarted
@@ -270,11 +271,20 @@ class Notifier(SynchronizerBase):
             await self._add_address(addr)
         # main loop
         while True:
-            addr, url = await self.start_watching_queue.get()
+            addr, url = await self._start_watching_queue.get()
             self.watched_addresses[addr].append(url)
             await self._add_address(addr)
 
+    async def start_watching_addr(self, addr: str, url: str):
+        await self._start_watching_queue.put((addr, url))
+
+    async def stop_watching_addr(self, addr: str):
+        self.watched_addresses.pop(addr, None)
+        # TODO blockchain.scripthash.unsubscribe
+
     async def _on_address_status(self, addr, status):
+        if addr not in self.watched_addresses:
+            return
         self.logger.info(f'new status for addr {addr}')
         headers = {'content-type': 'application/json'}
         data = {'address': addr, 'status': status}

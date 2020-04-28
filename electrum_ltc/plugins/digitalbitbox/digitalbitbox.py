@@ -66,7 +66,7 @@ CHANNEL_ID_KEY = 'comserverchannelid'
 class DigitalBitbox_Client(HardwareClientBase):
 
     def __init__(self, plugin, hidDevice):
-        self.plugin = plugin
+        HardwareClientBase.__init__(self, plugin=plugin)
         self.dbb_hid = hidDevice
         self.opened = True
         self.password = None
@@ -77,19 +77,16 @@ class DigitalBitbox_Client(HardwareClientBase):
 
     def close(self):
         if self.opened:
-            try:
-                self.dbb_hid.close()
-            except:
-                pass
+            with self.device_manager().hid_lock:
+                try:
+                    self.dbb_hid.close()
+                except:
+                    pass
         self.opened = False
 
 
     def timeout(self, cutoff):
         pass
-
-
-    def label(self):
-        return " "
 
 
     def is_pairable(self):
@@ -679,14 +676,15 @@ class DigitalBitboxPlugin(HW_PluginBase):
     def __init__(self, parent, config, name):
         HW_PluginBase.__init__(self, parent, config, name)
         if self.libraries_available:
-            self.device_manager().register_devices(self.DEVICE_IDS)
+            self.device_manager().register_devices(self.DEVICE_IDS, plugin=self)
 
         self.digitalbitbox_config = self.config.get('digitalbitbox', {})
 
 
     def get_dbb_device(self, device):
-        dev = hid.device()
-        dev.open_path(device.path)
+        with self.device_manager().hid_lock:
+            dev = hid.device()
+            dev.open_path(device.path)
         return dev
 
 
@@ -709,6 +707,7 @@ class DigitalBitboxPlugin(HW_PluginBase):
             client.setupRunning = True
         wizard.run_task_without_blocking_gui(
             task=lambda: client.get_xpub("m/44'/2'", 'standard'))
+        return client
 
 
     def is_mobile_paired(self):
@@ -741,10 +740,11 @@ class DigitalBitboxPlugin(HW_PluginBase):
         return xpub
 
 
-    def get_client(self, keystore, force_pair=True):
-        devmgr = self.device_manager()
-        handler = keystore.handler
-        client = devmgr.client_for_keystore(self, handler, keystore, force_pair)
+    def get_client(self, keystore, force_pair=True, *,
+                   devices=None, allow_user_interaction=True):
+        client = super().get_client(keystore, force_pair,
+                                    devices=devices,
+                                    allow_user_interaction=allow_user_interaction)
         if client is not None:
             client.check_device_dialog()
         return client

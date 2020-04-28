@@ -37,7 +37,7 @@ from electrum_ltc.lnutil import SENT, LOCAL, REMOTE, RECEIVED
 from electrum_ltc.lnutil import FeeUpdate
 from electrum_ltc.ecc import sig_string_from_der_sig
 from electrum_ltc.logging import console_stderr_handler
-from electrum_ltc.lnchannel import channel_states
+from electrum_ltc.lnchannel import ChannelState
 from electrum_ltc.json_db import StoredDict
 
 from . import ElectrumTestCase
@@ -70,6 +70,7 @@ def create_channel_state(funding_txid, funding_index, funding_sat, is_initiator,
                 current_per_commitment_point=cur,
             ),
             "local_config":lnpeer.LocalConfig(
+                channel_seed = None,
                 payment_basepoint=privkeys[0],
                 multisig_key=privkeys[1],
                 htlc_basepoint=privkeys[2],
@@ -142,8 +143,8 @@ def create_test_channels(*, feerate=6000, local_msat=None, remote_msat=None):
     alice.hm.log[LOCAL]['ctn'] = 0
     bob.hm.log[LOCAL]['ctn'] = 0
 
-    alice._state = channel_states.OPEN
-    bob._state = channel_states.OPEN
+    alice._state = ChannelState.OPEN
+    bob._state = ChannelState.OPEN
 
     a_out = alice.get_latest_commitment(LOCAL).outputs()
     b_out = bob.get_next_commitment(REMOTE).outputs()

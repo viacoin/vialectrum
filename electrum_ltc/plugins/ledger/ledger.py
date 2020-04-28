@@ -2,7 +2,7 @@ from struct import pack, unpack
 import hashlib
 import sys
 import traceback
-from typing import Optional
+from typing import Optional, Tuple
 
 from electrum_ltc import ecc, constants
 from electrum_ltc import bip32
@@ -62,16 +62,20 @@ def test_pin_unlocked(func):
 
 
 class Ledger_Client(HardwareClientBase):
-    def __init__(self, hidDevice, *, is_hw1: bool = False):
+    def __init__(self, hidDevice, *, product_key: Tuple[int, int],
+                 plugin: HW_PluginBase):
+        HardwareClientBase.__init__(self, plugin=plugin)
         self.dongleObject = btchip(hidDevice)
         self.preflightDone = False
-        self._is_hw1 = is_hw1
+        self._product_key = product_key
+        self._soft_device_id = None
 
     def is_pairable(self):
         return True
 
     def close(self):
-        self.dongleObject.dongle.close()
+        with self.device_manager().hid_lock:
+            self.dongleObject.dongle.close()
 
     def timeout(self, cutoff):
         pass
@@ -79,11 +83,27 @@ class Ledger_Client(HardwareClientBase):
     def is_initialized(self):
         return True
 
-    def label(self):
-        return ""
+    def get_soft_device_id(self):
+        if self._soft_device_id is None:
+            # modern ledger can provide xpub without user interaction
+            # (hw1 would prompt for PIN)
+            if not self.is_hw1():
+                self._soft_device_id = self.request_root_fingerprint_from_device()
+        return self._soft_device_id
 
     def is_hw1(self) -> bool:
-        return self._is_hw1
+        return self._product_key[0] == 0x2581
+
+    def device_model_name(self):
+        if self.is_hw1():
+            return "Ledger HW.1"
+        if self._product_key == (0x2c97, 0x0000):
+            return "Ledger Blue"
+        if self._product_key == (0x2c97, 0x0001):
+            return "Ledger Nano S"
+        if self._product_key == (0x2c97, 0x0004):
+            return "Ledger Nano X"
+        return None
 
     def has_usable_connection_with_device(self):
         try:
@@ -165,18 +185,19 @@ class Ledger_Client(HardwareClientBase):
             self.segwitSupported = self.nativeSegwitSupported or (firmwareInfo['specialVersion'] == 0x20 and versiontuple(firmware) >= versiontuple(SEGWIT_SUPPORT_SPECIAL))
 
             if not checkFirmware(firmwareInfo):
-                self.dongleObject.dongle.close()
+                self.close()
                 raise UserFacingException(MSG_NEEDS_FW_UPDATE_GENERIC)
             try:
                 self.dongleObject.getOperationMode()
             except BTChipException as e:
                 if (e.sw == 0x6985):
-                    self.dongleObject.dongle.close()
+                    self.close()
                     self.handler.get_setup( )
                     # Acquire the new client on the next run
                 else:
                     raise e
-            if self.has_detached_pin_support(self.dongleObject) and not self.is_pin_validated(self.dongleObject) and (self.handler is not None):
+            if self.has_detached_pin_support(self.dongleObject) and not self.is_pin_validated(self.dongleObject):
+                assert self.handler, "no handler for client"
                 remaining_attempts = self.dongleObject.getVerifyPinRemainingAttempts()
                 if remaining_attempts != 1:
                     msg = "Enter your Ledger PIN - remaining attempts : " + str(remaining_attempts)
@@ -561,7 +582,7 @@ class LedgerPlugin(HW_PluginBase):
         self.segwit = config.get("segwit")
         HW_PluginBase.__init__(self, parent, config, name)
         if self.libraries_available:
-            self.device_manager().register_devices(self.DEVICE_IDS)
+            self.device_manager().register_devices(self.DEVICE_IDS, plugin=self)
 
     def get_btchip_device(self, device):
         ledger = False
@@ -574,9 +595,10 @@ class LedgerPlugin(HW_PluginBase):
                 ledger = True
             else:
                 return None  # non-compatible interface of a Nano S or Blue
-        dev = hid.device()
-        dev.open_path(device.path)
-        dev.set_nonblocking(True)
+        with self.device_manager().hid_lock:
+            dev = hid.device()
+            dev.open_path(device.path)
+            dev.set_nonblocking(True)
         return HIDDongleHIDAPI(dev, ledger, BTCHIP_DEBUG)
 
     def create_client(self, device, handler):
@@ -585,8 +607,7 @@ class LedgerPlugin(HW_PluginBase):
 
         client = self.get_btchip_device(device)
         if client is not None:
-            is_hw1 = device.product_key[0] == 0x2581
-            client = Ledger_Client(client, is_hw1=is_hw1)
+            client = Ledger_Client(client, product_key=device.product_key, plugin=self)
         return client
 
     def setup_device(self, device_info, wizard, purpose):
@@ -594,6 +615,7 @@ class LedgerPlugin(HW_PluginBase):
         client = self.scan_and_create_client_for_device(device_id=device_id, wizard=wizard)
         wizard.run_task_without_blocking_gui(
             task=lambda: client.get_xpub("m/44'/2'", 'standard'))  # TODO replace by direct derivation once Nano S > 1.1
+        return client
 
     def get_xpub(self, device_id, derivation, xtype, wizard):
         if xtype not in self.SUPPORTED_XTYPES:
@@ -603,11 +625,12 @@ class LedgerPlugin(HW_PluginBase):
         xpub = client.get_xpub(derivation, xtype)
         return xpub
 
-    def get_client(self, keystore, force_pair=True):
+    def get_client(self, keystore, force_pair=True, *,
+                   devices=None, allow_user_interaction=True):
         # All client interaction should not be in the main GUI thread
-        devmgr = self.device_manager()
-        handler = keystore.handler
-        client = devmgr.client_for_keystore(self, handler, keystore, force_pair)
+        client = super().get_client(keystore, force_pair,
+                                    devices=devices,
+                                    allow_user_interaction=allow_user_interaction)
         # returns the client for a given keystore. can use xpub
         #if client:
         #    client.used()

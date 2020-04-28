@@ -53,11 +53,13 @@ from .wallet import Abstract_Wallet, create_new_wallet, restore_wallet_from_text
 from .address_synchronizer import TX_HEIGHT_LOCAL
 from .mnemonic import Mnemonic
 from .lnutil import SENT, RECEIVED
+from .lnutil import LnFeatures
 from .lnutil import ln_dummy_address
 from .lnpeer import channel_id_from_funding_tx
 from .plugin import run_hook
 from .version import ELECTRUM_VERSION
 from .simple_config import SimpleConfig
+from .lnaddr import parse_lightning_invoice
 
 
 if TYPE_CHECKING:
@@ -66,6 +68,10 @@ if TYPE_CHECKING:
 
 
 known_commands = {}  # type: Dict[str, Command]
+
+
+class NotSynchronizedException(Exception):
+    pass
 
 
 def satoshis(amount):
@@ -181,7 +187,7 @@ class Commands:
         net_params = self.network.get_parameters()
         response = {
             'path': self.network.config.path,
-            'server': net_params.host,
+            'server': net_params.server.host,
             'blockchain_height': self.network.get_local_height(),
             'server_height': self.network.get_server_height(),
             'spv_nodes': len(self.network.get_interfaces()),
@@ -784,6 +790,7 @@ class Commands:
     async def list_requests(self, pending=False, expired=False, paid=False, wallet: Abstract_Wallet = None):
         """List the payment requests you made."""
         out = wallet.get_sorted_requests()
+        out = list(map(self._format_request, out))
         if pending:
             f = PR_UNPAID
         elif expired:
@@ -794,7 +801,7 @@ class Commands:
             f = None
         if f is not None:
             out = list(filter(lambda x: x.get('status')==f, out))
-        return list(map(self._format_request, out))
+        return out
 
     @command('w')
     async def createnewaddress(self, wallet: Abstract_Wallet = None):
@@ -822,7 +829,7 @@ class Commands:
         if not isinstance(wallet, Deterministic_Wallet):
             raise Exception("This wallet is not deterministic.")
         if not wallet.is_up_to_date():
-            raise Exception("Wallet not fully synchronized.")
+            raise NotSynchronizedException("Wallet not fully synchronized.")
         return wallet.min_acceptable_gap()
 
     @command('w')
@@ -891,11 +898,16 @@ class Commands:
         return True
 
     @command('n')
-    async def notify(self, address: str, URL: str):
-        """Watch an address. Every time the address changes, a http POST is sent to the URL."""
+    async def notify(self, address: str, URL: Optional[str]):
+        """Watch an address. Every time the address changes, a http POST is sent to the URL.
+        Call with an empty URL to stop watching an address.
+        """
         if not hasattr(self, "_notifier"):
             self._notifier = Notifier(self.network)
-        await self._notifier.start_watching_queue.put((address, URL))
+        if URL:
+            await self._notifier.start_watching_addr(address, URL)
+        else:
+            await self._notifier.stop_watching_addr(address)
         return True
 
     @command('wn')
@@ -959,9 +971,21 @@ class Commands:
 
     # lightning network commands
     @command('wn')
-    async def add_peer(self, connection_string, timeout=20, wallet: Abstract_Wallet = None):
-        await wallet.lnworker.add_peer(connection_string)
+    async def add_peer(self, connection_string, timeout=20, gossip=False, wallet: Abstract_Wallet = None):
+        lnworker = self.network.lngossip if gossip else wallet.lnworker
+        await lnworker.add_peer(connection_string)
         return True
+
+    @command('wn')
+    async def list_peers(self, gossip=False, wallet: Abstract_Wallet = None):
+        lnworker = self.network.lngossip if gossip else wallet.lnworker
+        return [{
+            'node_id':p.pubkey.hex(),
+            'address':p.transport.name(),
+            'initialized':p.is_initialized(),
+            'features': str(LnFeatures(p.features)),
+            'channels': [c.funding_outpoint.to_str() for c in p.channels.values()],
+        } for p in lnworker.peers.values()]
 
     @command('wpn')
     async def open_channel(self, connection_string, amount, push_amount=0, password=None, wallet: Abstract_Wallet = None):
@@ -975,6 +999,10 @@ class Commands:
                                                                          push_sat=push_sat,
                                                                          password=password)
         return chan.funding_outpoint.to_str()
+
+    @command('')
+    async def decode_invoice(self, invoice):
+        return parse_lightning_invoice(invoice)
 
     @command('wn')
     async def lnpay(self, invoice, attempts=1, timeout=10, wallet: Abstract_Wallet = None):
@@ -1009,8 +1037,8 @@ class Commands:
                 'remote_pubkey': bh2u(chan.node_id),
                 'local_balance': chan.balance(LOCAL)//1000,
                 'remote_balance': chan.balance(REMOTE)//1000,
-                'local_reserve': chan.config[LOCAL].reserve_sat,
-                'remote_reserve': chan.config[REMOTE].reserve_sat,
+                'local_reserve': chan.config[REMOTE].reserve_sat, # their config has our reserve
+                'remote_reserve': chan.config[LOCAL].reserve_sat,
                 'local_unsettled_sent': chan.balance_tied_up_in_htlcs_by_direction(LOCAL, direction=SENT) // 1000,
                 'remote_unsettled_sent': chan.balance_tied_up_in_htlcs_by_direction(REMOTE, direction=SENT) // 1000,
             } for channel_id, chan in l
@@ -1045,6 +1073,16 @@ class Commands:
         chan_id, _ = channel_id_from_funding_tx(txid, int(index))
         coro = wallet.lnworker.force_close_channel(chan_id) if force else wallet.lnworker.close_channel(chan_id)
         return await coro
+
+    @command('w')
+    async def export_channel_backup(self, channel_point, wallet: Abstract_Wallet = None):
+        txid, index = channel_point.split(':')
+        chan_id, _ = channel_id_from_funding_tx(txid, int(index))
+        return wallet.lnworker.export_channel_backup(chan_id)
+
+    @command('w')
+    async def import_channel_backup(self, encrypted, wallet: Abstract_Wallet = None):
+        return wallet.lnbackups.import_channel_backup(encrypted)
 
     @command('wn')
     async def get_channel_ctx(self, channel_point, iknowwhatimdoing=False, wallet: Abstract_Wallet = None):
@@ -1136,6 +1174,7 @@ command_options = {
     'from_height': (None, "Only show transactions that confirmed after given block height"),
     'to_height':   (None, "Only show transactions that confirmed before given block height"),
     'iknowwhatimdoing': (None, "Acknowledge that I understand the full implications of what I am about to do"),
+    'gossip':      (None, "Apply command to gossip node instead of wallet"),
 }
 
 
@@ -1229,6 +1268,8 @@ argparse._SubParsersAction.__call__ = subparser_call
 
 
 def add_network_options(parser):
+    parser.add_argument("-f", "--serverfingerprint", dest="serverfingerprint", default=None, help="only allow connecting to servers with a matching SSL certificate SHA256 fingerprint." + " " +
+                                                                                                  "To calculate this yourself: '$ openssl x509 -noout -fingerprint -sha256 -inform pem -in mycertfile.crt'. Enter as 64 hex chars.")
     parser.add_argument("-1", "--oneserver", action="store_true", dest="oneserver", default=None, help="connect to one server only")
     parser.add_argument("-s", "--server", dest="server", default=None, help="set server host:port:protocol, where protocol is either t (tcp) or s (ssl)")
     parser.add_argument("-p", "--proxy", dest="proxy", default=None, help="set proxy [type:]host[:port] (or 'none' to disable proxy), where type is socks4,socks5 or http")

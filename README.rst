@@ -78,6 +78,8 @@ You can also install Vialectrum on your system, by running this command::
 
 This will download and install the Python dependencies used by
 Vialectrum instead of using the 'packages' directory.
+It will also place an executable named :code:`vialectrum` in :code:`~/.local/bin`,
+so make sure that is on your :code:`PATH` variable.
 
 
 Development version (git clone)
@@ -91,7 +93,7 @@ Check out the code from GitHub::
 
 Run install (this should install dependencies)::
 
-    python3 -m pip install --user .
+    python3 -m pip install --user -e .
 
 
 Create translations (optional)::
@@ -99,6 +101,9 @@ Create translations (optional)::
     sudo apt-get install python-requests gettext
     ./contrib/pull_locale
 
+Finally, to start Electrum-LTC::
+
+    ./run_electrum
 
 
 
