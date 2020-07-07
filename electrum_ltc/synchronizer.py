@@ -32,7 +32,7 @@ from aiorpcx import TaskGroup, run_in_thread, RPCError
 
 from . import util
 from .transaction import Transaction, PartialTransaction
-from .util import bh2u, make_aiohttp_session, NetworkJobOnDefaultServer
+from .util import bh2u, make_aiohttp_session, NetworkJobOnDefaultServer, random_shuffled_copy
 from .bitcoin import address_to_scripthash, is_address
 from .network import UntrustedServerReturnedError
 from .logging import Logger
@@ -174,6 +174,9 @@ class Synchronizer(SynchronizerBase):
         hashes = set(map(lambda item: item['tx_hash'], result))
         hist = list(map(lambda item: (item['tx_hash'], item['height']), result))
         # tx_fees
+        for item in result:
+            if item['height'] in (-1, 0) and 'fee' not in item:
+                raise Exception("server response to get_history contains unconfirmed tx without fee")
         tx_fees = [(item['tx_hash'], item.get('fee')) for item in result]
         tx_fees = dict(filter(lambda x:x[1] is not None, tx_fees))
         # Check that txids are unique
@@ -240,7 +243,7 @@ class Synchronizer(SynchronizerBase):
             if history == ['*']: continue
             await self._request_missing_txs(history, allow_server_not_finding_tx=True)
         # add addresses to bootstrap
-        for addr in self.wallet.get_addresses():
+        for addr in random_shuffled_copy(self.wallet.get_addresses()):
             await self._add_address(addr)
         # main loop
         while True:

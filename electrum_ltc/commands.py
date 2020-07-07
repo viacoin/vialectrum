@@ -47,7 +47,7 @@ from .bip32 import BIP32Node
 from .i18n import _
 from .transaction import (Transaction, multisig_script, TxOutput, PartialTransaction, PartialTxOutput,
                           tx_from_any, PartialTxInput, TxOutpoint)
-from .paymentrequest import PR_PAID, PR_UNPAID, PR_UNKNOWN, PR_EXPIRED
+from .invoices import PR_PAID, PR_UNPAID, PR_UNKNOWN, PR_EXPIRED
 from .synchronizer import Notifier
 from .wallet import Abstract_Wallet, create_new_wallet, restore_wallet_from_text, Deterministic_Wallet
 from .address_synchronizer import TX_HEIGHT_LOCAL
@@ -59,7 +59,8 @@ from .lnpeer import channel_id_from_funding_tx
 from .plugin import run_hook
 from .version import ELECTRUM_VERSION
 from .simple_config import SimpleConfig
-from .lnaddr import parse_lightning_invoice
+from .invoices import LNInvoice
+from . import submarine_swaps
 
 
 if TYPE_CHECKING:
@@ -78,6 +79,8 @@ def satoshis(amount):
     # satoshi conversion must not be performed by the parser
     return int(COIN*Decimal(amount)) if amount not in ['!', None] else amount
 
+def format_satoshis(x):
+    return str(Decimal(x)/COIN) if x is not None else None
 
 def json_normalize(x):
     # note: The return value of commands, when going through the JSON-RPC interface,
@@ -106,6 +109,16 @@ class Command:
             self.options = []
             self.defaults = []
 
+        # sanity checks
+        if self.requires_password:
+            assert self.requires_wallet
+        for varname in ('wallet_path', 'wallet'):
+            if varname in varnames:
+                assert varname in self.options
+        assert not ('wallet_path' in varnames and 'wallet' in varnames)
+        if self.requires_wallet:
+            assert 'wallet' in varnames
+
 
 def command(s):
     def decorator(func):
@@ -119,18 +132,20 @@ def command(s):
             password = kwargs.get('password')
             daemon = cmd_runner.daemon
             if daemon:
-                if (cmd.requires_wallet or 'wallet_path' in cmd.options) and kwargs.get('wallet_path') is None:
-                    # using JSON-RPC, sometimes the "wallet" kwarg needs to be used to specify a wallet
-                    kwargs['wallet_path'] = kwargs.pop('wallet', None) or daemon.config.get_wallet_path()
-                if cmd.requires_wallet:
-                    wallet_path = kwargs.pop('wallet_path')
-                    wallet = daemon.get_wallet(wallet_path)
-                    if wallet is None:
-                        raise Exception('wallet not loaded')
-                    kwargs['wallet'] = wallet
-            else:
-                # we are offline. the wallet must have been passed if required
-                wallet = kwargs.get('wallet')
+                if 'wallet_path' in cmd.options and kwargs.get('wallet_path') is None:
+                    kwargs['wallet_path'] = daemon.config.get_wallet_path()
+                if cmd.requires_wallet and kwargs.get('wallet') is None:
+                    kwargs['wallet'] = daemon.config.get_wallet_path()
+                if 'wallet' in cmd.options:
+                    wallet_path = kwargs.get('wallet', None)
+                    if isinstance(wallet_path, str):
+                        wallet = daemon.get_wallet(wallet_path)
+                        if wallet is None:
+                            raise Exception('wallet not loaded')
+                        kwargs['wallet'] = wallet
+            wallet = kwargs.get('wallet')  # type: Optional[Abstract_Wallet]
+            if cmd.requires_wallet and not wallet:
+                raise Exception('wallet not loaded')
             if cmd.requires_password and password is None and wallet.has_password():
                 raise Exception('Password required')
             return await func(*args, **kwargs)
@@ -299,6 +314,12 @@ class Commands:
         return True
 
     @command('')
+    async def get_ssl_domain(self):
+        """Check and return the SSL domain set in ssl_keyfile and ssl_certfile
+        """
+        return self.config.get_ssl_domain()
+
+    @command('')
     async def make_seed(self, nbits=132, language=None, seed_type=None):
         """Create a seed"""
         from .mnemonic import Mnemonic
@@ -351,6 +372,9 @@ class Commands:
                 raise Exception("missing prevout for txin")
             txin = PartialTxInput(prevout=prevout)
             txin._trusted_value_sats = int(txin_dict['value'])
+            nsequence = txin_dict.get('nsequence', None)
+            if nsequence is not None:
+                txin.nsequence = nsequence
             sec = txin_dict.get('privkey')
             if sec:
                 txin_type, privkey, compressed = bitcoin.deserialize_privkey(sec)
@@ -566,81 +590,57 @@ class Commands:
         message = util.to_bytes(message)
         return ecc.verify_message_with_address(address, sig, message)
 
-    def _mktx(self, wallet: Abstract_Wallet, outputs, *, fee=None, feerate=None, change_addr=None, domain_addr=None, domain_coins=None,
-              nocheck=False, unsigned=False, rbf=None, password=None, locktime=None):
-        if fee is not None and feerate is not None:
-            raise Exception("Cannot specify both 'fee' and 'feerate' at the same time!")
-        self.nocheck = nocheck
-        change_addr = self._resolver(change_addr, wallet)
-        domain_addr = None if domain_addr is None else map(self._resolver, domain_addr, repeat(wallet))
-        final_outputs = []
-        for address, amount in outputs:
-            address = self._resolver(address, wallet)
-            amount = satoshis(amount)
-            final_outputs.append(PartialTxOutput.from_address_and_value(address, amount))
-
-        coins = wallet.get_spendable_coins(domain_addr)
-        if domain_coins is not None:
-            coins = [coin for coin in coins if (coin.prevout.to_str() in domain_coins)]
-        if feerate is not None:
-            fee_per_kb = 1000 * Decimal(feerate)
-            fee_estimator = partial(SimpleConfig.estimate_fee_for_feerate, fee_per_kb)
-        else:
-            fee_estimator = fee
-        tx = wallet.make_unsigned_transaction(coins=coins,
-                                              outputs=final_outputs,
-                                              fee=fee_estimator,
-                                              change_addr=change_addr)
-        if locktime is not None:
-            tx.locktime = locktime
-        if rbf is None:
-            rbf = self.config.get('use_rbf', True)
-        if rbf:
-            tx.set_rbf(True)
-        if not unsigned:
-            wallet.sign_transaction(tx, password)
-        return tx
-
     @command('wp')
     async def payto(self, destination, amount, fee=None, feerate=None, from_addr=None, from_coins=None, change_addr=None,
                     nocheck=False, unsigned=False, rbf=None, password=None, locktime=None, wallet: Abstract_Wallet = None):
         """Create a transaction. """
+        self.nocheck = nocheck
         tx_fee = satoshis(fee)
         domain_addr = from_addr.split(',') if from_addr else None
         domain_coins = from_coins.split(',') if from_coins else None
-        tx = self._mktx(wallet,
-                        [(destination, amount)],
-                        fee=tx_fee,
-                        feerate=feerate,
-                        change_addr=change_addr,
-                        domain_addr=domain_addr,
-                        domain_coins=domain_coins,
-                        nocheck=nocheck,
-                        unsigned=unsigned,
-                        rbf=rbf,
-                        password=password,
-                        locktime=locktime)
+        change_addr = self._resolver(change_addr, wallet)
+        domain_addr = None if domain_addr is None else map(self._resolver, domain_addr, repeat(wallet))
+        amount_sat = satoshis(amount)
+        outputs = [PartialTxOutput.from_address_and_value(destination, amount_sat)]
+        tx = wallet.create_transaction(
+            outputs,
+            fee=tx_fee,
+            feerate=feerate,
+            change_addr=change_addr,
+            domain_addr=domain_addr,
+            domain_coins=domain_coins,
+            unsigned=unsigned,
+            rbf=rbf,
+            password=password,
+            locktime=locktime)
         return tx.serialize()
 
     @command('wp')
     async def paytomany(self, outputs, fee=None, feerate=None, from_addr=None, from_coins=None, change_addr=None,
                         nocheck=False, unsigned=False, rbf=None, password=None, locktime=None, wallet: Abstract_Wallet = None):
         """Create a multi-output transaction. """
+        self.nocheck = nocheck
         tx_fee = satoshis(fee)
         domain_addr = from_addr.split(',') if from_addr else None
         domain_coins = from_coins.split(',') if from_coins else None
-        tx = self._mktx(wallet,
-                        outputs,
-                        fee=tx_fee,
-                        feerate=feerate,
-                        change_addr=change_addr,
-                        domain_addr=domain_addr,
-                        domain_coins=domain_coins,
-                        nocheck=nocheck,
-                        unsigned=unsigned,
-                        rbf=rbf,
-                        password=password,
-                        locktime=locktime)
+        change_addr = self._resolver(change_addr, wallet)
+        domain_addr = None if domain_addr is None else map(self._resolver, domain_addr, repeat(wallet))
+        final_outputs = []
+        for address, amount in outputs:
+            address = self._resolver(address, wallet)
+            amount_sat = satoshis(amount)
+            final_outputs.append(PartialTxOutput.from_address_and_value(address, amount_sat))
+        tx = wallet.create_transaction(
+            final_outputs,
+            fee=tx_fee,
+            feerate=feerate,
+            change_addr=change_addr,
+            domain_addr=domain_addr,
+            domain_coins=domain_coins,
+            unsigned=unsigned,
+            rbf=rbf,
+            password=password,
+            locktime=locktime)
         return tx.serialize()
 
     @command('w')
@@ -767,19 +767,13 @@ class Commands:
         decrypted = wallet.decrypt_message(pubkey, encrypted, password)
         return decrypted.decode('utf-8')
 
-    def _format_request(self, out):
-        from .util import get_request_status
-        out['amount_LTC'] = format_satoshis(out.get('amount'))
-        out['status'], out['status_str'] = get_request_status(out)
-        return out
-
     @command('w')
     async def getrequest(self, key, wallet: Abstract_Wallet = None):
         """Return a payment request"""
         r = wallet.get_request(key)
         if not r:
             raise Exception("Request not found")
-        return self._format_request(r)
+        return wallet.export_request(r)
 
     #@command('w')
     #async def ackrequest(self, serialized):
@@ -789,8 +783,6 @@ class Commands:
     @command('w')
     async def list_requests(self, pending=False, expired=False, paid=False, wallet: Abstract_Wallet = None):
         """List the payment requests you made."""
-        out = wallet.get_sorted_requests()
-        out = list(map(self._format_request, out))
         if pending:
             f = PR_UNPAID
         elif expired:
@@ -799,9 +791,10 @@ class Commands:
             f = PR_PAID
         else:
             f = None
+        out = wallet.get_sorted_requests()
         if f is not None:
-            out = list(filter(lambda x: x.get('status')==f, out))
-        return out
+            out = list(filter(lambda x: x.status==f, out))
+        return [wallet.export_request(x) for x in out]
 
     @command('w')
     async def createnewaddress(self, wallet: Abstract_Wallet = None):
@@ -853,14 +846,13 @@ class Commands:
         expiration = int(expiration) if expiration else None
         req = wallet.make_payment_request(addr, amount, memo, expiration)
         wallet.add_payment_request(req)
-        out = wallet.get_request(addr)
-        return self._format_request(out)
+        return wallet.export_request(req)
 
     @command('wn')
     async def add_lightning_request(self, amount, memo='', expiration=3600, wallet: Abstract_Wallet = None):
         amount_sat = int(satoshis(amount))
         key = await wallet.lnworker._add_request_coro(amount_sat, memo, expiration)
-        return wallet.get_request(key)['invoice']
+        return wallet.get_formatted_request(key)
 
     @command('w')
     async def addtransaction(self, tx, wallet: Abstract_Wallet = None):
@@ -888,8 +880,8 @@ class Commands:
     @command('w')
     async def clear_requests(self, wallet: Abstract_Wallet = None):
         """Remove all payment requests"""
-        for k in list(wallet.receive_requests.keys()):
-            wallet.remove_payment_request(k)
+        wallet.clear_requests()
+        return True
 
     @command('w')
     async def clear_invoices(self, wallet: Abstract_Wallet = None):
@@ -1001,19 +993,22 @@ class Commands:
         return chan.funding_outpoint.to_str()
 
     @command('')
-    async def decode_invoice(self, invoice):
-        return parse_lightning_invoice(invoice)
+    async def decode_invoice(self, invoice: str):
+        invoice = LNInvoice.from_bech32(invoice)
+        return invoice.to_debug_json()
 
     @command('wn')
-    async def lnpay(self, invoice, attempts=1, timeout=10, wallet: Abstract_Wallet = None):
+    async def lnpay(self, invoice, attempts=1, timeout=30, wallet: Abstract_Wallet = None):
         lnworker = wallet.lnworker
-        lnaddr = lnworker._check_invoice(invoice, None)
+        lnaddr = lnworker._check_invoice(invoice)
         payment_hash = lnaddr.paymenthash
-        success = await lnworker._pay(invoice, attempts=attempts)
+        wallet.save_invoice(LNInvoice.from_bech32(invoice))
+        success, log = await lnworker._pay(invoice, attempts=attempts)
         return {
             'payment_hash': payment_hash.hex(),
             'success': success,
             'preimage': lnworker.get_preimage(payment_hash).hex() if success else None,
+            'log': [x.formatted_tuple() for x in log]
         }
 
     @command('w')
@@ -1025,7 +1020,6 @@ class Commands:
     async def list_channels(self, wallet: Abstract_Wallet = None):
         # we output the funding_outpoint instead of the channel_id because lnd uses channel_point (funding outpoint) to identify channels
         from .lnutil import LOCAL, REMOTE, format_short_channel_id
-        encoder = util.MyEncoder()
         l = list(wallet.lnworker.channels.items())
         return [
             {
@@ -1065,7 +1059,8 @@ class Commands:
 
     @command('w')
     async def list_invoices(self, wallet: Abstract_Wallet = None):
-        return wallet.get_invoices()
+        l = wallet.get_invoices()
+        return [wallet.export_invoice(x) for x in l]
 
     @command('wn')
     async def close_channel(self, channel_point, force=False, wallet: Abstract_Wallet = None):
@@ -1101,6 +1096,58 @@ class Commands:
         """ return the local watchtower's ctn of channel. used in regtests """
         return await self.network.local_watchtower.sweepstore.get_ctn(channel_point, None)
 
+    @command('wnp')
+    async def normal_swap(self, onchain_amount, lightning_amount, password=None, wallet: Abstract_Wallet = None):
+        """
+        Normal submarine swap: send on-chain BTC, receive on Lightning
+        Note that your funds will be locked for 24h if you do not have enough incoming capacity.
+        """
+        sm = wallet.lnworker.swap_manager
+        if lightning_amount == 'dryrun':
+            await sm.get_pairs()
+            onchain_amount_sat = satoshis(onchain_amount)
+            lightning_amount_sat = sm.get_recv_amount(onchain_amount_sat, is_reverse=False)
+            txid = None
+        elif onchain_amount == 'dryrun':
+            await sm.get_pairs()
+            lightning_amount_sat = satoshis(lightning_amount)
+            onchain_amount_sat = sm.get_send_amount(lightning_amount_sat, is_reverse=False)
+            txid = None
+        else:
+            lightning_amount_sat = satoshis(lightning_amount)
+            onchain_amount_sat = satoshis(onchain_amount)
+            txid = await wallet.lnworker.swap_manager.normal_swap(lightning_amount_sat, onchain_amount_sat, password)
+        return {
+            'txid': txid,
+            'lightning_amount': format_satoshis(lightning_amount_sat),
+            'onchain_amount': format_satoshis(onchain_amount_sat),
+        }
+
+    @command('wn')
+    async def reverse_swap(self, lightning_amount, onchain_amount, wallet: Abstract_Wallet = None):
+        """Reverse submarine swap: send on Lightning, receive on-chain
+        """
+        sm = wallet.lnworker.swap_manager
+        if onchain_amount == 'dryrun':
+            await sm.get_pairs()
+            lightning_amount_sat = satoshis(lightning_amount)
+            onchain_amount_sat = sm.get_recv_amount(lightning_amount_sat, is_reverse=True)
+            success = None
+        elif lightning_amount == 'dryrun':
+            await sm.get_pairs()
+            onchain_amount_sat = satoshis(onchain_amount)
+            lightning_amount_sat = sm.get_send_amount(onchain_amount_sat, is_reverse=True)
+            success = None
+        else:
+            lightning_amount_sat = satoshis(lightning_amount)
+            onchain_amount_sat = satoshis(onchain_amount)
+            success = await wallet.lnworker.swap_manager.reverse_swap(lightning_amount_sat, onchain_amount_sat)
+        return {
+            'success': success,
+            'lightning_amount': format_satoshis(lightning_amount_sat),
+            'onchain_amount': format_satoshis(onchain_amount_sat),
+        }
+
 
 def eval_bool(x: str) -> bool:
     if x == 'false': return False
@@ -1127,6 +1174,8 @@ param_descriptions = {
     'requested_amount': 'Requested amount (in VIA).',
     'outputs': 'list of ["address", amount]',
     'redeem_script': 'redeem script (hexadecimal)',
+    'lightning_amount': "Amount sent or received in a submarine swap. Set it to 'dryrun' to receive a value",
+    'onchain_amount': "Amount sent or received in a submarine swap. Set it to 'dryrun' to receive a value",
 }
 
 command_options = {
@@ -1201,6 +1250,7 @@ arg_types = {
     'encrypt_file': eval_bool,
     'rbf': eval_bool,
     'timeout': float,
+    'attempts': int,
 }
 
 config_variables = {
@@ -1274,7 +1324,7 @@ def add_network_options(parser):
     parser.add_argument("-s", "--server", dest="server", default=None, help="set server host:port:protocol, where protocol is either t (tcp) or s (ssl)")
     parser.add_argument("-p", "--proxy", dest="proxy", default=None, help="set proxy [type:]host[:port] (or 'none' to disable proxy), where type is socks4,socks5 or http")
     parser.add_argument("--noonion", action="store_true", dest="noonion", default=None, help="do not try to connect to onion servers")
-    parser.add_argument("--skipmerklecheck", action="store_true", dest="skipmerklecheck", default=False, help="Tolerate invalid merkle proofs from server")
+    parser.add_argument("--skipmerklecheck", action="store_true", dest="skipmerklecheck", default=None, help="Tolerate invalid merkle proofs from server")
 
 def add_global_options(parser):
     group = parser.add_argument_group('global options')

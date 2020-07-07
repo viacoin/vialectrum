@@ -119,7 +119,7 @@ class Policy(NamedTuple):
         return ShortChannelID.normalize(self.key[0:8])
 
     @property
-    def start_node(self):
+    def start_node(self) -> bytes:
         return self.key[8:]
 
 
@@ -404,6 +404,8 @@ class ChannelDB(SqlDB):
         timestamp = payload['timestamp']
         if max_age and now - timestamp > max_age:
             return UpdateStatus.EXPIRED
+        if timestamp - now > 60:
+            return UpdateStatus.DEPRECATED
         channel_info = self._channels.get(short_channel_id)
         if not channel_info:
             return UpdateStatus.ORPHANED
@@ -417,7 +419,7 @@ class ChannelDB(SqlDB):
         short_channel_id = ShortChannelID(payload['short_channel_id'])
         key = (start_node, short_channel_id)
         old_policy = self._policies.get(key)
-        if old_policy and timestamp <= old_policy.timestamp:
+        if old_policy and timestamp <= old_policy.timestamp + 60:
             return UpdateStatus.DEPRECATED
         if verify:
             self.verify_channel_update(payload)
@@ -648,6 +650,7 @@ class ChannelDB(SqlDB):
         self.logger.info(f'num_channels_partitioned_by_policy_count. '
                          f'0p: {nchans_with_0p}, 1p: {nchans_with_1p}, 2p: {nchans_with_2p}')
         self.data_loaded.set()
+        util.trigger_callback('gossip_db_loaded')
 
     def _update_num_policies_for_chan(self, short_channel_id: ShortChannelID) -> None:
         channel_info = self.get_channel_info(short_channel_id)
@@ -731,6 +734,19 @@ class ChannelDB(SqlDB):
             if node_id in (chan.node_id, chan.get_local_pubkey()):
                 relevant_channels.add(chan.short_channel_id)
         return relevant_channels
+
+    def get_endnodes_for_chan(self, short_channel_id: ShortChannelID, *,
+                              my_channels: Dict[ShortChannelID, 'Channel'] = None) -> Optional[Tuple[bytes, bytes]]:
+        channel_info = self.get_channel_info(short_channel_id)
+        if channel_info is not None:  # publicly announced channel
+            return channel_info.node1_id, channel_info.node2_id
+        # check if it's one of our own channels
+        if not my_channels:
+            return
+        chan = my_channels.get(short_channel_id)  # type: Optional[Channel]
+        if not chan:
+            return
+        return chan.get_local_pubkey(), chan.node_id
 
     def get_node_info_for_node_id(self, node_id: bytes) -> Optional['NodeInfo']:
         return self._nodes.get(node_id)
