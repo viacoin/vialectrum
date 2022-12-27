@@ -66,9 +66,9 @@ scrypt==0.8.13 \
     --hash=sha256:b9da3cd041efdbfde0f353351b6f8a8e0b7b7b4e8d95a29e59f77c48e2cee96d \
     --hash=sha256:d5acc01c27048ad5f5477aeaa97c8faa1bd739f0a915d31b4526e18609fd9df1 \
     --hash=sha256:e1d24b8dd8a4451745a0f99c6bf356475fa822e5ebdeb207ea99f0fdab54c909
-setuptools==46.4.0 \
-    --hash=sha256:4334fc63121aafb1cc98fd5ae5dd47ea8ad4a38ad638b47af03a686deb14ef5b \
-    --hash=sha256:d05c2c47bbef97fd58632b63dd2b83426db38af18f65c180b2423fea4b67e6b8
+setuptools==65.5.1 \
+    --hash=sha256:d0b9a8433464d5800cbe05094acf5c6d52a91bfac9b52bcfc4d41382be5d5d31 \
+    --hash=sha256:e197a19aa8ec9722928f2206f8de752def0e4c9fc6953527360d1c36d94ddb2f
 wheel==0.34.2 \
     --hash=sha256:8788e9155fe14f54164c1b9eb0a319d98ef02c160725587ad60f14ddc57b6f96 \
     --hash=sha256:df277cb51e61359aba502208d680f90c0493adec6f0e848af94948778aed386e
